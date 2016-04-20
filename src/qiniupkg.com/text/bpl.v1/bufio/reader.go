@@ -1,12 +1,10 @@
 package bufio
 
-import(
+import (
 	"bytes"
 	"errors"
 	"io"
 	"unicode/utf8"
-
-	qbytes "qiniupkg.com/x/bytes.v7"
 )
 
 const (
@@ -54,18 +52,20 @@ func NewReaderSize(rd io.Reader, size int) *Reader {
 
 // NewReader returns a new Reader whose buffer has the default size.
 func NewReader(rd io.Reader) *Reader {
-	if r, ok := rd.(*qbytes.Reader); ok {
-		b := r.Bytes()
-		r.Seek(int64(len(b)), 1)
-		return &Reader{
-			buf:          b,
-			rd:           rd,
-			w:            len(b),
-			lastByte:     -1,
-			lastRuneSize: -1,
-		}
-	}
 	return NewReaderSize(rd, defaultBufSize)
+}
+
+var nilReader io.Reader = bytes.NewReader(nil)
+
+// NewReaderBuffer returns a new Reader who uses a extern buffer.
+func NewReaderBuffer(b []byte) *Reader {
+	return &Reader{
+		buf:          b,
+		rd:           nilReader,
+		w:            len(b),
+		lastByte:     -1,
+		lastRuneSize: -1,
+	}
 }
 
 // Reset discards any buffered data, resets all state, and switches
@@ -505,4 +505,3 @@ func (b *Reader) writeBuf(w io.Writer) (int64, error) {
 	b.r += n
 	return int64(n), err
 }
-

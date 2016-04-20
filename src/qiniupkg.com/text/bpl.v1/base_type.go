@@ -2,145 +2,17 @@ package bpl
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"reflect"
 	"unsafe"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
 
-/* -----------------------------------------------------------------------------
-
-builtin types:
-
-* int8, uint8(byte), int16, uint16, int32, uint32, int64, uint64
-* float32, float64, cstring, bson
-
-document = bson
-
-MsgHeader = {/C
-    int32   messageLength; // total message size, including this
-    int32   requestID;     // identifier for this message
-    int32   responseTo;    // requestID from the original request (used in responses from db)
-    int32   opCode;        // request type - see table below
-}
-
-OP_UPDATE = {/C
-	MsgHeader header;             // standard message header
-	int32     ZERO;               // 0 - reserved for future use
-	cstring   fullCollectionName; // "dbname.collectionname"
-	int32     flags;              // bit vector. see below
-	document  selector;           // the query to select the document
-	document  update;             // specification of the update to perform
-}
-
-OP_INSERT = {/C
-	MsgHeader  header;             // standard message header
-	int32      flags;              // bit vector - see below
-	cstring    fullCollectionName; // "dbname.collectionname"
-	document*  documents;          // one or more documents to insert into the collection
-}
-
-OP_QUERY = {/C
-	MsgHeader header;                 // standard message header
-	int32     flags;                  // bit vector of query options.  See below for details.
-	cstring   fullCollectionName ;    // "dbname.collectionname"
-	int32     numberToSkip;           // number of documents to skip
-	int32     numberToReturn;         // number of documents to return
-		                              //  in the first OP_REPLY batch
-	document  query;                  // query object.  See below for details.
-	document? returnFieldsSelector;   // Optional. Selector indicating the fields
-		                              //  to return.  See below for details.
-}
-
-OP_GET_MORE = {/C
-	MsgHeader header;             // standard message header
-	int32     ZERO;               // 0 - reserved for future use
-	cstring   fullCollectionName; // "dbname.collectionname"
-	int32     numberToReturn;     // number of documents to return
-	int64     cursorID;           // cursorID from the OP_REPLY
-}
-
-OP_DELETE = {/C
-	MsgHeader header;             // standard message header
-	int32     ZERO;               // 0 - reserved for future use
-	cstring   fullCollectionName; // "dbname.collectionname"
-	int32     flags;              // bit vector - see below for details.
-	document  selector;           // query object.  See below for details.
-}
-
-OP_KILL_CURSORS = {/C
-	MsgHeader header;            // standard message header
-	int32     ZERO;              // 0 - reserved for future use
-	int32     numberOfCursorIDs; // number of cursorIDs in message
-	int64*    cursorIDs;         // sequence of cursorIDs to close
-}
-
-OP_MSG = {/C
-	MsgHeader header;  // standard message header
-	cstring   message; // message for the database
-}
-
-OP_REPLY = {/C
-	MsgHeader header;         // standard message header
-	int32     responseFlags;  // bit vector - see details below
-	int64     cursorID;       // cursor id if client needs to do get more's
-	int32     startingFrom;   // where in the cursor this reply is starting
-	int32     numberReturned; // number of documents in the reply
-	document* documents;      // documents
-}
-
-Message = {
-	header MsgHeader   // standard message header
-	data   [header.messageLength - sizeof(header)]byte
-}/case header.opCode {
-	1:    OP_REPLY,    // Reply to a client request. responseTo is set.
-	1000: OP_MSG,      // Generic msg command followed by a string.
-	2001: OP_UPDATE,
-	2002: OP_INSERT,
-	2003: RESERVED,
-	2004: OP_QUERY,
-	2005: OP_GET_MORE, // Get more data from a query. See Cursors.
-	2006: OP_DELETE,
-	2007: OP_KILL_CURSORS, // Notify database that the client has finished with the cursor.
-}
-
-doc = *Message
-
-// ---------------------------------------------------------------------------*/
-
-type Context struct {
-	vars map[string]interface{}
-}
-
-func NewContext() *Context {
-
-	vars := make(map[string]interface{})
-	return &Context{vars: vars}
-}
-
-func (p *Context) SetVar(name string, v interface{}) {
-
-	p.vars[name] = v
-}
-
-func (p *Context) Var(name string) (v interface{}, ok bool) {
-
-	v, ok = p.vars[name]
-	return
-}
-
-func (p *Context) Vars() map[string]interface{} {
-
-	return p.vars
-}
-
-type Ruler interface {
-	Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
-	SizeOf() int
-}
-
 // -----------------------------------------------------------------------------
 
+// A BaseType represents a matching unit of a builtin fixed size type.
+//
 type BaseType uint
 
 type baseTypeInfo struct {
@@ -151,14 +23,14 @@ type baseTypeInfo struct {
 var baseTypes = [...]baseTypeInfo{
 	reflect.Int8:    {readInt8, 1},
 	reflect.Int16:   {readInt16, 2},
-	reflect.Int32:   {readInt32, 2},
-	reflect.Int64:   {readInt64, 2},
-	reflect.Uint8:   {readUint8, 2},
+	reflect.Int32:   {readInt32, 4},
+	reflect.Int64:   {readInt64, 8},
+	reflect.Uint8:   {readUint8, 1},
 	reflect.Uint16:  {readUint16, 2},
-	reflect.Uint32:  {readUint32, 2},
-	reflect.Uint64:  {readUint64, 2},
-	reflect.Float32: {readFloat32, 2},
-	reflect.Float64: {readFloat64, 2},
+	reflect.Uint32:  {readUint32, 4},
+	reflect.Uint64:  {readUint64, 8},
+	reflect.Float32: {readFloat32, 4},
+	reflect.Float64: {readFloat64, 8},
 }
 
 func readInt8(in *bufio.Reader) (v interface{}, err error) {
@@ -259,55 +131,141 @@ func readFloat64(in *bufio.Reader) (v interface{}, err error) {
 	return
 }
 
+// Match is required by a matching unit. see Ruler interface.
+//
 func (p BaseType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	v, err = baseTypes[p].read(in)
 	return
 }
 
+// SizeOf is required by a matching unit. see Ruler interface.
+//
 func (p BaseType) SizeOf() int {
 
 	return baseTypes[p].sizeOf
 }
 
 var (
-	Int8    = BaseType(reflect.Int8)
-	Int16   = BaseType(reflect.Int16)
-	Int32   = BaseType(reflect.Int32)
-	Int64   = BaseType(reflect.Int64)
-	Uint8   = BaseType(reflect.Uint8)
-	Uint16  = BaseType(reflect.Uint16)
-	Uint32  = BaseType(reflect.Uint32)
-	Uint64  = BaseType(reflect.Uint64)
+	// Int8 is the matching unit for int8
+	Int8 = BaseType(reflect.Int8)
+
+	// Int16 is the matching unit for int16
+	Int16 = BaseType(reflect.Int16)
+
+	// Int32 is the matching unit for int32
+	Int32 = BaseType(reflect.Int32)
+
+	// Int64 is the matching unit for int64
+	Int64 = BaseType(reflect.Int64)
+
+	// Uint8 is the matching unit for uint8
+	Uint8 = BaseType(reflect.Uint8)
+
+	// Uint16 is the matching unit for uint16
+	Uint16 = BaseType(reflect.Uint16)
+
+	// Uint32 is the matching unit for uint32
+	Uint32 = BaseType(reflect.Uint32)
+
+	// Uint64 is the matching unit for uint64
+	Uint64 = BaseType(reflect.Uint64)
+
+	// Float32 is the matching unit for float32
 	Float32 = BaseType(reflect.Float32)
+
+	// Float64 is the matching unit for float64
 	Float64 = BaseType(reflect.Float64)
 )
 
 // -----------------------------------------------------------------------------
 
 type namedBaseType struct {
-	Name string
-	Type BaseType
+	name string
+	typ  BaseType
 }
 
-func NamedBaseType(name string, typ BaseType) *namedBaseType {
+// NamedBaseType returns a matching unit that represents a builtin fix size type with a name.
+//
+func NamedBaseType(name string, typ BaseType) Ruler {
 
-	return &namedBaseType{Name: name, Type: typ}
+	return &namedBaseType{name: name, typ: typ}
 }
 
 func (p *namedBaseType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	v, err = baseTypes[p.Type].read(in)
-	if ctx.vars != nil {
-		ctx.vars[p.Name] = v
+	v, err = baseTypes[p.typ].read(in)
+	if ctx != nil {
+		ctx.vars[p.name] = v
 	}
 	return
 }
 
 func (p *namedBaseType) SizeOf() int {
 
-	return baseTypes[p.Type].sizeOf
+	return baseTypes[p.typ].sizeOf
 }
 
 // -----------------------------------------------------------------------------
 
+type nilType int
+
+func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	return nil, nil
+}
+
+func (p nilType) SizeOf() int {
+
+	return 0
+}
+
+// Nil is a matching unit that matches zero bytes.
+//
+var Nil Ruler = nilType(0)
+
+// -----------------------------------------------------------------------------
+
+// A String represents result of a string matching unit, such as `CString`.
+//
+type String struct {
+	Data  []byte
+	cache string
+}
+
+func (p *String) String() string {
+
+	if p.cache == "" {
+		p.cache = string(p.Data)
+	}
+	return p.cache
+}
+
+// MarshalJSON is required by json.Marshal
+//
+func (p *String) MarshalJSON() (b []byte, err error) {
+
+	return json.Marshal(p.String())
+}
+
+type cstring int
+
+func (p cstring) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	b, err := in.ReadBytes(0)
+	if err != nil {
+		return
+	}
+	return &String{Data: b[:len(b)-1]}, nil
+}
+
+func (p cstring) SizeOf() int {
+
+	return -1
+}
+
+// CString is a matching unit that matches a C style string.
+//
+var CString Ruler = cstring(0)
+
+// -----------------------------------------------------------------------------

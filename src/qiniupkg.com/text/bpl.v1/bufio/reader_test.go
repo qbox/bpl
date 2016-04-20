@@ -2,8 +2,6 @@ package bufio
 
 import (
 	"testing"
-
-	qbytes "qiniupkg.com/x/bytes.v7"
 )
 
 // ---------------------------------------------------
@@ -11,8 +9,7 @@ import (
 func TestReader(t *testing.T) {
 
 	text := []byte("Hello, bpl")
-	r := qbytes.NewReader(text)
-	br := NewReader(r)
+	br := NewReaderBuffer(text)
 	if br.Buffered() != len(text) {
 		t.Fatal("br.Buffered() != len(text)")
 	}
@@ -34,4 +31,3 @@ func TestReader(t *testing.T) {
 }
 
 // ---------------------------------------------------
-
