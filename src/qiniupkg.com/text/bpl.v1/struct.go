@@ -211,6 +211,29 @@ type NamedType struct {
 	Type Ruler
 }
 
+// Match is required by a matching unit. see Ruler interface.
+//
+func (p *NamedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	v, err = p.Type.Match(in, ctx)
+	if err != nil {
+		return
+	}
+	if ctx != nil {
+		ctx.vars[p.Name] = v
+	}
+	return
+}
+
+// SizeOf is required by a matching unit. see Ruler interface.
+//
+func (p *NamedType) SizeOf() int {
+
+	return p.Type.SizeOf()
+}
+
+// -----------------------------------------------------------------------------
+
 // Struct returns a compound matching unit.
 //
 func Struct(members []NamedType) Ruler {
