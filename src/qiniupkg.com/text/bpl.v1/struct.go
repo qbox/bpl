@@ -2,7 +2,10 @@ package bpl
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"reflect"
+	"strings"
 	"syscall"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -60,12 +63,12 @@ func (p *block) all(vars map[string]interface{}) error {
 
 // -----------------------------------------------------------------------------
 
-type blockTypeInfo struct {
+type blockType struct {
 	members []blockMember
 	size    int
 }
 
-func (p *blockTypeInfo) match(in *bufio.Reader, ctx *Context) (g memberGroup, err error) {
+func (p *blockType) match(in *bufio.Reader, ctx *Context) (g memberGroup, err error) {
 
 	b := make([]byte, p.size)
 	_, err = io.ReadFull(in, b)
@@ -258,7 +261,7 @@ func Struct(members []NamedType) Ruler {
 				off += size
 				j++
 			}
-			gs = append(gs, &blockTypeInfo{members: items, size: off})
+			gs = append(gs, &blockType{members: items, size: off})
 		}
 		i = j
 	}
@@ -267,6 +270,44 @@ func Struct(members []NamedType) Ruler {
 		off = -1
 	}
 	return &structType{gs: gs, size: off}
+}
+
+// -----------------------------------------------------------------------------
+
+func structFrom(t reflect.Type) (r Ruler, err error) {
+
+	n := t.NumField()
+	members := make([]NamedType, n)
+	for i := 0; i < n; i++ {
+		sf := t.Field(i)
+		r, err = TypeFrom(sf.Type)
+		if err != nil {
+			log.Warn("bpl.TypeFrom failed:", err)
+			return
+		}
+		members[i] = NamedType{Name: strings.ToLower(sf.Name), Type: r}
+	}
+	return Struct(members), nil
+}
+
+// TypeFrom creates a matching unit from a Go type.
+//
+func TypeFrom(t reflect.Type) (r Ruler, err error) {
+
+retry:
+	kind := t.Kind()
+	switch {
+	case kind == reflect.Struct:
+		return structFrom(t)
+	case kind >= reflect.Int8 && kind <= reflect.Float64:
+		return BaseType(kind), nil
+	case kind == reflect.String:
+		return CString, nil
+	case kind == reflect.Ptr:
+		t = t.Elem()
+		goto retry
+	}
+	return nil, fmt.Errorf("bpl.TypeFrom: unsupported type - %v", t)
 }
 
 // -----------------------------------------------------------------------------

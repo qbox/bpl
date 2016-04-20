@@ -3,10 +3,12 @@ package bpl
 import (
 	"encoding/binary"
 	"encoding/json"
+	"io"
 	"reflect"
 	"unsafe"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/log.v7"
 )
 
 // -----------------------------------------------------------------------------
@@ -267,5 +269,37 @@ func (p cstring) SizeOf() int {
 // CString is a matching unit that matches a C style string.
 //
 var CString Ruler = cstring(0)
+
+// -----------------------------------------------------------------------------
+
+type fixedType struct {
+	typ reflect.Type
+}
+
+func (p *fixedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	typ := p.typ
+	size := typ.Size()
+	val := reflect.New(typ)
+	b := (*[1 << 30]byte)(unsafe.Pointer(val.UnsafeAddr()))
+	_, err = io.ReadFull(in, b[:size])
+	if err != nil {
+		log.Warn("fixedType.Match: io.ReadFull failed -", err)
+		return
+	}
+	return val.Interface(), nil
+}
+
+func (p *fixedType) SizeOf() int {
+
+	return int(p.typ.Size())
+}
+
+// FixedType returns a matching unit that matches a C style fixed size struct.
+//
+func FixedType(t reflect.Type) Ruler {
+
+	return &fixedType{typ: t}
+}
 
 // -----------------------------------------------------------------------------
