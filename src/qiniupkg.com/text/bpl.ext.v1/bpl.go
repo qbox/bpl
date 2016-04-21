@@ -21,7 +21,7 @@ func New(code []byte, fname string) (r bpl.Ruler, err error) {
 
 	err = engine.MatchExactly(code, fname)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	return p.Ret()
