@@ -15,8 +15,21 @@ expr = +factor/And
 
 doc = +((IDENT '=' expr ';')/assign)
 
+ctype = IDENT/ident ?('*'/repeat0 | '?'/repeat01 | '+'/repeat1)
+
+type =
+	IDENT/ident |
+	('*'! IDENT/ident)/repeat0 |
+	('?'! IDENT/ident)/repeat01 |
+	('+'! IDENT/ident)/repeat1
+
+cstruct = (ctype IDENT/var) %= ';'/CStruct
+
+struct = (IDENT/var type) %= ';'/Struct
+
 factor =
 	IDENT/ident |
+	'{' ('/' "C" ';' cstruct | struct) ?';' '}' |
 	'*' factor/repeat0 |
 	'+' factor/repeat1 |
 	'?' factor/repeat01 |
@@ -34,7 +47,7 @@ var (
 // A Compiler compiles bpl source code to matching units.
 //
 type Compiler struct {
-	stk    []bpl.Ruler
+	stk    []interface{}
 	rulers map[string]bpl.Ruler
 	vars   map[string]*bpl.TypeVar
 }
@@ -92,11 +105,11 @@ func (p *Compiler) Stack() interpreter.Stack {
 
 // -----------------------------------------------------------------------------
 
-func clone(rs []bpl.Ruler) []bpl.Ruler {
+func clone(rs []interface{}) []bpl.Ruler {
 
 	dest := make([]bpl.Ruler, len(rs))
 	for i, r := range rs {
-		dest[i] = r
+		dest[i] = r.(bpl.Ruler)
 	}
 	return dest
 }
@@ -120,6 +133,41 @@ func (p *Compiler) seq(m int) {
 	p.stk = stk[:n-m+1]
 }
 
+func (p *Compiler) dostruct(m int, cstyle int) {
+
+	if m == 0 {
+		p.stk = append(p.stk, bpl.Nil)
+		return
+	}
+
+	stk := p.stk
+	base := len(stk) - (m << 1)
+	members := make([]bpl.NamedType, m)
+	for i := 0; i < m; i++ {
+		idx := base + (i << 1)
+		typ := stk[idx+1-cstyle].(bpl.Ruler)
+		name := stk[idx+cstyle].(string)
+		members[i] = bpl.NamedType{Name: name, Type: typ}
+	}
+	stk[base] = bpl.Struct(members)
+	p.stk = stk[:base+1]
+}
+
+func (p *Compiler) cstruct(m int) {
+
+	p.dostruct(m, 1)
+}
+
+func (p *Compiler) gostruct(m int) {
+
+	p.dostruct(m, 0)
+}
+
+func (p *Compiler) variable(name string) {
+
+	p.stk = append(p.stk, name)
+}
+
 func (p *Compiler) ident(name string) {
 
 	r, ok := p.rulers[name]
@@ -139,7 +187,7 @@ func (p *Compiler) ident(name string) {
 
 func (p *Compiler) assign(name string) {
 
-	a := p.stk[0]
+	a := p.stk[0].(bpl.Ruler)
 	if v, ok := p.vars[name]; ok {
 		if err := v.Assign(a); err != nil {
 			panic(err)
@@ -156,28 +204,31 @@ func (p *Compiler) repeat0() {
 
 	stk := p.stk
 	i := len(stk) - 1
-	stk[i] = bpl.Repeat0(stk[i])
+	stk[i] = bpl.Repeat0(stk[i].(bpl.Ruler))
 }
 
 func (p *Compiler) repeat1() {
 
 	stk := p.stk
 	i := len(stk) - 1
-	stk[i] = bpl.Repeat1(stk[i])
+	stk[i] = bpl.Repeat1(stk[i].(bpl.Ruler))
 }
 
 func (p *Compiler) repeat01() {
 
 	stk := p.stk
 	i := len(stk) - 1
-	stk[i] = bpl.Repeat01(stk[i])
+	stk[i] = bpl.Repeat01(stk[i].(bpl.Ruler))
 }
 
 // -----------------------------------------------------------------------------
 
 var fntable = map[string]interface{}{
+	"$CStruct":  (*Compiler).cstruct,
+	"$Struct":   (*Compiler).gostruct,
 	"$And":      (*Compiler).and,
 	"$Seq":      (*Compiler).seq,
+	"$var":      (*Compiler).variable,
 	"$ident":    (*Compiler).ident,
 	"$assign":   (*Compiler).assign,
 	"$repeat0":  (*Compiler).repeat0,
