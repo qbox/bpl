@@ -51,9 +51,12 @@ retry:
 		kind -= reflect.Uint8
 	case kind == reflect.String:
 		return writeCString(w, v.String())
-	case kind == reflect.Float64 || kind == reflect.Float32:
+	case kind == reflect.Float64:
 		*(*float64)(unsafe.Pointer(&val)) = v.Float()
-		kind -= (reflect.Float32 - 2)
+		kind = 3
+	case kind == reflect.Float32:
+		*(*float32)(unsafe.Pointer(&val)) = float32(v.Float())
+		kind = 2
 	case kind == reflect.Ptr:
 		v = v.Elem()
 		goto retry

@@ -80,6 +80,11 @@ type fooType struct {
 	G float64
 }
 
+var (
+	rSubType = bpl.Seq(bpl.CString)
+	rFooType = bpl.Seq(bpl.Int8, bpl.Uint16, bpl.Uint32, bpl.Float32, bpl.CString, rSubType, bpl.Float64)
+)
+
 func TestStruct(t *testing.T) {
 
 	foo := &fooType{
@@ -108,5 +113,31 @@ func TestStruct(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	println(string(ret))
+	if string(ret) != `{"a":1,"b":2,"c":3,"d":3.14,"e":"Hello","f":{"foo":"foo"},"g":7.52}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+func TestSeq(t *testing.T) {
+
+	foo := &fooType{
+		A: 1, B: 2, C: 3, D: 3.14, E: "Hello", F: subType{Foo: "foo"}, G: 7.52,
+		// 1 + 2 + 4 + 4 + 6 + 4 + 8 = 29
+	}
+	b, err := bin.Marshal(&foo)
+	if err != nil {
+		t.Fatal("binary.Marshal failed:", err)
+	}
+	in := bufio.NewReaderBuffer(b)
+	v, err := rFooType.Match(in, nil)
+	if err != nil {
+		t.Fatal("Match failed:", err, "len:", len(b))
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `[1,2,3,3.14,"Hello",["foo"],7.52]` {
+		t.Fatal("ret:", string(ret))
+	}
 }

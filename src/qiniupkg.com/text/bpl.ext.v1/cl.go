@@ -16,11 +16,12 @@ expr = +factor/And
 doc = +((IDENT '=' expr ';')/assign)
 
 factor =
-    IDENT/ident |
-    '*' factor/repeat0 |
-    '+' factor/repeat1 |
-    '?' factor/repeat01 |
-    '(' expr ')'
+	IDENT/ident |
+	'*' factor/repeat0 |
+	'+' factor/repeat1 |
+	'?' factor/repeat01 |
+	'(' expr ')' |
+	'[' +factor/Seq ']'
 `
 
 var (
@@ -111,6 +112,14 @@ func (p *Compiler) and(m int) {
 	p.stk = stk[:n-m+1]
 }
 
+func (p *Compiler) seq(m int) {
+
+	stk := p.stk
+	n := len(stk)
+	stk[n-m] = bpl.Seq(clone(stk[n-m:])...)
+	p.stk = stk[:n-m+1]
+}
+
 func (p *Compiler) ident(name string) {
 
 	r, ok := p.rulers[name]
@@ -168,6 +177,7 @@ func (p *Compiler) repeat01() {
 
 var fntable = map[string]interface{}{
 	"$And":      (*Compiler).and,
+	"$Seq":      (*Compiler).seq,
 	"$ident":    (*Compiler).ident,
 	"$assign":   (*Compiler).assign,
 	"$repeat0":  (*Compiler).repeat0,

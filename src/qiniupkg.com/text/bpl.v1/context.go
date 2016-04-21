@@ -112,7 +112,7 @@ type Context struct {
 	vars map[string]interface{}
 
 	// Capture is optional when matching.
-	Capture *bytes.Buffer
+	capt *bytes.Buffer
 }
 
 // NewContext returns a new Context.
@@ -121,6 +121,15 @@ func NewContext() *Context {
 
 	vars := make(map[string]interface{})
 	return &Context{vars: vars}
+}
+
+// CaptureIf captures the matching text if needed.
+//
+func (p *Context) CaptureIf(b []byte) {
+
+	if p != nil && p.capt != nil {
+		p.capt.Write(b)
+	}
 }
 
 // SetVar sets a new variable to matching context.

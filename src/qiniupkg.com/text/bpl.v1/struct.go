@@ -76,6 +76,7 @@ func (p *blockType) match(in *bufio.Reader, ctx *Context) (g memberGroup, err er
 		log.Warn("io.ReadFull failed:", err)
 		return
 	}
+	ctx.CaptureIf(b)
 	return &block{data: b, members: p.members}, nil
 }
 

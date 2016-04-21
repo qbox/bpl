@@ -27,6 +27,13 @@ func New(code []byte, fname string) (r bpl.Ruler, err error) {
 	return p.Ret()
 }
 
+// NewFromString compiles bpl source code and returns the corresponding matching unit.
+//
+func NewFromString(code string, fname string) (r bpl.Ruler, err error) {
+
+	return New([]byte(code), fname)
+}
+
 // NewFromFile compiles bpl source file and returns the corresponding matching unit.
 //
 func NewFromFile(fname string) (r bpl.Ruler, err error) {

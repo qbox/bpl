@@ -47,6 +47,37 @@ func And(rs ...Ruler) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type seq struct {
+	rs []Ruler
+}
+
+func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	ret := make([]interface{}, len(p.rs))
+	for i, r := range p.rs {
+		v, err = r.Match(in, ctx)
+		if err != nil {
+			return
+		}
+		ret[i] = v
+	}
+	return ret, nil
+}
+
+func (p *seq) SizeOf() int {
+
+	return -1
+}
+
+// Seq returns a matching unit that matches R1 R2 ... RN and returns matching result.
+//
+func Seq(rs ...Ruler) Ruler {
+
+	return &seq{rs: rs}
+}
+
+// -----------------------------------------------------------------------------
+
 type repeat0 struct {
 	r Ruler
 }
