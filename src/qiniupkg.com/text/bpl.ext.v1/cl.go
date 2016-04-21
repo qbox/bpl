@@ -157,12 +157,12 @@ func (p *Compiler) dostruct(m int, cstyle int) {
 
 	stk := p.stk
 	base := len(stk) - (m << 1)
-	members := make([]bpl.NamedType, m)
+	members := make([]bpl.Member, m)
 	for i := 0; i < m; i++ {
 		idx := base + (i << 1)
 		typ := stk[idx+1-cstyle].(bpl.Ruler)
 		name := stk[idx+cstyle].(string)
-		members[i] = bpl.NamedType{Name: name, Type: typ}
+		members[i] = bpl.Member{Name: name, Type: typ}
 	}
 	stk[base] = bpl.Struct(members)
 	p.stk = stk[:base+1]
@@ -186,15 +186,15 @@ func (p *Compiler) variable(name string) {
 func (p *Compiler) ident(name string) {
 
 	r, ok := p.rulers[name]
-	if ok {
-		r = &bpl.NamedType{Name: name, Type: r}
-	} else if r, ok = p.vars[name]; !ok {
-		if r, ok = builtins[name]; ok {
-			p.rulers[name] = r
-		} else {
-			v := &bpl.TypeVar{Name: name}
-			p.vars[name] = v
-			r = v
+	if !ok {
+		if r, ok = p.vars[name]; !ok {
+			if r, ok = builtins[name]; ok {
+				p.rulers[name] = r
+			} else {
+				v := &bpl.TypeVar{Name: name}
+				p.vars[name] = v
+				r = v
+			}
 		}
 	}
 	p.stk = append(p.stk, r)
