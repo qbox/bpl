@@ -224,26 +224,3 @@ func (p *TypeVar) SizeOf() int {
 }
 
 // -----------------------------------------------------------------------------
-/*
-// A NamedType is a type that provides a name.
-//
-type NamedType struct {
-	Name string
-	Type Ruler
-}
-
-// Match is required by a matching unit. see Ruler interface.
-//
-func (p *NamedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	return p.Type.Match(in, ctx)
-}
-
-// SizeOf is required by a matching unit. see Ruler interface.
-//
-func (p *NamedType) SizeOf() int {
-
-	return p.Type.SizeOf()
-}
-*/
-// -----------------------------------------------------------------------------

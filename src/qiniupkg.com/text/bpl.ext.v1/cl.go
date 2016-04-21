@@ -274,12 +274,14 @@ var builtins = map[string]bpl.Ruler{
 	"int32":   bpl.Int32,
 	"int64":   bpl.Int64,
 	"uint8":   bpl.Uint8,
+	"byte":    bpl.Uint8,
 	"uint16":  bpl.Uint16,
 	"uint32":  bpl.Uint32,
 	"uint64":  bpl.Uint64,
 	"float32": bpl.Float32,
 	"float64": bpl.Float64,
 	"cstring": bpl.CString,
+	"nil":     bpl.Nil,
 	"bson":    bson.Type,
 }
 
