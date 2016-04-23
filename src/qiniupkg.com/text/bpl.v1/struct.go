@@ -205,16 +205,16 @@ func (p *structType) SizeOf() int {
 
 // -----------------------------------------------------------------------------
 
-// A NamedType is typeinfo of a `Struct` member.
+// A Member is typeinfo of a `Struct` member.
 //
-type NamedType struct {
+type Member struct {
 	Name string
 	Type Ruler
 }
 
 // Match is required by a matching unit. see Ruler interface.
 //
-func (p *NamedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+func (p *Member) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	v, err = p.Type.Match(in, ctx)
 	if err != nil {
@@ -228,7 +228,7 @@ func (p *NamedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err er
 
 // SizeOf is required by a matching unit. see Ruler interface.
 //
-func (p *NamedType) SizeOf() int {
+func (p *Member) SizeOf() int {
 
 	return p.Type.SizeOf()
 }
@@ -237,7 +237,7 @@ func (p *NamedType) SizeOf() int {
 
 // Struct returns a compound matching unit.
 //
-func Struct(members []NamedType) Ruler {
+func Struct(members []Member) Ruler {
 
 	n := len(members)
 	if n == 0 {
@@ -301,7 +301,7 @@ func Struct(members []NamedType) Ruler {
 func structFrom(t reflect.Type) (r Ruler, err error) {
 
 	n := t.NumField()
-	members := make([]NamedType, n)
+	members := make([]Member, n)
 	for i := 0; i < n; i++ {
 		sf := t.Field(i)
 		r, err = TypeFrom(sf.Type)
@@ -309,7 +309,7 @@ func structFrom(t reflect.Type) (r Ruler, err error) {
 			log.Warn("bpl.TypeFrom failed:", err)
 			return
 		}
-		members[i] = NamedType{Name: strings.ToLower(sf.Name), Type: r}
+		members[i] = Member{Name: strings.ToLower(sf.Name), Type: r}
 	}
 	return Struct(members), nil
 }

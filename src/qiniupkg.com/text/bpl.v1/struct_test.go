@@ -36,7 +36,7 @@ func TestFixedStruct(t *testing.T) {
 		t.Fatal("len != 11")
 	}
 
-	members := []bpl.NamedType{
+	members := []bpl.Member{
 		{Name: "a", Type: bpl.Int8},
 		{Name: "b", Type: bpl.Uint16},
 		{Name: "c", Type: bpl.Uint32},

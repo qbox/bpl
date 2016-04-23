@@ -15,10 +15,15 @@ expr = +factor/And
 
 doc = +((IDENT '=' expr ';')/assign)
 
-ctype = IDENT/ident ?('*'/repeat0 | '?'/repeat01 | '+'/repeat1)
+iterm = ifactor *('*' ifactor/mul | '/' ifactor/quo | '%' ifactor/mod)
+
+iexpr = iterm *('+' iterm/add | '-' iterm/sub)
+
+ctype = IDENT/ident ?('[' iexpr ']'/array | '*'/repeat0 | '?'/repeat01 | '+'/repeat1)
 
 type =
 	IDENT/ident |
+	('[' iexpr ']' IDENT/ident)/array |
 	('*'! IDENT/ident)/repeat0 |
 	('?'! IDENT/ident)/repeat01 |
 	('+'! IDENT/ident)/repeat1
@@ -35,6 +40,16 @@ factor =
 	'?' factor/repeat01 |
 	'(' expr ')' |
 	'[' +factor/Seq ']'
+
+atom = 
+	'(' iexpr %= ','/ARITY ')'/call |
+	'.' IDENT/mref
+
+ifactor =
+	INT/pushi |
+	(IDENT/ref | '('! iexpr ')') *atom |
+	'-' ifactor/neg |
+	'+' ifactor
 `
 
 var (
@@ -142,12 +157,12 @@ func (p *Compiler) dostruct(m int, cstyle int) {
 
 	stk := p.stk
 	base := len(stk) - (m << 1)
-	members := make([]bpl.NamedType, m)
+	members := make([]bpl.Member, m)
 	for i := 0; i < m; i++ {
 		idx := base + (i << 1)
 		typ := stk[idx+1-cstyle].(bpl.Ruler)
 		name := stk[idx+cstyle].(string)
-		members[i] = bpl.NamedType{Name: name, Type: typ}
+		members[i] = bpl.Member{Name: name, Type: typ}
 	}
 	stk[base] = bpl.Struct(members)
 	p.stk = stk[:base+1]
@@ -171,15 +186,15 @@ func (p *Compiler) variable(name string) {
 func (p *Compiler) ident(name string) {
 
 	r, ok := p.rulers[name]
-	if ok {
-		r = &bpl.NamedType{Name: name, Type: r}
-	} else if r, ok = p.vars[name]; !ok {
-		if r, ok = builtins[name]; ok {
-			p.rulers[name] = r
-		} else {
-			v := &bpl.TypeVar{Name: name}
-			p.vars[name] = v
-			r = v
+	if !ok {
+		if r, ok = p.vars[name]; !ok {
+			if r, ok = builtins[name]; ok {
+				p.rulers[name] = r
+			} else {
+				v := &bpl.TypeVar{Name: name}
+				p.vars[name] = v
+				r = v
+			}
 		}
 	}
 	p.stk = append(p.stk, r)
@@ -221,6 +236,10 @@ func (p *Compiler) repeat01() {
 	stk[i] = bpl.Repeat01(stk[i].(bpl.Ruler))
 }
 
+func (p *Compiler) array() {
+
+}
+
 // -----------------------------------------------------------------------------
 
 var fntable = map[string]interface{}{
@@ -228,12 +247,25 @@ var fntable = map[string]interface{}{
 	"$Struct":   (*Compiler).gostruct,
 	"$And":      (*Compiler).and,
 	"$Seq":      (*Compiler).seq,
+	"$array":    (*Compiler).array,
 	"$var":      (*Compiler).variable,
 	"$ident":    (*Compiler).ident,
 	"$assign":   (*Compiler).assign,
 	"$repeat0":  (*Compiler).repeat0,
 	"$repeat1":  (*Compiler).repeat1,
 	"$repeat01": (*Compiler).repeat01,
+
+	"$ARITY": (*Compiler).arity,
+	"$mul":   (*Compiler).mul,
+	"$quo":   (*Compiler).quo,
+	"$mod":   (*Compiler).mod,
+	"$neg":   (*Compiler).neg,
+	"$add":   (*Compiler).add,
+	"$sub":   (*Compiler).sub,
+	"$call":  (*Compiler).call,
+	"$ref":   (*Compiler).ref,
+	"$mref":  (*Compiler).mref,
+	"$pushi": (*Compiler).pushi,
 }
 
 var builtins = map[string]bpl.Ruler{
@@ -242,12 +274,14 @@ var builtins = map[string]bpl.Ruler{
 	"int32":   bpl.Int32,
 	"int64":   bpl.Int64,
 	"uint8":   bpl.Uint8,
+	"byte":    bpl.Uint8,
 	"uint16":  bpl.Uint16,
 	"uint32":  bpl.Uint32,
 	"uint64":  bpl.Uint64,
 	"float32": bpl.Float32,
 	"float64": bpl.Float64,
 	"cstring": bpl.CString,
+	"nil":     bpl.Nil,
 	"bson":    bson.Type,
 }
 

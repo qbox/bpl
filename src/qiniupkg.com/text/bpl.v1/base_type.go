@@ -182,34 +182,6 @@ var (
 
 // -----------------------------------------------------------------------------
 
-type namedBaseType struct {
-	name string
-	typ  BaseType
-}
-
-// NamedBaseType returns a matching unit that represents a builtin fix size type with a name.
-//
-func NamedBaseType(name string, typ BaseType) Ruler {
-
-	return &namedBaseType{name: name, typ: typ}
-}
-
-func (p *namedBaseType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	v, err = baseTypes[p.typ].read(in)
-	if ctx != nil {
-		ctx.vars[p.name] = v
-	}
-	return
-}
-
-func (p *namedBaseType) SizeOf() int {
-
-	return baseTypes[p.typ].sizeOf
-}
-
-// -----------------------------------------------------------------------------
-
 type nilType int
 
 func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {

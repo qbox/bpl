@@ -2,8 +2,10 @@ package bpl
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
+	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/binary"
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
@@ -107,7 +109,8 @@ func TestStruct(t *testing.T) {
 		t.Fatal("New failed:", err)
 	}
 	in := bufio.NewReaderBuffer(b)
-	v, err := r.Match(in, nil)
+	ctx := bpl.NewContext()
+	v, err := r.Match(in, ctx)
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
@@ -118,6 +121,8 @@ func TestStruct(t *testing.T) {
 	if string(ret) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"g":7.52,"sub1":{"a":1,"b":2}}` {
 		t.Fatal("ret:", string(ret))
 	}
+	ret2, _ := json.Marshal(ctx.Vars())
+	fmt.Println(string(ret2))
 }
 
 // -----------------------------------------------------------------------------
