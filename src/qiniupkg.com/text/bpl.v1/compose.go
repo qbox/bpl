@@ -53,14 +53,19 @@ type seq struct {
 
 func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	ret := make([]interface{}, len(p.rs))
-	for i, r := range p.rs {
-		v, err = r.Match(in, ctx)
+	if ctx == nil {
+		ctx = NewContext()
+	}
+
+	ret := ctx.RequireVarSlice()
+	for _, r := range p.rs {
+		v, err = r.Match(in, NewSubContext(ctx))
 		if err != nil {
 			return
 		}
-		ret[i] = v
+		ret = append(ret, v)
 	}
+	ctx.dom = ret
 	return ret, nil
 }
 

@@ -81,8 +81,9 @@ type fooType struct {
 }
 
 var (
-	rSubType = bpl.Seq(bpl.CString)
-	rFooType = bpl.Seq(bpl.Int8, bpl.Uint16, bpl.Uint32, bpl.Float32, bpl.CString, rSubType, bpl.Float64)
+	rSubType  = bpl.Seq(bpl.CString)
+	rFooType  = bpl.Seq(bpl.Int8, bpl.Uint16, bpl.Uint32, bpl.Float32, bpl.CString, rSubType, bpl.Float64)
+	rFooType2 = bpl.And(bpl.Seq(bpl.Int8, bpl.Uint16), bpl.Uint32, bpl.Float32, bpl.CString, bpl.Seq(rSubType), bpl.Float64)
 )
 
 func TestStruct(t *testing.T) {
@@ -105,7 +106,8 @@ func TestStruct(t *testing.T) {
 		t.Fatal("bpl.TypeFrom failed:", err)
 	}
 	in := bufio.NewReaderBuffer(b)
-	v, err := r.Match(in, nil)
+	ctx := bpl.NewContext()
+	v, err := r.Match(in, ctx)
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
@@ -138,6 +140,32 @@ func TestSeq(t *testing.T) {
 		t.Fatal("json.Marshal failed:", err)
 	}
 	if string(ret) != `[1,2,3,3.14,"Hello",["foo"],7.52]` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+func TestSeq2(t *testing.T) {
+
+	foo := &fooType{
+		A: 1, B: 2, C: 3, D: 3.14, E: "Hello", F: subType{Foo: "foo"}, G: 7.52,
+		// 1 + 2 + 4 + 4 + 6 + 4 + 8 = 29
+	}
+	b, err := bin.Marshal(&foo)
+	if err != nil {
+		t.Fatal("binary.Marshal failed:", err)
+	}
+	in := bufio.NewReaderBuffer(b)
+	ctx := bpl.NewContext()
+	_, err = rFooType2.Match(in, ctx)
+	if err != nil {
+		t.Fatal("Match failed:", err, "len:", len(b))
+	}
+	v := bpl.Dom(ctx)
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `[1,2,["foo"]]` {
 		t.Fatal("ret:", string(ret))
 	}
 }

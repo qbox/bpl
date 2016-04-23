@@ -2,6 +2,7 @@ package bpl
 
 import (
 	"bytes"
+	"fmt"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
@@ -11,9 +12,7 @@ import (
 // A Context represents the matching context of bpl.
 //
 type Context struct {
-	vars map[string]interface{}
-
-	// Capture is optional when matching.
+	dom  interface{}
 	capt *bytes.Buffer
 }
 
@@ -21,8 +20,25 @@ type Context struct {
 //
 func NewContext() *Context {
 
-	vars := make(map[string]interface{})
-	return &Context{vars: vars}
+	return &Context{}
+}
+
+// NewSubContext returns a new sub Context.
+//
+func NewSubContext(p *Context) *Context {
+
+	if p == nil {
+		return nil
+	}
+	return &Context{capt: p.capt}
+}
+
+// WithCapture returns the matching context with capture.
+//
+func (p *Context) WithCapture() *Context {
+
+	p.capt = new(bytes.Buffer)
+	return p
 }
 
 // CaptureIf captures the matching text if needed.
@@ -34,26 +50,72 @@ func (p *Context) CaptureIf(b []byte) {
 	}
 }
 
+// RequireVarSlice verifies and returns matching result as []interface{}.
+//
+func (p *Context) RequireVarSlice() []interface{} {
+
+	var vars []interface{}
+	if p.dom == nil {
+		vars = make([]interface{}, 0, 4)
+	} else if domv, ok := p.dom.([]interface{}); ok {
+		vars = domv
+	} else {
+		panic("dom type isn't []interface{}")
+	}
+	return vars
+}
+
 // SetVar sets a new variable to matching context.
 //
 func (p *Context) SetVar(name string, v interface{}) {
 
-	p.vars[name] = v
+	var vars map[string]interface{}
+	if p.dom == nil {
+		vars = make(map[string]interface{})
+		p.dom = vars
+	} else if domv, ok := p.dom.(map[string]interface{}); ok {
+		if _, ok = domv[name]; ok {
+			panic(fmt.Errorf("variable `%s` exists in dom", name))
+		}
+		vars = domv
+	} else {
+		panic("dom type isn't map[string]interface{}")
+	}
+	vars[name] = v
 }
 
 // Var gets a variable from matching context.
 //
 func (p *Context) Var(name string) (v interface{}, ok bool) {
 
-	v, ok = p.vars[name]
+	vars, ok := p.dom.(map[string]interface{})
+	if ok {
+		v, ok = vars[name]
+	} else {
+		panic("dom type isn't map[string]interface{}")
+	}
 	return
 }
 
-// Vars returns all variables in matching context.
+// SetDom set matching result of matching result.
 //
-func (p *Context) Vars() map[string]interface{} {
+func (p *Context) SetDom(v interface{}) {
 
-	return p.vars
+	if p.dom == nil {
+		p.dom = v
+	} else {
+		panic("dom was assigned already")
+	}
+}
+
+// Dom returns matching result.
+//
+func Dom(p *Context) interface{} {
+
+	if p == nil {
+		return nil
+	}
+	return p.dom
 }
 
 // -----------------------------------------------------------------------------
