@@ -26,8 +26,10 @@ func (p *Member) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	if err != nil {
 		return
 	}
-	if ctx != nil {
-		ctx.SetVar(p.Name, v)
+	if p.Name != "_" {
+		if ctx != nil {
+			ctx.SetVar(p.Name, v)
+		}
 	}
 	return
 }
@@ -54,7 +56,7 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 			return
 		}
 	}
-	return Dom(ctx), nil
+	return domOf(ctx), nil
 }
 
 func (p *structType) SizeOf() int {

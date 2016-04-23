@@ -2,7 +2,6 @@ package bpl
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"qiniupkg.com/text/bpl.v1"
@@ -86,7 +85,7 @@ doc = {
 	d    float32
 	e    cstring
 	f    subType
-	g    float64
+	_    float64
 }
 `
 
@@ -118,11 +117,13 @@ func TestStruct(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if string(ret) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"g":7.52,"sub1":{"a":1,"b":2}}` {
+	if string(ret) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"sub1":{"a":1,"b":2}}` {
 		t.Fatal("ret:", string(ret))
 	}
-	ret2, _ := json.Marshal(ctx.Vars())
-	fmt.Println(string(ret2))
+	ret2, _ := json.Marshal(ctx.Dom())
+	if string(ret2) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"sub1":{"a":1,"b":2}}` {
+		t.Fatal("ret2:", string(ret2))
+	}
 }
 
 // -----------------------------------------------------------------------------

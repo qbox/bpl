@@ -160,7 +160,7 @@ func TestSeq2(t *testing.T) {
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
-	v := bpl.Dom(ctx)
+	v := ctx.Dom()
 	ret, err := json.Marshal(v)
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)

@@ -110,7 +110,12 @@ func (p *Context) SetDom(v interface{}) {
 
 // Dom returns matching result.
 //
-func Dom(p *Context) interface{} {
+func (p *Context) Dom() interface{} {
+
+	return p.dom
+}
+
+func domOf(p *Context) interface{} {
 
 	if p == nil {
 		return nil
