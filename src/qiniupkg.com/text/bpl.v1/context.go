@@ -50,9 +50,7 @@ func (p *Context) CaptureIf(b []byte) {
 	}
 }
 
-// RequireVarSlice verifies and returns matching result as []interface{}.
-//
-func (p *Context) RequireVarSlice() []interface{} {
+func (p *Context) requireVarSlice() []interface{} {
 
 	var vars []interface{}
 	if p.dom == nil {

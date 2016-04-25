@@ -7,6 +7,7 @@ import (
 	"qiniupkg.com/text/bpl.ext.v1/bson"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
+	"qlang.io/exec.v2"
 )
 
 const grammar = `
@@ -19,11 +20,13 @@ iterm = ifactor *('*' ifactor/mul | '/' ifactor/quo | '%' ifactor/mod)
 
 iexpr = iterm *('+' iterm/add | '-' iterm/sub)
 
-ctype = IDENT/ident ?('[' iexpr ']'/array | '*'/repeat0 | '?'/repeat01 | '+'/repeat1)
+index = '['/istart iexpr ']'/iend
+
+ctype = IDENT/ident ?(index/array | '*'/repeat0 | '?'/repeat01 | '+'/repeat1)
 
 type =
 	IDENT/ident |
-	('[' iexpr ']' IDENT/ident)/array |
+	(index IDENT/ident)/array |
 	('*'! IDENT/ident)/repeat0 |
 	('?'! IDENT/ident)/repeat01 |
 	('+'! IDENT/ident)/repeat1
@@ -62,9 +65,12 @@ var (
 // A Compiler compiles bpl source code to matching units.
 //
 type Compiler struct {
-	stk    []interface{}
-	rulers map[string]bpl.Ruler
-	vars   map[string]*bpl.TypeVar
+	stk      []interface{}
+	rulers   map[string]bpl.Ruler
+	vars     map[string]*bpl.TypeVar
+	code     *exec.Code
+	gstk     exec.Stack
+	idxStart int
 }
 
 // NewCompiler returns a bpl compiler.
@@ -73,7 +79,8 @@ func NewCompiler() (p *Compiler) {
 
 	rulers := make(map[string]bpl.Ruler)
 	vars := make(map[string]*bpl.TypeVar)
-	return &Compiler{rulers: rulers, vars: vars}
+	code := exec.New()
+	return &Compiler{rulers: rulers, vars: vars, code: code}
 }
 
 // Ret returns compiling result.
@@ -247,6 +254,8 @@ var fntable = map[string]interface{}{
 	"$Struct":   (*Compiler).gostruct,
 	"$And":      (*Compiler).and,
 	"$Seq":      (*Compiler).seq,
+	"$istart":   (*Compiler).istart,
+	"$iend":     (*Compiler).iend,
 	"$array":    (*Compiler).array,
 	"$var":      (*Compiler).variable,
 	"$ident":    (*Compiler).ident,
@@ -255,13 +264,13 @@ var fntable = map[string]interface{}{
 	"$repeat1":  (*Compiler).repeat1,
 	"$repeat01": (*Compiler).repeat01,
 
+	"$mul":   mul,
+	"$quo":   quo,
+	"$mod":   mod,
+	"$neg":   neg,
+	"$add":   add,
+	"$sub":   sub,
 	"$ARITY": (*Compiler).arity,
-	"$mul":   (*Compiler).mul,
-	"$quo":   (*Compiler).quo,
-	"$mod":   (*Compiler).mod,
-	"$neg":   (*Compiler).neg,
-	"$add":   (*Compiler).add,
-	"$sub":   (*Compiler).sub,
 	"$call":  (*Compiler).call,
 	"$ref":   (*Compiler).ref,
 	"$mref":  (*Compiler).mref,
