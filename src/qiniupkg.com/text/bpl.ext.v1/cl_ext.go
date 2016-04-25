@@ -9,23 +9,33 @@ import (
 
 type executor struct {
 	code exec.Code
-	ctx  *exec.Context
+	stk  *exec.Stack
 }
 
 func newExecutor() *executor {
-
-	ctx := exec.NewContext()
-	p := &executor{ctx: ctx}
-	ctx.Stack = exec.NewStack()
-	ctx.Code = &p.code
-	return p
+	return &executor{
+		stk: exec.NewStack(),
+	}
 }
 
-func (p *executor) Eval(start, end int) interface{} {
+var (
+	nilVars = map[string]interface{}{}
+)
 
-	ctx := p.ctx
-	stk := ctx.Stack
-	p.code.Exec(start, end, stk, ctx)
+func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
+
+	var vars map[string]interface{}
+	parent := ctx.Parent
+	if parent != nil {
+		vars, _ = parent.Dom().(map[string]interface{})
+	}
+	if vars == nil {
+		vars = nilVars
+	}
+	code := &p.code
+	stk := p.stk
+	ectx := exec.NewSimpleContext(vars, stk, code)
+	code.Exec(start, end, stk, ectx)
 	v, _ := stk.Pop()
 	return v
 }
@@ -64,7 +74,7 @@ func (p *Compiler) array() {
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
-		v := p.Eval(e.start, e.end)
+		v := p.Eval(ctx, e.start, e.end)
 		return v.(int)
 	}
 	stk[i] = bpl.Dynarray(stk[i].(bpl.Ruler), n)

@@ -12,8 +12,9 @@ import (
 // A Context represents the matching context of bpl.
 //
 type Context struct {
-	dom  interface{}
-	capt *bytes.Buffer
+	dom    interface{}
+	capt   *bytes.Buffer
+	Parent *Context
 }
 
 // NewContext returns a new Context.
@@ -30,7 +31,7 @@ func NewSubContext(p *Context) *Context {
 	if p == nil {
 		return nil
 	}
-	return &Context{capt: p.capt}
+	return &Context{capt: p.capt, Parent: p}
 }
 
 // WithCapture returns the matching context with capture.
