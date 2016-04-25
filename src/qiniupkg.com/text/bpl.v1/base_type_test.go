@@ -3,6 +3,7 @@ package bpl_test
 import (
 	"encoding/binary"
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"qiniupkg.com/text/bpl.v1"
@@ -16,15 +17,16 @@ func TestBaseType(t *testing.T) {
 	in := bufio.NewReaderBuffer(b)
 
 	ctx := bpl.NewContext()
-	v, err := bpl.NamedBaseType("foo", bpl.Int64).Match(in, ctx)
+	named := &bpl.Member{Name: "foo", Type: bpl.Int64}
+	v, err := named.Match(in, ctx)
 	if err != nil {
-		t.Fatal("NamedBaseType.Match failed:", err)
+		t.Fatal("Member.Match failed:", err)
 	}
 	if v != int64(123) {
 		t.Fatal("v != 123")
 	}
 	if v, ok := ctx.Var("foo"); !ok || v != int64(123) {
-		t.Fatal("v != 123")
+		t.Fatal("v != 123 - ", reflect.TypeOf(v), v, ok)
 	}
 }
 
