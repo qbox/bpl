@@ -27,9 +27,9 @@ ctype = IDENT/ident ?(index/array | '*'/repeat0 | '?'/repeat01 | '+'/repeat1)
 type =
 	IDENT/ident |
 	(index IDENT/ident)/array |
-	('*'! IDENT/ident)/repeat0 |
-	('?'! IDENT/ident)/repeat01 |
-	('+'! IDENT/ident)/repeat1
+	('*'! IDENT/ident)/array0 |
+	('?'! IDENT/ident)/array01 |
+	('+'! IDENT/ident)/array1
 
 cstruct = (ctype IDENT/var) %= ';'/CStruct
 
@@ -65,10 +65,10 @@ var (
 // A Compiler compiles bpl source code to matching units.
 //
 type Compiler struct {
+	*executor
 	stk      []interface{}
 	rulers   map[string]bpl.Ruler
 	vars     map[string]*bpl.TypeVar
-	code     *exec.Code
 	gstk     exec.Stack
 	idxStart int
 }
@@ -79,8 +79,8 @@ func NewCompiler() (p *Compiler) {
 
 	rulers := make(map[string]bpl.Ruler)
 	vars := make(map[string]*bpl.TypeVar)
-	code := exec.New()
-	return &Compiler{rulers: rulers, vars: vars, code: code}
+	e := newExecutor()
+	return &Compiler{rulers: rulers, vars: vars, executor: e}
 }
 
 // Ret returns compiling result.
@@ -243,10 +243,6 @@ func (p *Compiler) repeat01() {
 	stk[i] = bpl.Repeat01(stk[i].(bpl.Ruler))
 }
 
-func (p *Compiler) array() {
-
-}
-
 // -----------------------------------------------------------------------------
 
 var fntable = map[string]interface{}{
@@ -257,6 +253,9 @@ var fntable = map[string]interface{}{
 	"$istart":   (*Compiler).istart,
 	"$iend":     (*Compiler).iend,
 	"$array":    (*Compiler).array,
+	"$array1":   (*Compiler).array1,
+	"$array0":   (*Compiler).array0,
+	"$array01":  (*Compiler).repeat01,
 	"$var":      (*Compiler).variable,
 	"$ident":    (*Compiler).ident,
 	"$assign":   (*Compiler).assign,
