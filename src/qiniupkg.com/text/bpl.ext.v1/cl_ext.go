@@ -105,15 +105,19 @@ func (p *Compiler) casei(v int) {
 	p.gstk.Push(v)
 }
 
+func (p *Compiler) popRule() bpl.Ruler {
+
+	n := len(p.stk) - 1
+	r := p.stk[n].(bpl.Ruler)
+	p.stk = p.stk[:n]
+	return r
+}
+
 func (p *Compiler) fnCase() {
 
 	var defaultR bpl.Ruler
-
-	hasDefault := p.popArity()
-	if hasDefault != 0 {
-		n := len(p.stk) - 1
-		defaultR = p.stk[n].(bpl.Ruler)
-		p.stk = p.stk[:n]
+	if p.popArity() != 0 {
+		defaultR = p.popRule()
 	}
 
 	arity := p.popArity()
@@ -141,13 +145,25 @@ func (p *Compiler) fnCase() {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnRead() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	n := func(ctx *bpl.Context) int {
+		v := p.Eval(ctx, e.start, e.end)
+		return v.(int)
+	}
+	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) dostruct(hasCase int, m int, cstyle int) {
 
 	var caseR bpl.Ruler
 	if hasCase != 0 {
-		n := len(p.stk) - 1
-		caseR = p.stk[n].(bpl.Ruler)
-		p.stk = p.stk[:n]
+		caseR = p.popRule()
 	}
 
 	if m == 0 {
