@@ -8,7 +8,7 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func repeat(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+func directRepeat(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	_, err = R.Match(in, ctx)
 	if err != nil {
@@ -23,6 +23,31 @@ func repeat(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 			return
 		}
 		_, err = R.Match(in, ctx)
+		if err != nil {
+			return
+		}
+	}
+}
+
+func repeat(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	if _, ok := R.(*seq); ok {
+		return directRepeat(R, in, ctx)
+	}
+
+	_, err = R.Match(in, NewSubContext(ctx))
+	if err != nil {
+		return
+	}
+	for {
+		_, err = in.Peek(1)
+		if err != nil {
+			if err == io.EOF {
+				return nil, nil
+			}
+			return
+		}
+		_, err = R.Match(in, NewSubContext(ctx))
 		if err != nil {
 			return
 		}

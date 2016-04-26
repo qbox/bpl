@@ -123,23 +123,24 @@ func main() {
 		return
 	}
 
-	if *output != "" {
-		f, err := os.Create(*output)
-		if err != nil {
-			log.Fatalln("Create log file failed:", err)
+	onBpl := onNil
+	if *protocol != "nil" {
+		if *output != "" {
+			f, err := os.Create(*output)
+			if err != nil {
+				log.Fatalln("Create log file failed:", err)
+			}
+			defer f.Close()
+			bpl.SetDumper(f)
 		}
-		defer f.Close()
-		bpl.SetDumper(f)
-	}
-
-	ruler, err := bpl.NewFromFile(*protocol)
-	if err != nil {
-		log.Fatalln("bpl.NewFromFile failed:", err)
-	}
-
-	onBpl := func(in io.Reader) (err error) {
-		_, err = ruler.MatchStream(in)
-		return
+		ruler, err := bpl.NewFromFile(*protocol)
+		if err != nil {
+			log.Fatalln("bpl.NewFromFile failed:", err)
+		}
+		onBpl = func(in io.Reader) (err error) {
+			_, err = ruler.MatchStream(in)
+			return
+		}
 	}
 
 	rp := &ReverseProxier{

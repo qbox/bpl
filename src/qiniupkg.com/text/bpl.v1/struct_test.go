@@ -131,7 +131,7 @@ func TestSeq(t *testing.T) {
 		t.Fatal("binary.Marshal failed:", err)
 	}
 	in := bufio.NewReaderBuffer(b)
-	v, err := rFooType.Match(in, nil)
+	v, err := rFooType.Match(in, bpl.NewContext())
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}

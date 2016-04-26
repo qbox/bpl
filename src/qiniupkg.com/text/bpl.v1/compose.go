@@ -121,7 +121,7 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 			return
 		}
 	}
-	return domOf(ctx), nil
+	return ctx.dom, nil
 }
 
 func (p *and) SizeOf() int {
@@ -143,10 +143,6 @@ type seq struct {
 }
 
 func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	if ctx == nil {
-		ctx = NewContext()
-	}
 
 	ret := ctx.requireVarSlice()
 	for _, r := range p.rs {
