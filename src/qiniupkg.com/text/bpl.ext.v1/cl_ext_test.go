@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/binary"
-	"qiniupkg.com/text/bpl.v1/bufio"
 )
 
 // -----------------------------------------------------------------------------
@@ -54,8 +52,7 @@ func TestArray(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	v, err := r.Match(in, nil)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
@@ -149,13 +146,11 @@ func TestArray2(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	ctx := bpl.NewContext()
-	_, err = r.Match(in, ctx)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
-		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+		t.Fatal("Match failed:", err, "v:", v)
 	}
-	ret, err := json.Marshal(ctx.Dom())
+	ret, err := json.Marshal(v)
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
@@ -222,13 +217,11 @@ func TestCase(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	ctx := bpl.NewContext()
-	_, err = r.Match(in, ctx)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
-		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+		t.Fatal("Match failed:", err)
 	}
-	ret, err := json.Marshal(ctx.Dom())
+	ret, err := json.Marshal(v)
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
@@ -292,13 +285,11 @@ func TestCase2(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	ctx := bpl.NewContext()
-	_, err = r.Match(in, ctx)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
-		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+		t.Fatal("Match failed:", err)
 	}
-	ret, err := json.Marshal(ctx.Dom())
+	ret, err := json.Marshal(v)
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
@@ -367,13 +358,11 @@ func TestRead(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	ctx := bpl.NewContext()
-	_, err = r.Match(in, ctx)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
-		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+		t.Fatal("Match failed:", err)
 	}
-	ret, err := json.Marshal(ctx.Dom())
+	ret, err := json.Marshal(v)
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}

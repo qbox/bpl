@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/binary"
-	"qiniupkg.com/text/bpl.v1/bufio"
 )
 
 // -----------------------------------------------------------------------------
@@ -52,8 +50,7 @@ func TestBasic(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	v, err := r.Match(in, nil)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
@@ -95,13 +92,11 @@ func TestBasic2(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	ctx := bpl.NewContext()
-	_, err = r.Match(in, ctx)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
-	ret, err := json.Marshal(ctx.Dom())
+	ret, err := json.Marshal(v)
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
@@ -151,9 +146,7 @@ func TestStruct(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
-	ctx := bpl.NewContext()
-	v, err := r.Match(in, ctx)
+	v, err := r.MatchBuffer(b)
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
 	}
@@ -163,10 +156,6 @@ func TestStruct(t *testing.T) {
 	}
 	if string(ret) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"sub1":{"a":1,"b":2}}` {
 		t.Fatal("ret:", string(ret))
-	}
-	ret2, _ := json.Marshal(ctx.Dom())
-	if string(ret2) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"sub1":{"a":1,"b":2}}` {
-		t.Fatal("ret2:", string(ret2))
 	}
 }
 
