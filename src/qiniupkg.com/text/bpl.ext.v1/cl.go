@@ -95,14 +95,14 @@ func NewCompiler() (p *Compiler) {
 
 // Ret returns compiling result.
 //
-func (p *Compiler) Ret() (r bpl.Ruler, err error) {
+func (p *Compiler) Ret() (r Ruler, err error) {
 
 	root, ok := p.rulers["doc"]
 	if !ok {
 		if v, ok := p.vars["doc"]; ok {
 			root = v.Elem
 		} else {
-			return nil, ErrNoDoc
+			return Ruler{R: nil}, ErrNoDoc
 		}
 	}
 	for name, v := range p.vars {
@@ -111,7 +111,7 @@ func (p *Compiler) Ret() (r bpl.Ruler, err error) {
 			return
 		}
 	}
-	return root, nil
+	return Ruler{R: root}, nil
 }
 
 // Grammar returns the qlang compiler's grammar. It is required by tpl.Interpreter engine.
