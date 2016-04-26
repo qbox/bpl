@@ -165,6 +165,19 @@ record = {h header} case h.type {type1: body1; type2: body2; ...}
 doc = *record
 ```
 
+另外条件规则也可以出现在结构体中。如：
+
+```
+record = {
+	h header
+	case h.type {
+	type1: body1
+	type2: body2
+	...
+	}
+}
+```
+
 ## 二次匹配
 
 ```

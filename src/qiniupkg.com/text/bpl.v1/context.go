@@ -1,7 +1,6 @@
 package bpl
 
 import (
-	"bytes"
 	"fmt"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -13,7 +12,6 @@ import (
 //
 type Context struct {
 	dom    interface{}
-	capt   *bytes.Buffer
 	Parent *Context
 }
 
@@ -31,24 +29,7 @@ func NewSubContext(p *Context) *Context {
 	if p == nil {
 		return nil
 	}
-	return &Context{capt: p.capt, Parent: p}
-}
-
-// WithCapture returns the matching context with capture.
-//
-func (p *Context) WithCapture() *Context {
-
-	p.capt = new(bytes.Buffer)
-	return p
-}
-
-// CaptureIf captures the matching text if needed.
-//
-func (p *Context) CaptureIf(b []byte) {
-
-	if p != nil && p.capt != nil {
-		p.capt.Write(b)
-	}
+	return &Context{Parent: p}
 }
 
 func (p *Context) requireVarSlice() []interface{} {
