@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -77,6 +78,34 @@ func (p done) SizeOf() int {
 // Done is a matching unit that seeks current position to EOF.
 //
 var Done Ruler = done(0)
+
+// -----------------------------------------------------------------------------
+
+type readAll int
+
+func (p readAll) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := in.Buffered()
+	if n < 16 {
+		n = 16
+	}
+	buff := make([]byte, 0, n)
+	b := bytes.NewBuffer(buff)
+	_, err = in.WriteTo(b)
+	if err != nil {
+		return
+	}
+	return b.Bytes(), nil
+}
+
+func (p readAll) SizeOf() int {
+
+	return -1
+}
+
+// ReadAll is a matching unit that reads all data.
+//
+var ReadAll Ruler = readAll(0)
 
 // -----------------------------------------------------------------------------
 
