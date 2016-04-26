@@ -233,24 +233,6 @@ var (
 
 // -----------------------------------------------------------------------------
 
-type nilType int
-
-func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	return nil, nil
-}
-
-func (p nilType) SizeOf() int {
-
-	return 0
-}
-
-// Nil is a matching unit that matches zero bytes.
-//
-var Nil Ruler = nilType(0)
-
-// -----------------------------------------------------------------------------
-
 // A String represents result of a string matching unit, such as `CString`.
 //
 type String struct {
