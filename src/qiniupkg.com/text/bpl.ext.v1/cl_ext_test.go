@@ -165,3 +165,146 @@ func TestArray2(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeCase = `
+
+headerType = {
+	type int32
+	_    int32
+	n    int32
+	m    int32
+}
+
+recType = {
+	h headerType
+	case h.type {
+	1: {t1 [3]cstring}
+	2: {t2 [2]cstring}
+	}
+}
+
+doc = [int32] *[recType]
+`
+
+func TestCase(t *testing.T) {
+
+	foo := &fooType3{
+		N: 2,
+		R1: recType1{
+			H: headerType{
+				Type: 1,
+				N:    1,
+				M:    2,
+			},
+			A1: "hello",
+			A2: "world",
+			A3: "bpl",
+		},
+		R2: recType2{
+			H: headerType{
+				Type: 2,
+				N:    1,
+				M:    1,
+			},
+			A1: "foo",
+			A2: "bar",
+		},
+	}
+	b, err := binary.Marshal(&foo)
+	if err != nil {
+		t.Fatal("binary.Marshal failed:", err)
+	}
+	if len(b) != 60 {
+		t.Fatal("len(b) != 60, len:", len(b), "data:", string(b))
+	}
+
+	r, err := NewFromString(codeCase, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	in := bufio.NewReaderBuffer(b)
+	ctx := bpl.NewContext()
+	_, err = r.Match(in, ctx)
+	if err != nil {
+		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+	}
+	ret, err := json.Marshal(ctx.Dom())
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `[2,{"h":{"m":2,"n":1,"type":1},"t1":["hello","world","bpl"]},{"h":{"m":1,"n":1,"type":2},"t2":["foo","bar"]}]` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeCase2 = `
+
+headerType = {
+	type int32
+	_    int32
+	n    int32
+	m    int32
+}
+
+recType = {h headerType} case h.type {
+	1: {t1 [3]cstring}
+	2: {t2 [2]cstring}
+}
+
+doc = [int32] *[recType]
+`
+
+func TestCase2(t *testing.T) {
+
+	foo := &fooType3{
+		N: 2,
+		R1: recType1{
+			H: headerType{
+				Type: 1,
+				N:    1,
+				M:    2,
+			},
+			A1: "hello",
+			A2: "world",
+			A3: "bpl",
+		},
+		R2: recType2{
+			H: headerType{
+				Type: 2,
+				N:    1,
+				M:    1,
+			},
+			A1: "foo",
+			A2: "bar",
+		},
+	}
+	b, err := binary.Marshal(&foo)
+	if err != nil {
+		t.Fatal("binary.Marshal failed:", err)
+	}
+	if len(b) != 60 {
+		t.Fatal("len(b) != 60, len:", len(b), "data:", string(b))
+	}
+
+	r, err := NewFromString(codeCase2, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	in := bufio.NewReaderBuffer(b)
+	ctx := bpl.NewContext()
+	_, err = r.Match(in, ctx)
+	if err != nil {
+		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+	}
+	ret, err := json.Marshal(ctx.Dom())
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `[2,{"h":{"m":2,"n":1,"type":1},"t1":["hello","world","bpl"]},{"h":{"m":1,"n":1,"type":2},"t2":["foo","bar"]}]` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------

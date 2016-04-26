@@ -8,6 +8,33 @@ import (
 
 // -----------------------------------------------------------------------------
 
+func castInt(a interface{}) (int, bool) {
+
+	switch a1 := a.(type) {
+	case int:
+		return a1, true
+	case int32:
+		return int(a1), true
+	case int64:
+		return int(a1), true
+	case int16:
+		return int(a1), true
+	case int8:
+		return int(a1), true
+	case uint:
+		return int(a1), true
+	case uint32:
+		return int(a1), true
+	case uint64:
+		return int(a1), true
+	case uint16:
+		return int(a1), true
+	case uint8:
+		return int(a1), true
+	}
+	return 0, false
+}
+
 // CallFn generates a function call instruction. It is required by tpl.Interpreter engine.
 //
 func (p *Compiler) CallFn(fn interface{}) {
@@ -22,6 +49,18 @@ func neg(a interface{}) interface{} {
 		return -a1
 	}
 	return panicUnsupportedOp1("-", a)
+}
+
+func eq(a, b interface{}) bool {
+
+	if a1, ok := castInt(a); ok {
+		switch b1 := b.(type) {
+		case int:
+			return a1 == b1
+		}
+	}
+	panicUnsupportedOp2("==", a, b)
+	return false
 }
 
 func mul(a, b interface{}) interface{} {

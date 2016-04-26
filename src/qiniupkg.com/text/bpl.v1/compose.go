@@ -28,7 +28,7 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 			return
 		}
 	}
-	return
+	return domOf(ctx), nil
 }
 
 func (p *and) SizeOf() int {
@@ -77,6 +77,36 @@ func (p *seq) SizeOf() int {
 func Seq(rs ...Ruler) Ruler {
 
 	return &seq{rs: rs}
+}
+
+// -----------------------------------------------------------------------------
+
+type dyntype struct {
+	r func(ctx *Context) (Ruler, error)
+}
+
+func (p *dyntype) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	r, err := p.r(ctx)
+	if err != nil {
+		return
+	}
+	if r != nil {
+		return r.Match(in, ctx)
+	}
+	return
+}
+
+func (p *dyntype) SizeOf() int {
+
+	return -1
+}
+
+// Dyntype returns a dynamic matching unit.
+//
+func Dyntype(r func(ctx *Context) (Ruler, error)) Ruler {
+
+	return &dyntype{r: r}
 }
 
 // -----------------------------------------------------------------------------

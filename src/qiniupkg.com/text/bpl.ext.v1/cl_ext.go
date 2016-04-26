@@ -1,6 +1,8 @@
 package bpl
 
 import (
+	"fmt"
+
 	"qiniupkg.com/text/bpl.v1"
 	"qlang.io/exec.v2"
 )
@@ -9,12 +11,12 @@ import (
 
 type executor struct {
 	code exec.Code
-	stk  *exec.Stack
+	estk *exec.Stack
 }
 
 func newExecutor() *executor {
 	return &executor{
-		stk: exec.NewStack(),
+		estk: exec.NewStack(),
 	}
 }
 
@@ -25,15 +27,14 @@ var (
 func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 
 	var vars map[string]interface{}
-	parent := ctx.Parent
-	if parent != nil {
-		vars, _ = parent.Dom().(map[string]interface{})
+	if ctx != nil {
+		vars, _ = ctx.Dom().(map[string]interface{})
 	}
 	if vars == nil {
 		vars = nilVars
 	}
 	code := &p.code
-	stk := p.stk
+	stk := p.estk
 	ectx := exec.NewSimpleContext(vars, stk, code)
 	code.Exec(start, end, stk, ectx)
 	v, _ := stk.Pop()
@@ -42,7 +43,7 @@ func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 
 // -----------------------------------------------------------------------------
 
-type indexExpr struct {
+type exprBlock struct {
 	start int
 	end   int
 }
@@ -55,13 +56,13 @@ func (p *Compiler) istart() {
 func (p *Compiler) iend() {
 
 	end := p.code.Len()
-	p.gstk.Push(&indexExpr{start: p.idxStart, end: end})
+	p.gstk.Push(&exprBlock{start: p.idxStart, end: end})
 }
 
-func (p *Compiler) popIndex() *indexExpr {
+func (p *Compiler) popExpr() *exprBlock {
 
 	if v, ok := p.gstk.Pop(); ok {
-		if e, ok := v.(*indexExpr); ok {
+		if e, ok := v.(*exprBlock); ok {
 			return e
 		}
 	}
@@ -70,10 +71,13 @@ func (p *Compiler) popIndex() *indexExpr {
 
 func (p *Compiler) array() {
 
-	e := p.popIndex()
+	e := p.popExpr()
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
+		if ctx != nil {
+			ctx = ctx.Parent
+		}
 		v := p.Eval(ctx, e.start, e.end)
 		return v.(int)
 	}
@@ -92,6 +96,93 @@ func (p *Compiler) array1() {
 	stk := p.stk
 	i := len(stk) - 1
 	stk[i] = bpl.Array1(stk[i].(bpl.Ruler))
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) casei(v int) {
+
+	p.gstk.Push(v)
+}
+
+func (p *Compiler) fnCase() {
+
+	var defaultR bpl.Ruler
+
+	hasDefault := p.popArity()
+	if hasDefault != 0 {
+		n := len(p.stk) - 1
+		defaultR = p.stk[n].(bpl.Ruler)
+		p.stk = p.stk[:n]
+	}
+
+	arity := p.popArity()
+
+	stk := p.stk
+	n := len(stk)
+	caseRs := clone(stk[n-arity:])
+	caseExprs := p.gstk.PopNArgs(arity)
+	e := p.popExpr()
+	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		v := p.Eval(ctx, e.start, e.end)
+		for i, expr := range caseExprs {
+			if eq(v, expr) {
+				return caseRs[i], nil
+			}
+		}
+		if defaultR != nil {
+			return defaultR, nil
+		}
+		return nil, fmt.Errorf("case `%v` is not found", v)
+	}
+	stk[n-arity] = bpl.Dyntype(r)
+	p.stk = stk[:n-arity+1]
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) dostruct(hasCase int, m int, cstyle int) {
+
+	var caseR bpl.Ruler
+	if hasCase != 0 {
+		n := len(p.stk) - 1
+		caseR = p.stk[n].(bpl.Ruler)
+		p.stk = p.stk[:n]
+	}
+
+	if m == 0 {
+		if caseR == nil {
+			caseR = bpl.Nil
+		}
+		p.stk = append(p.stk, caseR)
+		return
+	}
+
+	stk := p.stk
+	base := len(stk) - (m << 1)
+	members := make([]bpl.Member, m)
+	for i := 0; i < m; i++ {
+		idx := base + (i << 1)
+		typ := stk[idx+1-cstyle].(bpl.Ruler)
+		name := stk[idx+cstyle].(string)
+		members[i] = bpl.Member{Name: name, Type: typ}
+	}
+	stk[base] = bpl.Struct(members, caseR)
+	p.stk = stk[:base+1]
+}
+
+func (p *Compiler) cstruct() {
+
+	hasCase := p.popArity()
+	m := p.popArity()
+	p.dostruct(hasCase, m, 1)
+}
+
+func (p *Compiler) gostruct() {
+
+	hasCase := p.popArity()
+	m := p.popArity()
+	p.dostruct(hasCase, m, 0)
 }
 
 // -----------------------------------------------------------------------------
