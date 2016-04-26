@@ -81,6 +81,36 @@ func Seq(rs ...Ruler) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type dyntype struct {
+	r func(ctx *Context) (Ruler, error)
+}
+
+func (p *dyntype) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	r, err := p.r(ctx)
+	if err != nil {
+		return
+	}
+	if r != nil {
+		return r.Match(in, ctx)
+	}
+	return
+}
+
+func (p *dyntype) SizeOf() int {
+
+	return -1
+}
+
+// Dyntype returns a dynamic matching unit.
+//
+func Dyntype(r func(ctx *Context) (Ruler, error)) Ruler {
+
+	return &dyntype{r: r}
+}
+
+// -----------------------------------------------------------------------------
+
 // A TypeVar is typeinfo of a `Struct` member.
 //
 type TypeVar struct {

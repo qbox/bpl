@@ -31,9 +31,13 @@ type =
 	('?'! IDENT/ident)/array01 |
 	('+'! IDENT/ident)/array1
 
-cstruct = (ctype IDENT/var) %= ';'/CStruct
+cstruct = (ctype IDENT/var) %= ';'/ARITY ?(';' caseexpr)/ARITY /cstruct
 
-struct = (IDENT/var type) %= ';'/Struct
+struct = (IDENT/var type) %= ';'/ARITY ?(';' caseexpr)/ARITY /struct
+
+casebody = (INT/casei ':' expr) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
+
+caseexpr = "case"/istart! iexpr '{'/iend casebody ?';' '}' /case
 
 factor =
 	IDENT/ident |
@@ -42,7 +46,8 @@ factor =
 	'+' factor/repeat1 |
 	'?' factor/repeat01 |
 	'(' expr ')' |
-	'[' +factor/Seq ']'
+	'[' +factor/Seq ']' |
+	caseexpr
 
 atom = 
 	'(' iexpr %= ','/ARITY ')'/call |
@@ -155,36 +160,6 @@ func (p *Compiler) seq(m int) {
 	p.stk = stk[:n-m+1]
 }
 
-func (p *Compiler) dostruct(m int, cstyle int) {
-
-	if m == 0 {
-		p.stk = append(p.stk, bpl.Nil)
-		return
-	}
-
-	stk := p.stk
-	base := len(stk) - (m << 1)
-	members := make([]bpl.Member, m)
-	for i := 0; i < m; i++ {
-		idx := base + (i << 1)
-		typ := stk[idx+1-cstyle].(bpl.Ruler)
-		name := stk[idx+cstyle].(string)
-		members[i] = bpl.Member{Name: name, Type: typ}
-	}
-	stk[base] = bpl.Struct(members)
-	p.stk = stk[:base+1]
-}
-
-func (p *Compiler) cstruct(m int) {
-
-	p.dostruct(m, 1)
-}
-
-func (p *Compiler) gostruct(m int) {
-
-	p.dostruct(m, 0)
-}
-
 func (p *Compiler) variable(name string) {
 
 	p.stk = append(p.stk, name)
@@ -246,8 +221,6 @@ func (p *Compiler) repeat01() {
 // -----------------------------------------------------------------------------
 
 var fntable = map[string]interface{}{
-	"$CStruct":  (*Compiler).cstruct,
-	"$Struct":   (*Compiler).gostruct,
 	"$And":      (*Compiler).and,
 	"$Seq":      (*Compiler).seq,
 	"$istart":   (*Compiler).istart,
@@ -263,17 +236,21 @@ var fntable = map[string]interface{}{
 	"$repeat1":  (*Compiler).repeat1,
 	"$repeat01": (*Compiler).repeat01,
 
-	"$mul":   mul,
-	"$quo":   quo,
-	"$mod":   mod,
-	"$neg":   neg,
-	"$add":   add,
-	"$sub":   sub,
-	"$ARITY": (*Compiler).arity,
-	"$call":  (*Compiler).call,
-	"$ref":   (*Compiler).ref,
-	"$mref":  (*Compiler).mref,
-	"$pushi": (*Compiler).pushi,
+	"$mul":     mul,
+	"$quo":     quo,
+	"$mod":     mod,
+	"$neg":     neg,
+	"$add":     add,
+	"$sub":     sub,
+	"$ARITY":   (*Compiler).arity,
+	"$call":    (*Compiler).call,
+	"$ref":     (*Compiler).ref,
+	"$mref":    (*Compiler).mref,
+	"$pushi":   (*Compiler).pushi,
+	"$case":    (*Compiler).fnCase,
+	"$casei":   (*Compiler).casei,
+	"$cstruct": (*Compiler).cstruct,
+	"$struct":  (*Compiler).gostruct,
 }
 
 var builtins = map[string]bpl.Ruler{
