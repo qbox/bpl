@@ -3,6 +3,7 @@ package bpl
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
@@ -13,7 +14,69 @@ var (
 
 	// ErrVarAssigned is returned when TypeVar.Elem is already assigned.
 	ErrVarAssigned = errors.New("variable is already assigned")
+
+	// ErrNotEOF is returned when current position is not at EOF.
+	ErrNotEOF = errors.New("current position is not at EOF")
 )
+
+// -----------------------------------------------------------------------------
+
+type nilType int
+
+func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	return nil, nil
+}
+
+func (p nilType) SizeOf() int {
+
+	return 0
+}
+
+// Nil is a matching unit that matches zero bytes.
+//
+var Nil Ruler = nilType(0)
+
+// -----------------------------------------------------------------------------
+
+type eof int
+
+func (p eof) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	_, err = in.Peek(1)
+	if err == io.EOF {
+		return nil, nil
+	}
+	return nil, ErrNotEOF
+}
+
+func (p eof) SizeOf() int {
+
+	return 0
+}
+
+// EOF is a matching unit that matches EOF.
+//
+var EOF Ruler = eof(0)
+
+// -----------------------------------------------------------------------------
+
+type done int
+
+func (p done) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	_, err = in.WriteTo(ioutil.Discard)
+	return
+}
+
+func (p done) SizeOf() int {
+
+	return -1
+}
+
+// Done is a matching unit that seeks current position to EOF.
+//
+var Done Ruler = done(0)
 
 // -----------------------------------------------------------------------------
 

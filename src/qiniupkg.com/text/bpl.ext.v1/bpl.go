@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 
@@ -14,7 +15,27 @@ import (
 // A Ruler is a matching unit.
 //
 type Ruler struct {
-	R bpl.Ruler
+	bpl.Ruler
+}
+
+// SafeMatch matches input stream `in`, and returns matching result.
+//
+func (p Ruler) SafeMatch(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
+
+	defer func() {
+		if e := recover(); e != nil {
+			switch v := e.(type) {
+			case string:
+				err = errors.New(v)
+			case error:
+				err = v
+			default:
+				panic(e)
+			}
+		}
+	}()
+
+	return p.Ruler.Match(in, ctx)
 }
 
 // MatchStream matches input stream `r`, and returns matching result.
@@ -23,7 +44,7 @@ func (p Ruler) MatchStream(r io.Reader) (v interface{}, err error) {
 
 	in := bufio.NewReader(r)
 	ctx := bpl.NewContext()
-	return p.R.Match(in, ctx)
+	return p.SafeMatch(in, ctx)
 }
 
 // MatchBuffer matches input buffer `b`, and returns matching result.
@@ -32,7 +53,7 @@ func (p Ruler) MatchBuffer(b []byte) (v interface{}, err error) {
 
 	in := bufio.NewReaderBuffer(b)
 	ctx := bpl.NewContext()
-	return p.R.Match(in, ctx)
+	return p.SafeMatch(in, ctx)
 }
 
 // -----------------------------------------------------------------------------

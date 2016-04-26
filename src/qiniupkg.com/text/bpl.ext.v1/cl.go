@@ -102,7 +102,7 @@ func (p *Compiler) Ret() (r Ruler, err error) {
 		if v, ok := p.vars["doc"]; ok {
 			root = v.Elem
 		} else {
-			return Ruler{R: nil}, ErrNoDoc
+			return Ruler{Ruler: nil}, ErrNoDoc
 		}
 	}
 	for name, v := range p.vars {
@@ -111,7 +111,7 @@ func (p *Compiler) Ret() (r Ruler, err error) {
 			return
 		}
 	}
-	return Ruler{R: root}, nil
+	return Ruler{Ruler: root}, nil
 }
 
 // Grammar returns the qlang compiler's grammar. It is required by tpl.Interpreter engine.
@@ -294,6 +294,8 @@ var builtins = map[string]bpl.Ruler{
 	"float64": bpl.Float64,
 	"cstring": bpl.CString,
 	"nil":     bpl.Nil,
+	"eof":     bpl.EOF,
+	"done":    bpl.Done,
 	"bson":    bson.Type,
 }
 

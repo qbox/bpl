@@ -1,7 +1,6 @@
 package bpl
 
 import (
-	"errors"
 	"io"
 	"reflect"
 
@@ -176,19 +175,6 @@ type dynarray struct {
 }
 
 func (p *dynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	defer func() {
-		if e := recover(); e != nil {
-			switch v := e.(type) {
-			case string:
-				err = errors.New(v)
-			case error:
-				err = v
-			default:
-				panic(e)
-			}
-		}
-	}()
 
 	n := p.n(ctx)
 	return matchArray(p.r, n, in, ctx)
