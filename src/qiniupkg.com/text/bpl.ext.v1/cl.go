@@ -31,13 +31,17 @@ type =
 	('?'! IDENT/ident)/array01 |
 	('+'! IDENT/ident)/array1
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY ?(';' caseexpr)/ARITY /cstruct
-
-struct = (IDENT/var type) %= ';'/ARITY ?(';' caseexpr)/ARITY /struct
-
 casebody = (INT/casei ':' expr) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
 caseexpr = "case"/istart! iexpr '{'/iend casebody ?';' '}' /case
+
+readexpr = "read"/istart! iexpr "do"/iend expr /read
+
+dynexpr = caseexpr | readexpr
+
+cstruct = (ctype IDENT/var) %= ';'/ARITY ?(';' dynexpr)/ARITY /cstruct
+
+struct = (IDENT/var type) %= ';'/ARITY ?(';' dynexpr)/ARITY /struct
 
 factor =
 	IDENT/ident |
@@ -47,7 +51,7 @@ factor =
 	'?' factor/repeat01 |
 	'(' expr ')' |
 	'[' +factor/Seq ']' |
-	caseexpr
+	dynexpr
 
 atom = 
 	'(' iexpr %= ','/ARITY ')'/call |
@@ -56,6 +60,7 @@ atom =
 ifactor =
 	INT/pushi |
 	(IDENT/ref | '('! iexpr ')') *atom |
+	"sizeof"! '(' IDENT/sizeof ')' |
 	'-' ifactor/neg |
 	'+' ifactor
 `
@@ -165,19 +170,39 @@ func (p *Compiler) variable(name string) {
 	p.stk = append(p.stk, name)
 }
 
-func (p *Compiler) ident(name string) {
+func (p *Compiler) ruleOf(name string) (r bpl.Ruler, ok bool) {
 
-	r, ok := p.rulers[name]
+	r, ok = p.rulers[name]
 	if !ok {
 		if r, ok = p.vars[name]; !ok {
 			if r, ok = builtins[name]; ok {
 				p.rulers[name] = r
-			} else {
-				v := &bpl.TypeVar{Name: name}
-				p.vars[name] = v
-				r = v
 			}
 		}
+	}
+	return
+}
+
+func (p *Compiler) sizeof(name string) {
+
+	r, ok := p.ruleOf(name)
+	if !ok {
+		panic(fmt.Errorf("sizeof error: type `%v` not found", name))
+	}
+	n := r.SizeOf()
+	if n < 0 {
+		panic(fmt.Errorf("sizeof error: type `%v` isn't a fixed size type", name))
+	}
+	p.code.Block(exec.Push(n))
+}
+
+func (p *Compiler) ident(name string) {
+
+	r, ok := p.ruleOf(name)
+	if !ok {
+		v := &bpl.TypeVar{Name: name}
+		p.vars[name] = v
+		r = v
 	}
 	p.stk = append(p.stk, r)
 }
@@ -242,11 +267,13 @@ var fntable = map[string]interface{}{
 	"$neg":     neg,
 	"$add":     add,
 	"$sub":     sub,
+	"$sizeof":  (*Compiler).sizeof,
 	"$ARITY":   (*Compiler).arity,
 	"$call":    (*Compiler).call,
 	"$ref":     (*Compiler).ref,
 	"$mref":    (*Compiler).mref,
 	"$pushi":   (*Compiler).pushi,
+	"$read":    (*Compiler).fnRead,
 	"$case":    (*Compiler).fnCase,
 	"$casei":   (*Compiler).casei,
 	"$cstruct": (*Compiler).cstruct,

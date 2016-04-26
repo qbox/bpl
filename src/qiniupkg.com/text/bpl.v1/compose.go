@@ -2,6 +2,7 @@ package bpl
 
 import (
 	"errors"
+	"io"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
@@ -107,6 +108,37 @@ func (p *dyntype) SizeOf() int {
 func Dyntype(r func(ctx *Context) (Ruler, error)) Ruler {
 
 	return &dyntype{r: r}
+}
+
+// -----------------------------------------------------------------------------
+
+type read struct {
+	n func(ctx *Context) int
+	r Ruler
+}
+
+func (p *read) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := p.n(ctx)
+	b := make([]byte, n)
+	_, err = io.ReadFull(in, b)
+	if err != nil {
+		return
+	}
+	in = bufio.NewReaderBuffer(b)
+	return p.r.Match(in, ctx)
+}
+
+func (p *read) SizeOf() int {
+
+	return -1
+}
+
+// Read returns a matching unit that reads n(ctx) bytes and matches R.
+//
+func Read(n func(ctx *Context) int, r Ruler) Ruler {
+
+	return &read{r: r, n: n}
 }
 
 // -----------------------------------------------------------------------------

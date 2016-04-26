@@ -88,10 +88,10 @@ doc = [int32] *[recType]
 `
 
 type headerType struct {
-	Type    int32
-	Ununsed int32
-	N       int32
-	M       int32
+	Type int32
+	Len  int32
+	N    int32
+	M    int32
 }
 
 type recType1 struct {
@@ -303,6 +303,81 @@ func TestCase2(t *testing.T) {
 		t.Fatal("json.Marshal failed:", err)
 	}
 	if string(ret) != `[2,{"h":{"m":2,"n":1,"type":1},"t1":["hello","world","bpl"]},{"h":{"m":1,"n":1,"type":2},"t2":["foo","bar"]}]` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeRead = `
+
+headerType = {
+	type int32
+	len  int32
+	_    int32
+	_    int32
+}
+
+recType = {
+	h headerType
+	read h.len - sizeof(headerType) do case h.type {
+		1: {t1 [3]cstring}
+		2: {t2 [2]cstring}
+	}
+}
+
+doc = [int32] *[recType]
+`
+
+func TestRead(t *testing.T) {
+
+	foo := &fooType3{
+		N: 2,
+		R1: recType1{
+			H: headerType{
+				Type: 1,
+				Len:  16 + 16,
+				N:    1,
+				M:    2,
+			},
+			A1: "hello", // 6
+			A2: "world", // 6
+			A3: "bpl",   // 4
+		},
+		R2: recType2{
+			H: headerType{
+				Type: 2,
+				Len:  16 + 8,
+				N:    1,
+				M:    1,
+			},
+			A1: "foo", // 4
+			A2: "bar", // 4
+		},
+	}
+	b, err := binary.Marshal(&foo)
+	if err != nil {
+		t.Fatal("binary.Marshal failed:", err)
+	}
+	if len(b) != 60 {
+		t.Fatal("len(b) != 60, len:", len(b), "data:", string(b))
+	}
+
+	r, err := NewFromString(codeRead, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	in := bufio.NewReaderBuffer(b)
+	ctx := bpl.NewContext()
+	_, err = r.Match(in, ctx)
+	if err != nil {
+		t.Fatal("Match failed:", err, "ctx:", ctx.Dom())
+	}
+	ret, err := json.Marshal(ctx.Dom())
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `[2,{"h":{"len":32,"type":1},"t1":["hello","world","bpl"]},{"h":{"len":24,"type":2},"t2":["foo","bar"]}]` {
 		t.Fatal("ret:", string(ret))
 	}
 }

@@ -165,18 +165,31 @@ record = {h header} case h.type {type1: body1; type2: body2; ...}
 doc = *record
 ```
 
-## 二次匹配
-
-```
-R1/R2
-```
-
-用 R1 匹配完一段内容后，再用 R2 重新匹配下这段内容。例如：
+另外条件规则也可以出现在结构体中。如：
 
 ```
 record = {
-	h    header
-	body [h.len - sizeof(h)]byte / case h.type {
+	h header
+	case h.type {
+	type1: body1
+	type2: body2
+	...
+	}
+}
+```
+
+## 二次匹配
+
+```
+read <nbytes> do R
+```
+
+读 `<nbytes>` 字节的内容后，再用 R 匹配这段内容。如：
+
+```
+record = {
+	h header
+	read h.len - sizeof(header) do case h.type {
 		type1: body1
 		type2: body2
 		...
@@ -197,7 +210,6 @@ MsgHeader = {/C
 }
 
 OP_UPDATE = {/C
-	MsgHeader header;             // standard message header
 	int32     ZERO;               // 0 - reserved for future use
 	cstring   fullCollectionName; // "dbname.collectionname"
 	int32     flags;              // bit vector. see below
@@ -206,14 +218,12 @@ OP_UPDATE = {/C
 }
 
 OP_INSERT = {/C
-	MsgHeader  header;             // standard message header
 	int32      flags;              // bit vector - see below
 	cstring    fullCollectionName; // "dbname.collectionname"
 	document*  documents;          // one or more documents to insert into the collection
 }
 
 OP_QUERY = {/C
-	MsgHeader header;                 // standard message header
 	int32     flags;                  // bit vector of query options.  See below for details.
 	cstring   fullCollectionName ;    // "dbname.collectionname"
 	int32     numberToSkip;           // number of documents to skip
@@ -225,7 +235,6 @@ OP_QUERY = {/C
 }
 
 OP_GET_MORE = {/C
-	MsgHeader header;             // standard message header
 	int32     ZERO;               // 0 - reserved for future use
 	cstring   fullCollectionName; // "dbname.collectionname"
 	int32     numberToReturn;     // number of documents to return
@@ -233,7 +242,6 @@ OP_GET_MORE = {/C
 }
 
 OP_DELETE = {/C
-	MsgHeader header;             // standard message header
 	int32     ZERO;               // 0 - reserved for future use
 	cstring   fullCollectionName; // "dbname.collectionname"
 	int32     flags;              // bit vector - see below for details.
@@ -241,19 +249,16 @@ OP_DELETE = {/C
 }
 
 OP_KILL_CURSORS = {/C
-	MsgHeader header;            // standard message header
 	int32     ZERO;              // 0 - reserved for future use
 	int32     numberOfCursorIDs; // number of cursorIDs in message
 	int64*    cursorIDs;         // sequence of cursorIDs to close
 }
 
 OP_MSG = {/C
-	MsgHeader header;  // standard message header
 	cstring   message; // message for the database
 }
 
 OP_REPLY = {/C
-	MsgHeader header;         // standard message header
 	int32     responseFlags;  // bit vector - see details below
 	int64     cursorID;       // cursor id if client needs to do get more's
 	int32     startingFrom;   // where in the cursor this reply is starting
@@ -263,17 +268,17 @@ OP_REPLY = {/C
 
 Message = {
 	header MsgHeader   // standard message header
-	data   [header.messageLength - sizeof(header)]byte
-}/case header.opCode {
-	1:    OP_REPLY    // Reply to a client request. responseTo is set.
-	1000: OP_MSG      // Generic msg command followed by a string.
-	2001: OP_UPDATE
-	2002: OP_INSERT
-	2003: RESERVED
-	2004: OP_QUERY
-	2005: OP_GET_MORE // Get more data from a query. See Cursors.
-	2006: OP_DELETE
-	2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
+	read header.messageLength - sizeof(MsgHeader) do case header.opCode {
+		1:    OP_REPLY    // Reply to a client request. responseTo is set.
+		1000: OP_MSG      // Generic msg command followed by a string.
+		2001: OP_UPDATE
+		2002: OP_INSERT
+		2003: RESERVED
+		2004: OP_QUERY
+		2005: OP_GET_MORE // Get more data from a query. See Cursors.
+		2006: OP_DELETE
+		2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
+	}
 }
 
 doc = *Message

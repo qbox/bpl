@@ -19,20 +19,21 @@ type BaseType uint
 
 type baseTypeInfo struct {
 	read   func(in *bufio.Reader) (v interface{}, err error)
+	newn   func(n int) interface{}
 	sizeOf int
 }
 
 var baseTypes = [...]baseTypeInfo{
-	reflect.Int8:    {readInt8, 1},
-	reflect.Int16:   {readInt16, 2},
-	reflect.Int32:   {readInt32, 4},
-	reflect.Int64:   {readInt64, 8},
-	reflect.Uint8:   {readUint8, 1},
-	reflect.Uint16:  {readUint16, 2},
-	reflect.Uint32:  {readUint32, 4},
-	reflect.Uint64:  {readUint64, 8},
-	reflect.Float32: {readFloat32, 4},
-	reflect.Float64: {readFloat64, 8},
+	reflect.Int8:    {readInt8, newInt8n, 1},
+	reflect.Int16:   {readInt16, newInt16n, 2},
+	reflect.Int32:   {readInt32, newInt32n, 4},
+	reflect.Int64:   {readInt64, newInt64n, 8},
+	reflect.Uint8:   {readUint8, newUint8n, 1},
+	reflect.Uint16:  {readUint16, newUint16n, 2},
+	reflect.Uint32:  {readUint32, newUint32n, 4},
+	reflect.Uint64:  {readUint64, newUint64n, 8},
+	reflect.Float32: {readFloat32, newFloat32n, 4},
+	reflect.Float64: {readFloat64, newFloat64n, 8},
 }
 
 func readInt8(in *bufio.Reader) (v interface{}, err error) {
@@ -131,6 +132,56 @@ func readFloat64(in *bufio.Reader) (v interface{}, err error) {
 	v = *(*float64)(unsafe.Pointer(&t[0]))
 	in.Discard(8)
 	return
+}
+
+func newInt8n(n int) interface{} {
+
+	return make([]int8, n)
+}
+
+func newUint8n(n int) interface{} {
+
+	return make([]uint8, n)
+}
+
+func newInt16n(n int) interface{} {
+
+	return make([]int16, n)
+}
+
+func newUint16n(n int) interface{} {
+
+	return make([]uint16, n)
+}
+
+func newInt32n(n int) interface{} {
+
+	return make([]int32, n)
+}
+
+func newUint32n(n int) interface{} {
+
+	return make([]uint32, n)
+}
+
+func newInt64n(n int) interface{} {
+
+	return make([]int64, n)
+}
+
+func newUint64n(n int) interface{} {
+
+	return make([]uint64, n)
+}
+
+func newFloat32n(n int) interface{} {
+
+	return make([]float32, n)
+}
+
+func newFloat64n(n int) interface{} {
+
+	return make([]float64, n)
 }
 
 // Match is required by a matching unit. see Ruler interface.
