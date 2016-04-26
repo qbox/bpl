@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -80,6 +81,34 @@ var Done Ruler = done(0)
 
 // -----------------------------------------------------------------------------
 
+type readAll int
+
+func (p readAll) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := in.Buffered()
+	if n < 16 {
+		n = 16
+	}
+	buff := make([]byte, 0, n)
+	b := bytes.NewBuffer(buff)
+	_, err = in.WriteTo(b)
+	if err != nil {
+		return
+	}
+	return b.Bytes(), nil
+}
+
+func (p readAll) SizeOf() int {
+
+	return -1
+}
+
+// ReadAll is a matching unit that reads all data.
+//
+var ReadAll Ruler = readAll(0)
+
+// -----------------------------------------------------------------------------
+
 type and struct {
 	rs []Ruler
 }
@@ -92,7 +121,7 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 			return
 		}
 	}
-	return domOf(ctx), nil
+	return ctx.dom, nil
 }
 
 func (p *and) SizeOf() int {
@@ -114,10 +143,6 @@ type seq struct {
 }
 
 func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	if ctx == nil {
-		ctx = NewContext()
-	}
 
 	ret := ctx.requireVarSlice()
 	for _, r := range p.rs {

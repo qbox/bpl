@@ -26,9 +26,6 @@ func NewContext() *Context {
 //
 func NewSubContext(p *Context) *Context {
 
-	if p == nil {
-		return nil
-	}
 	return &Context{Parent: p}
 }
 
@@ -92,14 +89,6 @@ func (p *Context) SetDom(v interface{}) {
 //
 func (p *Context) Dom() interface{} {
 
-	return p.dom
-}
-
-func domOf(p *Context) interface{} {
-
-	if p == nil {
-		return nil
-	}
 	return p.dom
 }
 

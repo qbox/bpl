@@ -296,7 +296,9 @@ var builtins = map[string]bpl.Ruler{
 	"nil":     bpl.Nil,
 	"eof":     bpl.EOF,
 	"done":    bpl.Done,
+	"readAll": bpl.ReadAll,
 	"bson":    bson.Type,
+	"dump":    dump(0),
 }
 
 // -----------------------------------------------------------------------------

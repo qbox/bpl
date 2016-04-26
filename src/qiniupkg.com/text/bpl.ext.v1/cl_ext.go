@@ -26,10 +26,7 @@ var (
 
 func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 
-	var vars map[string]interface{}
-	if ctx != nil {
-		vars, _ = ctx.Dom().(map[string]interface{})
-	}
+	vars, _ := ctx.Dom().(map[string]interface{})
 	if vars == nil {
 		vars = nilVars
 	}
@@ -75,10 +72,7 @@ func (p *Compiler) array() {
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
-		if ctx != nil {
-			ctx = ctx.Parent
-		}
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.Eval(ctx.Parent, e.start, e.end)
 		return v.(int)
 	}
 	stk[i] = bpl.Dynarray(stk[i].(bpl.Ruler), n)

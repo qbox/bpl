@@ -4,11 +4,49 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"os"
 
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
 	"qiniupkg.com/text/tpl.v1/interpreter"
+	"qiniupkg.com/x/log.v7"
 )
+
+// -----------------------------------------------------------------------------
+
+var (
+	// Dumper is used for dumping log informations.
+	Dumper = log.New(os.Stderr, "", log.Ldefault)
+)
+
+// SetDumper sets the dumper instance for dumping log informations.
+//
+func SetDumper(w io.Writer, flags ...int) {
+
+	flag := log.Ldefault
+	if len(flags) > 0 {
+		flag = flags[0]
+	}
+	Dumper = log.New(w, "", flag)
+}
+
+// -----------------------------------------------------------------------------
+
+type dump int
+
+func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
+
+	dom := ctx.Dom()
+	if dom != nil {
+		Dumper.Info(dom)
+	}
+	return
+}
+
+func (p dump) SizeOf() int {
+
+	return 0
+}
 
 // -----------------------------------------------------------------------------
 

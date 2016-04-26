@@ -312,8 +312,8 @@ headerType = {
 recType = {
 	h headerType
 	read h.len - sizeof(headerType) do case h.type {
-		1: {t1 [3]cstring}
-		2: {t2 [2]cstring}
+		1: {t1 [2]cstring}
+		2: {t2 [1]cstring}
 	}
 }
 
@@ -366,7 +366,7 @@ func TestRead(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if string(ret) != `[2,{"h":{"len":32,"type":1},"t1":["hello","world","bpl"]},{"h":{"len":24,"type":2},"t2":["foo","bar"]}]` {
+	if string(ret) != `[2,{"h":{"len":32,"type":1},"t1":["hello","world"]},{"h":{"len":24,"type":2},"t2":["foo"]}]` {
 		t.Fatal("ret:", string(ret))
 	}
 }
