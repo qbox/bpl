@@ -28,7 +28,7 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 			return
 		}
 	}
-	return
+	return domOf(ctx), nil
 }
 
 func (p *and) SizeOf() int {
