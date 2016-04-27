@@ -1,7 +1,6 @@
 package bpl
 
 import (
-	"errors"
 	"io"
 	"reflect"
 	"unsafe"
@@ -10,6 +9,20 @@ import (
 )
 
 // -----------------------------------------------------------------------------
+
+func matchCharArray(n int, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	if n == 0 {
+		return "", nil
+	}
+
+	b := make([]byte, n)
+	_, err = io.ReadFull(in, b)
+	if err != nil {
+		return
+	}
+	return string(b), nil
+}
 
 func matchBaseArray(R BaseType, n int, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
@@ -59,19 +72,6 @@ type baseDynarray struct {
 
 func (p *baseDynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	defer func() {
-		if e := recover(); e != nil {
-			switch v := e.(type) {
-			case string:
-				err = errors.New(v)
-			case error:
-				err = v
-			default:
-				panic(e)
-			}
-		}
-	}()
-
 	n := p.n(ctx)
 	return matchBaseArray(p.r, n, in, ctx)
 }
@@ -86,6 +86,49 @@ func (p *baseDynarray) SizeOf() int {
 func BaseDynarray(r BaseType, n func(ctx *Context) int) Ruler {
 
 	return &baseDynarray{r: r, n: n}
+}
+
+// -----------------------------------------------------------------------------
+
+type charArray int
+
+func (p charArray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	return matchCharArray(int(p), in, ctx)
+}
+
+func (p charArray) SizeOf() int {
+
+	return int(p)
+}
+
+// CharArray returns a matching unit that matches `[n]char`.
+//
+func CharArray(n int) Ruler {
+
+	return charArray(n)
+}
+
+// -----------------------------------------------------------------------------
+
+type charDynarray func(ctx *Context) int
+
+func (p charDynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := p(ctx)
+	return matchCharArray(n, in, ctx)
+}
+
+func (p charDynarray) SizeOf() int {
+
+	return -1
+}
+
+// CharDynarray returns a matching unit that matches `[n(ctx)]char`.
+//
+func CharDynarray(n func(ctx *Context) int) Ruler {
+
+	return charDynarray(n)
 }
 
 // -----------------------------------------------------------------------------

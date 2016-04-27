@@ -2,7 +2,6 @@ package bpl
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"io"
 	"reflect"
 	"unsafe"
@@ -44,8 +43,7 @@ func readInt8(in *bufio.Reader) (v interface{}, err error) {
 
 func readUint8(in *bufio.Reader) (v interface{}, err error) {
 
-	v, err = in.ReadByte()
-	return
+	return in.ReadByte()
 }
 
 func readInt16(in *bufio.Reader) (v interface{}, err error) {
@@ -233,28 +231,6 @@ var (
 
 // -----------------------------------------------------------------------------
 
-// A String represents result of a string matching unit, such as `CString`.
-//
-type String struct {
-	Data  []byte
-	cache string
-}
-
-func (p *String) String() string {
-
-	if p.cache == "" {
-		p.cache = string(p.Data)
-	}
-	return p.cache
-}
-
-// MarshalJSON is required by json.Marshal
-//
-func (p *String) MarshalJSON() (b []byte, err error) {
-
-	return json.Marshal(p.String())
-}
-
 type cstring int
 
 func (p cstring) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -263,7 +239,7 @@ func (p cstring) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	if err != nil {
 		return
 	}
-	return &String{Data: b[:len(b)-1]}, nil
+	return string(b[:len(b)-1]), nil
 }
 
 func (p cstring) SizeOf() int {
@@ -274,6 +250,24 @@ func (p cstring) SizeOf() int {
 // CString is a matching unit that matches a C style string.
 //
 var CString Ruler = cstring(0)
+
+// -----------------------------------------------------------------------------
+
+type charType int
+
+func (p charType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	return in.ReadByte()
+}
+
+func (p charType) SizeOf() int {
+
+	return 1
+}
+
+// Char is a matching unit that matches a character.
+//
+var Char Ruler = charType(0)
 
 // -----------------------------------------------------------------------------
 

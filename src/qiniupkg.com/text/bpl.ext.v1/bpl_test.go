@@ -116,15 +116,18 @@ sub1 = {/C
 
 subType = {
 	f cstring
+	assert f == "foo"
 }
 
 doc = {
 	sub1 sub1
 	c    uint32
 	d    float32
-	e    cstring
+	e    [5]char
+	_    byte
 	f    subType
 	_    float64
+	assert e == "Hello"
 }
 `
 
