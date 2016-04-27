@@ -165,6 +165,9 @@ func Array(r Ruler, n int) Ruler {
 	//if t, ok := r.(BaseType); ok {
 	//	return &baseArray{r: t, n: n}
 	//}
+	if r == Char {
+		return charArray(n)
+	}
 	return &array{r: r, n: n}
 }
 
@@ -194,6 +197,9 @@ func Dynarray(r Ruler, n func(ctx *Context) int) Ruler {
 	//if t, ok := r.(BaseType); ok {
 	//	return &baseDynarray{r: t, n: n}
 	//}
+	if r == Char {
+		return charDynarray(n)
+	}
 	return &dynarray{r: r, n: n}
 }
 

@@ -69,6 +69,7 @@ atom =
 
 ifactor =
 	INT/pushi |
+	STRING/pushs |
 	(IDENT/ref | '('! iexpr ')') *atom |
 	"sizeof"! '(' IDENT/sizeof ')' |
 	'^' ifactor/bitnot |
@@ -199,6 +200,7 @@ var fntable = map[string]interface{}{
 	"$ref":     (*Compiler).ref,
 	"$mref":    (*Compiler).mref,
 	"$pushi":   (*Compiler).pushi,
+	"$pushs":   (*Compiler).pushs,
 	"$cpushi":  (*Compiler).cpushi,
 	"$eval":    (*Compiler).fnEval,
 	"$read":    (*Compiler).fnRead,
@@ -218,6 +220,7 @@ var builtins = map[string]bpl.Ruler{
 	"int64":   bpl.Int64,
 	"uint8":   bpl.Uint8,
 	"byte":    bpl.Uint8,
+	"char":    bpl.Char,
 	"uint16":  bpl.Uint16,
 	"uint32":  bpl.Uint32,
 	"uint64":  bpl.Uint64,

@@ -2,6 +2,7 @@ package bpl
 
 import (
 	"reflect"
+	"strconv"
 
 	"qlang.io/exec.v2"
 )
@@ -80,6 +81,11 @@ func equ(a, b interface{}) bool {
 		case int:
 			return a1 == b1
 		}
+	case string:
+		switch b1 := b.(type) {
+		case string:
+			return a1 == b1
+		}
 	}
 	panicUnsupportedOp2("==", a, b)
 	return false
@@ -91,6 +97,11 @@ func ne(a, b interface{}) bool {
 	case int:
 		switch b1 := b.(type) {
 		case int:
+			return a1 != b1
+		}
+	case string:
+		switch b1 := b.(type) {
+		case string:
 			return a1 != b1
 		}
 	}
@@ -106,6 +117,11 @@ func le(a, b interface{}) bool {
 		case int:
 			return a1 <= b1
 		}
+	case string:
+		switch b1 := b.(type) {
+		case string:
+			return a1 <= b1
+		}
 	}
 	panicUnsupportedOp2("<=", a, b)
 	return false
@@ -117,6 +133,11 @@ func lt(a, b interface{}) bool {
 	case int:
 		switch b1 := b.(type) {
 		case int:
+			return a1 < b1
+		}
+	case string:
+		switch b1 := b.(type) {
+		case string:
 			return a1 < b1
 		}
 	}
@@ -132,6 +153,11 @@ func ge(a, b interface{}) bool {
 		case int:
 			return a1 >= b1
 		}
+	case string:
+		switch b1 := b.(type) {
+		case string:
+			return a1 >= b1
+		}
 	}
 	panicUnsupportedOp2(">=", a, b)
 	return false
@@ -143,6 +169,11 @@ func gt(a, b interface{}) bool {
 	case int:
 		switch b1 := b.(type) {
 		case int:
+			return a1 > b1
+		}
+	case string:
+		switch b1 := b.(type) {
+		case string:
 			return a1 > b1
 		}
 	}
@@ -333,6 +364,15 @@ func (p *Compiler) mref(name string) {
 
 func (p *Compiler) pushi(v int) {
 
+	p.code.Block(exec.Push(v))
+}
+
+func (p *Compiler) pushs(lit string) {
+
+	v, err := strconv.Unquote(lit)
+	if err != nil {
+		panic("invalid string `" + lit + "`: " + err.Error())
+	}
 	p.code.Block(exec.Push(v))
 }
 
