@@ -39,7 +39,7 @@ type =
 
 casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
-caseexpr = "case"/istart! iexpr '{'/iend casebody ?';' '}' /case
+caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
 readexpr = "read"/istart! iexpr "do"/iend expr /read
 
@@ -47,7 +47,9 @@ evalexpr = "eval"/istart! iexpr "do"/iend expr /eval
 
 assertexpr = ("assert"/istart! iexpr /iend)/source /assert
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr
+lzwexpr = "lzw"/istart! iexpr ','/iend /istart iexpr "do"/iend expr /lzw
+
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr | lzwexpr
 
 cstruct = (ctype IDENT/var) %= ';'/ARITY *(';' dynexpr)/ARITY /cstruct
 
@@ -206,6 +208,7 @@ var fntable = map[string]interface{}{
 	"$read":    (*Compiler).fnRead,
 	"$case":    (*Compiler).fnCase,
 	"$assert":  (*Compiler).fnAssert,
+	"$lzw":     (*Compiler).fnLzw,
 	"$const":   (*Compiler).fnConst,
 	"$casei":   (*Compiler).casei,
 	"$source":  (*Compiler).source,

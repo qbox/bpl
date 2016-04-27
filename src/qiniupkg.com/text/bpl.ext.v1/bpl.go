@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -111,6 +112,27 @@ func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err erro
 func (p dump) SizeOf() int {
 
 	return 0
+}
+
+// -----------------------------------------------------------------------------
+
+// A Error represents an matching error.
+//
+type Error struct {
+	Err  error
+	File string
+	Line int
+}
+
+func (p *Error) Error() string {
+
+	if p.Line == 0 {
+		return p.Err.Error()
+	}
+	if p.File == "" {
+		return fmt.Sprintf("line %d: %v", p.Line, p.Err)
+	}
+	return fmt.Sprintf("%s:%d: %v", p.File, p.Line, p.Err)
 }
 
 // -----------------------------------------------------------------------------

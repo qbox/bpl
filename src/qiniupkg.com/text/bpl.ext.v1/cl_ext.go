@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"qiniupkg.com/text/bpl.ext.v1/lzw"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
@@ -123,6 +124,22 @@ func (p *Compiler) popRules(m int) bpl.Ruler {
 	return p.popRule()
 }
 
+func sourceOf(engine interpreter.Engine, src interface{}) string {
+
+	b := engine.Source(src)
+	return strings.Trim(string(b), " \t\r\n")
+}
+
+func newError(engine interpreter.Engine, src interface{}, err error) error {
+
+	f := engine.FileLine(src)
+	return &Error{
+		File: f.File,
+		Line: f.Line,
+		Err:  err,
+	}
+}
+
 func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 	var defaultR bpl.Ruler
@@ -137,14 +154,15 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 	caseRs := clone(stk[n-arity:])
 	caseExprAndSources := p.gstk.PopNArgs(arity << 1)
 	e := p.popExpr()
+	srcSw, _ := p.gstk.Pop()
 	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
 		v := p.Eval(ctx, e.start, e.end)
 		for i := 0; i < len(caseExprAndSources); i += 2 {
 			expr := caseExprAndSources[i]
 			if eq(v, expr) {
 				if SetCaseType {
-					src := engine.Source(caseExprAndSources[i+1])
-					ctx.SetVar("_type", strings.Trim(string(src), " \t\r\n"))
+					src := sourceOf(engine, caseExprAndSources[i+1])
+					ctx.SetVar("_type", src)
 				}
 				return caseRs[i>>1], nil
 			}
@@ -152,7 +170,8 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 		if defaultR != nil {
 			return defaultR, nil
 		}
-		return nil, fmt.Errorf("case `%v` is not found", v)
+		err := fmt.Errorf("case `%s(=%v)` is not found", sourceOf(engine, srcSw), v)
+		return nil, newError(engine, srcSw, err)
 	}
 	stk[n-arity] = bpl.Dyntype(r)
 	p.stk = stk[:n-arity+1]
@@ -182,7 +201,7 @@ func (p *Compiler) fnAssert(engine interpreter.Engine) {
 		v := p.Eval(ctx, e.start, e.end)
 		return v.(bool)
 	}
-	msg := string(engine.Source(src))
+	msg := sourceOf(engine, src)
 	p.stk = append(p.stk, bpl.Assert(expr, msg))
 }
 
@@ -198,6 +217,21 @@ func (p *Compiler) fnRead() {
 		return v.(int)
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
+}
+
+func (p *Compiler) fnLzw() {
+
+	e2 := p.popExpr()
+	e1 := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	r := stk[i].(bpl.Ruler)
+	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		v1 := p.Eval(ctx, e1.start, e1.end)
+		v2 := p.Eval(ctx, e2.start, e2.end)
+		return lzw.Type(v1.(int), v2.(int), r), nil
+	}
+	stk[i] = bpl.Dyntype(dynR)
 }
 
 // -----------------------------------------------------------------------------
