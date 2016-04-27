@@ -14,11 +14,17 @@ const grammar = `
 
 expr = +factor/And
 
-doc = +((IDENT '=' expr ';')/assign)
+term1 = ifactor *(
+	'*' ifactor/mul | '/' ifactor/quo | '%' ifactor/mod |
+	"<<" ifactor/lshr | ">>" ifactor/rshr | '&' ifactor/bitand | "&^" ifactor/andnot)
 
-iterm = ifactor *('*' ifactor/mul | '/' ifactor/quo | '%' ifactor/mod)
+term2 = term1 *('+' term1/add | '-' term1/sub)
 
-iexpr = iterm *('+' iterm/add | '-' iterm/sub)
+term3 = term2 *('<' term2/lt | '>' term2/gt | "==" term2/eq | "<=" term2/le | ">=" term2/ge | "!=" term2/ne)
+
+term4 = term3 *("&&" term3/and)
+
+iexpr = term4 *("||" term4/or)
 
 index = '['/istart iexpr ']'/iend
 
@@ -39,11 +45,13 @@ readexpr = "read"/istart! iexpr "do"/iend expr /read
 
 evalexpr = "eval"/istart! iexpr "do"/iend expr /eval
 
-dynexpr = caseexpr | readexpr | evalexpr
+assertexpr = ("assert"/istart! iexpr /iend)/source /assert
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY ?(';' dynexpr)/ARITY /cstruct
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr
 
-struct = (IDENT/var type) %= ';'/ARITY ?(';' dynexpr)/ARITY /struct
+cstruct = (ctype IDENT/var) %= ';'/ARITY *(';' dynexpr)/ARITY /cstruct
+
+struct = (IDENT/var type) %= ';'/ARITY *(';' dynexpr)/ARITY /struct
 
 factor =
 	IDENT/ident |
@@ -63,8 +71,17 @@ ifactor =
 	INT/pushi |
 	(IDENT/ref | '('! iexpr ')') *atom |
 	"sizeof"! '(' IDENT/sizeof ')' |
+	'^' ifactor/bitnot |
 	'-' ifactor/neg |
 	'+' ifactor
+
+cexpr = INT/cpushi
+
+const = (IDENT '=' cexpr ';')/const
+
+doc = +(
+	(IDENT '=' expr ';')/assign |
+	"const" '(' *const ')' ';')
 `
 
 var (
@@ -81,6 +98,7 @@ type Compiler struct {
 	stk      []interface{}
 	rulers   map[string]bpl.Ruler
 	vars     map[string]*bpl.TypeVar
+	consts   map[string]interface{}
 	gstk     exec.Stack
 	idxStart int
 }
@@ -91,8 +109,9 @@ func NewCompiler() (p *Compiler) {
 
 	rulers := make(map[string]bpl.Ruler)
 	vars := make(map[string]*bpl.TypeVar)
+	consts := make(map[string]interface{})
 	e := newExecutor()
-	return &Compiler{rulers: rulers, vars: vars, executor: e}
+	return &Compiler{rulers: rulers, vars: vars, consts: consts, executor: e}
 }
 
 // Ret returns compiling result.
@@ -139,114 +158,6 @@ func (p *Compiler) Stack() interpreter.Stack {
 
 // -----------------------------------------------------------------------------
 
-func clone(rs []interface{}) []bpl.Ruler {
-
-	dest := make([]bpl.Ruler, len(rs))
-	for i, r := range rs {
-		dest[i] = r.(bpl.Ruler)
-	}
-	return dest
-}
-
-func (p *Compiler) and(m int) {
-
-	if m == 1 {
-		return
-	}
-	stk := p.stk
-	n := len(stk)
-	stk[n-m] = bpl.And(clone(stk[n-m:])...)
-	p.stk = stk[:n-m+1]
-}
-
-func (p *Compiler) seq(m int) {
-
-	stk := p.stk
-	n := len(stk)
-	stk[n-m] = bpl.Seq(clone(stk[n-m:])...)
-	p.stk = stk[:n-m+1]
-}
-
-func (p *Compiler) variable(name string) {
-
-	p.stk = append(p.stk, name)
-}
-
-func (p *Compiler) ruleOf(name string) (r bpl.Ruler, ok bool) {
-
-	r, ok = p.rulers[name]
-	if !ok {
-		if r, ok = p.vars[name]; !ok {
-			if r, ok = builtins[name]; ok {
-				p.rulers[name] = r
-			}
-		}
-	}
-	return
-}
-
-func (p *Compiler) sizeof(name string) {
-
-	r, ok := p.ruleOf(name)
-	if !ok {
-		panic(fmt.Errorf("sizeof error: type `%v` not found", name))
-	}
-	n := r.SizeOf()
-	if n < 0 {
-		panic(fmt.Errorf("sizeof error: type `%v` isn't a fixed size type", name))
-	}
-	p.code.Block(exec.Push(n))
-}
-
-func (p *Compiler) ident(name string) {
-
-	r, ok := p.ruleOf(name)
-	if !ok {
-		v := &bpl.TypeVar{Name: name}
-		p.vars[name] = v
-		r = v
-	}
-	p.stk = append(p.stk, r)
-}
-
-func (p *Compiler) assign(name string) {
-
-	a := p.stk[0].(bpl.Ruler)
-	if v, ok := p.vars[name]; ok {
-		if err := v.Assign(a); err != nil {
-			panic(err)
-		}
-	} else if _, ok := p.rulers[name]; ok {
-		panic("ruler already exists: " + name)
-	} else {
-		p.rulers[name] = a
-	}
-	p.stk = p.stk[:0]
-}
-
-func (p *Compiler) repeat0() {
-
-	stk := p.stk
-	i := len(stk) - 1
-	stk[i] = bpl.Repeat0(stk[i].(bpl.Ruler))
-}
-
-func (p *Compiler) repeat1() {
-
-	stk := p.stk
-	i := len(stk) - 1
-	stk[i] = bpl.Repeat1(stk[i].(bpl.Ruler))
-}
-
-func (p *Compiler) repeat01() {
-
-	stk := p.stk
-	i := len(stk) - 1
-	stk[i] = bpl.Repeat01(stk[i].(bpl.Ruler))
-}
-
-// -----------------------------------------------------------------------------
-
 var fntable = map[string]interface{}{
 	"$And":      (*Compiler).and,
 	"$Seq":      (*Compiler).seq,
@@ -269,15 +180,31 @@ var fntable = map[string]interface{}{
 	"$neg":     neg,
 	"$add":     add,
 	"$sub":     sub,
+	"$lt":      lt,
+	"$gt":      gt,
+	"$eq":      equ,
+	"$le":      le,
+	"$ge":      ge,
+	"$ne":      ne,
+	"$and":     and,
+	"$or":      or,
+	"$lshr":    lshr,
+	"$rshr":    rshr,
+	"$bitand":  bitand,
+	"$bitnot":  bitnot,
+	"$andnot":  andnot,
 	"$sizeof":  (*Compiler).sizeof,
 	"$ARITY":   (*Compiler).arity,
 	"$call":    (*Compiler).call,
 	"$ref":     (*Compiler).ref,
 	"$mref":    (*Compiler).mref,
 	"$pushi":   (*Compiler).pushi,
+	"$cpushi":  (*Compiler).cpushi,
 	"$eval":    (*Compiler).fnEval,
 	"$read":    (*Compiler).fnRead,
 	"$case":    (*Compiler).fnCase,
+	"$assert":  (*Compiler).fnAssert,
+	"$const":   (*Compiler).fnConst,
 	"$casei":   (*Compiler).casei,
 	"$source":  (*Compiler).source,
 	"$cstruct": (*Compiler).cstruct,

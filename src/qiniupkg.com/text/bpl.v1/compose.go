@@ -104,6 +104,12 @@ func (p *and) SizeOf() int {
 //
 func And(rs ...Ruler) Ruler {
 
+	if len(rs) <= 1 {
+		if len(rs) == 1 {
+			return rs[0]
+		}
+		return Nil
+	}
 	return &and{rs: rs}
 }
 
@@ -224,6 +230,33 @@ func (p *eval) SizeOf() int {
 func Eval(expr func(ctx *Context) []byte, r Ruler) Ruler {
 
 	return &eval{r: r, expr: expr}
+}
+
+// -----------------------------------------------------------------------------
+
+type assert struct {
+	expr func(ctx *Context) bool
+	msg  string
+}
+
+func (p *assert) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	if p.expr(ctx) {
+		return
+	}
+	panic(p.msg)
+}
+
+func (p *assert) SizeOf() int {
+
+	return -1
+}
+
+// Assert returns a matching unit that assert expr(ctx).
+//
+func Assert(expr func(ctx *Context) bool, msg string) Ruler {
+
+	return &assert{msg: msg, expr: expr}
 }
 
 // -----------------------------------------------------------------------------
