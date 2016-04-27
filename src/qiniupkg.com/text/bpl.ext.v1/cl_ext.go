@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"qiniupkg.com/text/bpl.ext.v1/lzw"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
@@ -198,6 +199,21 @@ func (p *Compiler) fnRead() {
 		return v.(int)
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
+}
+
+func (p *Compiler) fnLzw() {
+
+	e2 := p.popExpr()
+	e1 := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	r := stk[i].(bpl.Ruler)
+	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		v1 := p.Eval(ctx, e1.start, e1.end)
+		v2 := p.Eval(ctx, e2.start, e2.end)
+		return lzw.Type(v1.(int), v2.(int), r), nil
+	}
+	stk[i] = bpl.Dyntype(dynR)
 }
 
 // -----------------------------------------------------------------------------
