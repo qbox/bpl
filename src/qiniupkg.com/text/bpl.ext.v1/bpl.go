@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -67,7 +68,13 @@ func DumpDom(b *bytes.Buffer, dom interface{}, lvl int) {
 		b.WriteByte(']')
 	case map[string]interface{}:
 		b.WriteByte('{')
-		for key, item := range v {
+		keys := make([]string, 0, len(v))
+		for key := range v {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			item := v[key]
 			b.WriteByte('\n')
 			writePrefix(b, lvl+1)
 			b.WriteString(key)
