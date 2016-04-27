@@ -40,7 +40,7 @@ func TestCString(t *testing.T) {
 	if err != nil {
 		t.Fatal("CString.Match failed:", err)
 	}
-	if v.(*bpl.String).String() != "Hello, world!" {
+	if v != "Hello, world!" {
 		t.Fatal("CString.Match result:", v)
 	}
 
