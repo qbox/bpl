@@ -2,8 +2,10 @@ package bpl
 
 import (
 	"fmt"
+	"strings"
 
 	"qiniupkg.com/text/bpl.v1"
+	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
 )
 
@@ -99,6 +101,11 @@ func (p *Compiler) casei(v int) {
 	p.gstk.Push(v)
 }
 
+func (p *Compiler) source(v interface{}) {
+
+	p.gstk.Push(v)
+}
+
 func (p *Compiler) popRule() bpl.Ruler {
 
 	n := len(p.stk) - 1
@@ -107,7 +114,7 @@ func (p *Compiler) popRule() bpl.Ruler {
 	return r
 }
 
-func (p *Compiler) fnCase() {
+func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 	var defaultR bpl.Ruler
 	if p.popArity() != 0 {
@@ -119,13 +126,18 @@ func (p *Compiler) fnCase() {
 	stk := p.stk
 	n := len(stk)
 	caseRs := clone(stk[n-arity:])
-	caseExprs := p.gstk.PopNArgs(arity)
+	caseExprAndSources := p.gstk.PopNArgs(arity << 1)
 	e := p.popExpr()
 	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
 		v := p.Eval(ctx, e.start, e.end)
-		for i, expr := range caseExprs {
+		for i := 0; i < len(caseExprAndSources); i += 2 {
+			expr := caseExprAndSources[i]
 			if eq(v, expr) {
-				return caseRs[i], nil
+				if SetCaseType {
+					src := engine.Source(caseExprAndSources[i+1])
+					ctx.SetVar("_type", strings.Trim(string(src), " \t\r\n"))
+				}
+				return caseRs[i>>1], nil
 			}
 		}
 		if defaultR != nil {
