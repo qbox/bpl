@@ -31,7 +31,7 @@ type =
 	('?'! IDENT/ident)/array01 |
 	('+'! IDENT/ident)/array1
 
-casebody = (INT/casei ':' expr) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
+casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
 caseexpr = "case"/istart! iexpr '{'/iend casebody ?';' '}' /case
 
@@ -279,6 +279,7 @@ var fntable = map[string]interface{}{
 	"$read":    (*Compiler).fnRead,
 	"$case":    (*Compiler).fnCase,
 	"$casei":   (*Compiler).casei,
+	"$source":  (*Compiler).source,
 	"$cstruct": (*Compiler).cstruct,
 	"$struct":  (*Compiler).gostruct,
 }
