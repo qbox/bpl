@@ -23,6 +23,9 @@ var (
 
 	// Dumper is used for dumping log informations.
 	Dumper = log.New(os.Stderr, "", Ldefault)
+
+	// SetCaseType controls to set `_type` into matching result or not.
+	SetCaseType = true
 )
 
 // SetDumper sets the dumper instance for dumping log informations.

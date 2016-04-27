@@ -133,8 +133,10 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 		for i := 0; i < len(caseExprAndSources); i += 2 {
 			expr := caseExprAndSources[i]
 			if eq(v, expr) {
-				src := engine.Source(caseExprAndSources[i+1])
-				ctx.SetVar("_type", strings.Trim(string(src), " \t\r\n"))
+				if SetCaseType {
+					src := engine.Source(caseExprAndSources[i+1])
+					ctx.SetVar("_type", strings.Trim(string(src), " \t\r\n"))
+				}
 				return caseRs[i>>1], nil
 			}
 		}

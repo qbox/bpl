@@ -183,6 +183,7 @@ doc = [int32] *[recType]
 
 func TestCase(t *testing.T) {
 
+	SetCaseType = false
 	foo := &fooType3{
 		N: 2,
 		R1: recType1{
@@ -251,6 +252,7 @@ doc = [int32] *[recType]
 
 func TestCase2(t *testing.T) {
 
+	SetCaseType = false
 	foo := &fooType3{
 		N: 2,
 		R1: recType1{
