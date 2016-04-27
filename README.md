@@ -197,6 +197,26 @@ record = {
 }
 ```
 
+## eval..do
+
+```
+eval <expr> do R
+```
+
+对 `<expr>` 进行求值（要求求值结果为[]byte类型）后，再用 R 匹配它。如：
+
+```
+record = {
+	h    header
+	body [h.len - sizeof(header)]byte
+	eval body do case h.type {
+		type1: body1
+		type2: body2
+		...
+	}
+}
+```
+
 ## 样例：MongoDB 网络协议
 
 ```
@@ -268,16 +288,17 @@ OP_REPLY = {/C
 
 Message = {
 	header MsgHeader   // standard message header
-	read header.messageLength - sizeof(MsgHeader) do case header.opCode {
+	body   [header.messageLength - sizeof(MsgHeader)]byte
+	eval body do case header.opCode {
 		1:    OP_REPLY    // Reply to a client request. responseTo is set.
 		1000: OP_MSG      // Generic msg command followed by a string.
 		2001: OP_UPDATE
 		2002: OP_INSERT
-		2003: RESERVED
 		2004: OP_QUERY
 		2005: OP_GET_MORE // Get more data from a query. See Cursors.
 		2006: OP_DELETE
 		2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
+		default: nil
 	}
 }
 

@@ -22,7 +22,7 @@ type Member struct {
 //
 func (p *Member) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	v, err = p.Type.Match(in, NewSubContext(ctx))
+	v, err = p.Type.Match(in, ctx.NewSub())
 	if err != nil {
 		return
 	}
@@ -61,7 +61,7 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 			return
 		}
 	}
-	return ctx.dom, nil
+	return ctx.Dom(), nil
 }
 
 func (p *structType) SizeOf() int {

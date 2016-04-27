@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"qiniupkg.com/text/bpl.ext.v1"
+	"qiniupkg.com/text/bpl.v1/bufio"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -137,8 +138,14 @@ func main() {
 		if err != nil {
 			log.Fatalln("bpl.NewFromFile failed:", err)
 		}
-		onBpl = func(in io.Reader) (err error) {
-			_, err = ruler.MatchStream(in)
+		onBpl = func(r io.Reader) (err error) {
+			in := bufio.NewReader(r)
+			ctx := bpl.NewContext()
+			_, err = ruler.SafeMatch(in, ctx)
+			if err != nil {
+				log.Error("Match failed:", err)
+			}
+			in.WriteTo(ioutil.Discard)
 			return
 		}
 	}

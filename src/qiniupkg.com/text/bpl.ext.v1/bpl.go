@@ -1,6 +1,9 @@
 package bpl
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -15,19 +18,71 @@ import (
 // -----------------------------------------------------------------------------
 
 var (
+	// Ldefault is default flag for `Dumper`.
+	Ldefault = log.Llevel | log.LstdFlags
+
 	// Dumper is used for dumping log informations.
-	Dumper = log.New(os.Stderr, "", log.Ldefault)
+	Dumper = log.New(os.Stderr, "", Ldefault)
 )
 
 // SetDumper sets the dumper instance for dumping log informations.
 //
 func SetDumper(w io.Writer, flags ...int) {
 
-	flag := log.Ldefault
+	flag := Ldefault
 	if len(flags) > 0 {
 		flag = flags[0]
 	}
 	Dumper = log.New(w, "", flag)
+}
+
+func writePrefix(b *bytes.Buffer, lvl int) {
+
+	for i := 0; i < lvl; i++ {
+		b.WriteString("  ")
+	}
+}
+
+// DumpDom dumps a dom tree.
+//
+func DumpDom(b *bytes.Buffer, dom interface{}, lvl int) {
+
+	if dom == nil {
+		b.WriteString("<nil>")
+		return
+	}
+	switch v := dom.(type) {
+	case []interface{}:
+		writePrefix(b, lvl)
+		b.WriteByte('[')
+		for _, item := range v {
+			b.WriteByte('\n')
+			writePrefix(b, lvl+1)
+			DumpDom(b, item, lvl+1)
+		}
+		writePrefix(b, lvl)
+		b.WriteByte(']')
+	case map[string]interface{}:
+		b.WriteByte('{')
+		for key, item := range v {
+			b.WriteByte('\n')
+			writePrefix(b, lvl+1)
+			b.WriteString(key)
+			b.WriteString(": ")
+			DumpDom(b, item, lvl+1)
+		}
+		b.WriteByte('\n')
+		writePrefix(b, lvl)
+		b.WriteByte('}')
+	case []byte:
+		b.WriteByte('\n')
+		d := hex.Dumper(b)
+		d.Write(v)
+		d.Close()
+	default:
+		ret, _ := json.Marshal(dom)
+		b.Write(ret)
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -36,10 +91,10 @@ type dump int
 
 func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
-	dom := ctx.Dom()
-	if dom != nil {
-		Dumper.Info(dom)
-	}
+	var b bytes.Buffer
+	b.WriteByte('\n')
+	DumpDom(&b, ctx.Dom(), 0)
+	Dumper.Info(b.String())
 	return
 }
 
@@ -130,6 +185,13 @@ func NewFromFile(fname string) (r Ruler, err error) {
 		return
 	}
 	return New(b, fname)
+}
+
+// NewContext returns a new matching Context.
+//
+func NewContext() *bpl.Context {
+
+	return bpl.NewContext()
 }
 
 // -----------------------------------------------------------------------------
