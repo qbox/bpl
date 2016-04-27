@@ -202,6 +202,32 @@ func Read(n func(ctx *Context) int, r Ruler) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type eval struct {
+	expr func(ctx *Context) []byte
+	r    Ruler
+}
+
+func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	b := p.expr(ctx)
+	in = bufio.NewReaderBuffer(b)
+	return p.r.Match(in, ctx)
+}
+
+func (p *eval) SizeOf() int {
+
+	return -1
+}
+
+// Eval returns a matching unit that eval expr(ctx) and matches it with R.
+//
+func Eval(expr func(ctx *Context) []byte, r Ruler) Ruler {
+
+	return &eval{r: r, expr: expr}
+}
+
+// -----------------------------------------------------------------------------
+
 // A TypeVar is typeinfo of a `Struct` member.
 //
 type TypeVar struct {

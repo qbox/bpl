@@ -66,8 +66,7 @@ OP_REPLY = {/C
 
 Message = {
 	header MsgHeader   // standard message header
-	body   [header.messageLength - sizeof(MsgHeader)]byte
-	eval body do case header.opCode {
+	read header.messageLength - sizeof(MsgHeader) do case header.opCode {
 		1:    OP_REPLY    // Reply to a client request. responseTo is set.
 		1000: OP_MSG      // Generic msg command followed by a string.
 		2001: OP_UPDATE
@@ -76,7 +75,7 @@ Message = {
 		2005: OP_GET_MORE // Get more data from a query. See Cursors.
 		2006: OP_DELETE
 		2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
-		default: nil
+		default: {body *byte}
 	}
 }
 

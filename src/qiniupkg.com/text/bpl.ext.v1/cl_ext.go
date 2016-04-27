@@ -139,6 +139,20 @@ func (p *Compiler) fnCase() {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnEval() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	expr := func(ctx *bpl.Context) []byte {
+		v := p.Eval(ctx, e.start, e.end)
+		return v.([]byte)
+	}
+	stk[i] = bpl.Eval(expr, stk[i].(bpl.Ruler))
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnRead() {
 
 	e := p.popExpr()
