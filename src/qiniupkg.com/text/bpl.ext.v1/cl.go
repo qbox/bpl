@@ -22,7 +22,7 @@ iexpr = iterm *('+' iterm/add | '-' iterm/sub)
 
 index = '['/istart iexpr ']'/iend
 
-ctype = IDENT/ident ?(index/array | '*'/repeat0 | '?'/repeat01 | '+'/repeat1)
+ctype = IDENT/ident ?(index/array | '*'/array0 | '?'/array01 | '+'/array1)
 
 type =
 	IDENT/ident |
@@ -37,7 +37,9 @@ caseexpr = "case"/istart! iexpr '{'/iend casebody ?';' '}' /case
 
 readexpr = "read"/istart! iexpr "do"/iend expr /read
 
-dynexpr = caseexpr | readexpr
+evalexpr = "eval"/istart! iexpr "do"/iend expr /eval
+
+dynexpr = caseexpr | readexpr | evalexpr
 
 cstruct = (ctype IDENT/var) %= ';'/ARITY ?(';' dynexpr)/ARITY /cstruct
 
@@ -273,6 +275,7 @@ var fntable = map[string]interface{}{
 	"$ref":     (*Compiler).ref,
 	"$mref":    (*Compiler).mref,
 	"$pushi":   (*Compiler).pushi,
+	"$eval":    (*Compiler).fnEval,
 	"$read":    (*Compiler).fnRead,
 	"$case":    (*Compiler).fnCase,
 	"$casei":   (*Compiler).casei,
@@ -296,7 +299,6 @@ var builtins = map[string]bpl.Ruler{
 	"nil":     bpl.Nil,
 	"eof":     bpl.EOF,
 	"done":    bpl.Done,
-	"readAll": bpl.ReadAll,
 	"bson":    bson.Type,
 	"dump":    dump(0),
 }

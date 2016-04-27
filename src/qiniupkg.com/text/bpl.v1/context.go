@@ -15,16 +15,16 @@ type Context struct {
 	Parent *Context
 }
 
-// NewContext returns a new Context.
+// NewContext returns a new matching Context.
 //
 func NewContext() *Context {
 
 	return &Context{}
 }
 
-// NewSubContext returns a new sub Context.
+// NewSub returns a new sub Context.
 //
-func NewSubContext(p *Context) *Context {
+func (p *Context) NewSub() *Context {
 
 	return &Context{Parent: p}
 }

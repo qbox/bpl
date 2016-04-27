@@ -35,7 +35,7 @@ func repeat(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 		return directRepeat(R, in, ctx)
 	}
 
-	_, err = R.Match(in, NewSubContext(ctx))
+	_, err = R.Match(in, ctx.NewSub())
 	if err != nil {
 		return
 	}
@@ -47,7 +47,7 @@ func repeat(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 			}
 			return
 		}
-		_, err = R.Match(in, NewSubContext(ctx))
+		_, err = R.Match(in, ctx.NewSub())
 		if err != nil {
 			return
 		}

@@ -1,7 +1,6 @@
 package bpl
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -81,34 +80,6 @@ var Done Ruler = done(0)
 
 // -----------------------------------------------------------------------------
 
-type readAll int
-
-func (p readAll) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
-
-	n := in.Buffered()
-	if n < 16 {
-		n = 16
-	}
-	buff := make([]byte, 0, n)
-	b := bytes.NewBuffer(buff)
-	_, err = in.WriteTo(b)
-	if err != nil {
-		return
-	}
-	return b.Bytes(), nil
-}
-
-func (p readAll) SizeOf() int {
-
-	return -1
-}
-
-// ReadAll is a matching unit that reads all data.
-//
-var ReadAll Ruler = readAll(0)
-
-// -----------------------------------------------------------------------------
-
 type and struct {
 	rs []Ruler
 }
@@ -121,7 +92,7 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 			return
 		}
 	}
-	return ctx.dom, nil
+	return ctx.Dom(), nil
 }
 
 func (p *and) SizeOf() int {
@@ -146,7 +117,7 @@ func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	ret := ctx.requireVarSlice()
 	for _, r := range p.rs {
-		v, err = r.Match(in, NewSubContext(ctx))
+		v, err = r.Match(in, ctx.NewSub())
 		if err != nil {
 			return
 		}
@@ -227,6 +198,32 @@ func (p *read) SizeOf() int {
 func Read(n func(ctx *Context) int, r Ruler) Ruler {
 
 	return &read{r: r, n: n}
+}
+
+// -----------------------------------------------------------------------------
+
+type eval struct {
+	expr func(ctx *Context) []byte
+	r    Ruler
+}
+
+func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	b := p.expr(ctx)
+	in = bufio.NewReaderBuffer(b)
+	return p.r.Match(in, ctx)
+}
+
+func (p *eval) SizeOf() int {
+
+	return -1
+}
+
+// Eval returns a matching unit that eval expr(ctx) and matches it with R.
+//
+func Eval(expr func(ctx *Context) []byte, r Ruler) Ruler {
+
+	return &eval{r: r, expr: expr}
 }
 
 // -----------------------------------------------------------------------------

@@ -161,9 +161,10 @@ func (p *array) SizeOf() int {
 //
 func Array(r Ruler, n int) Ruler {
 
-	if t, ok := r.(BaseType); ok {
-		return &baseArray{r: t, n: n}
-	}
+	//TODO:
+	//if t, ok := r.(BaseType); ok {
+	//	return &baseArray{r: t, n: n}
+	//}
 	return &array{r: r, n: n}
 }
 
@@ -189,9 +190,10 @@ func (p *dynarray) SizeOf() int {
 //
 func Dynarray(r Ruler, n func(ctx *Context) int) Ruler {
 
-	if t, ok := r.(BaseType); ok {
-		return &baseDynarray{r: t, n: n}
-	}
+	//TODO:
+	//if t, ok := r.(BaseType); ok {
+	//	return &baseDynarray{r: t, n: n}
+	//}
 	return &dynarray{r: r, n: n}
 }
 
