@@ -39,7 +39,7 @@ type =
 
 casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
-caseexpr = "case"/istart! iexpr '{'/iend casebody ?';' '}' /case
+caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
 readexpr = "read"/istart! iexpr "do"/iend expr /read
 

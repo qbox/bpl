@@ -124,6 +124,22 @@ func (p *Compiler) popRules(m int) bpl.Ruler {
 	return p.popRule()
 }
 
+func sourceOf(engine interpreter.Engine, src interface{}) string {
+
+	b := engine.Source(src)
+	return strings.Trim(string(b), " \t\r\n")
+}
+
+func newError(engine interpreter.Engine, src interface{}, err error) error {
+
+	f := engine.FileLine(src)
+	return &Error{
+		File: f.File,
+		Line: f.Line,
+		Err:  err,
+	}
+}
+
 func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 	var defaultR bpl.Ruler
@@ -138,14 +154,15 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 	caseRs := clone(stk[n-arity:])
 	caseExprAndSources := p.gstk.PopNArgs(arity << 1)
 	e := p.popExpr()
+	srcSw, _ := p.gstk.Pop()
 	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
 		v := p.Eval(ctx, e.start, e.end)
 		for i := 0; i < len(caseExprAndSources); i += 2 {
 			expr := caseExprAndSources[i]
 			if eq(v, expr) {
 				if SetCaseType {
-					src := engine.Source(caseExprAndSources[i+1])
-					ctx.SetVar("_type", strings.Trim(string(src), " \t\r\n"))
+					src := sourceOf(engine, caseExprAndSources[i+1])
+					ctx.SetVar("_type", src)
 				}
 				return caseRs[i>>1], nil
 			}
@@ -153,7 +170,8 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 		if defaultR != nil {
 			return defaultR, nil
 		}
-		return nil, fmt.Errorf("case `%v` is not found", v)
+		err := fmt.Errorf("case `%s(=%v)` is not found", sourceOf(engine, srcSw), v)
+		return nil, newError(engine, srcSw, err)
 	}
 	stk[n-arity] = bpl.Dyntype(r)
 	p.stk = stk[:n-arity+1]
@@ -183,7 +201,7 @@ func (p *Compiler) fnAssert(engine interpreter.Engine) {
 		v := p.Eval(ctx, e.start, e.end)
 		return v.(bool)
 	}
-	msg := string(engine.Source(src))
+	msg := sourceOf(engine, src)
 	p.stk = append(p.stk, bpl.Assert(expr, msg))
 }
 

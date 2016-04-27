@@ -99,4 +99,4 @@ Record = {
     }
 }
 
-doc = *(Record dump)
+doc = (Header dump) *(Record dump)
