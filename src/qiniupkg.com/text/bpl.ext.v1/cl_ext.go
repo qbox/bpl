@@ -114,6 +114,15 @@ func (p *Compiler) popRule() bpl.Ruler {
 	return r
 }
 
+func (p *Compiler) popRules(m int) bpl.Ruler {
+
+	if m == 0 {
+		return nil
+	}
+	p.and(m)
+	return p.popRule()
+}
+
 func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 	var defaultR bpl.Ruler
@@ -165,6 +174,20 @@ func (p *Compiler) fnEval() {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnAssert(engine interpreter.Engine) {
+
+	src, _ := p.gstk.Pop()
+	e := p.popExpr()
+	expr := func(ctx *bpl.Context) bool {
+		v := p.Eval(ctx, e.start, e.end)
+		return v.(bool)
+	}
+	msg := string(engine.Source(src))
+	p.stk = append(p.stk, bpl.Assert(expr, msg))
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnRead() {
 
 	e := p.popExpr()
@@ -179,18 +202,14 @@ func (p *Compiler) fnRead() {
 
 // -----------------------------------------------------------------------------
 
-func (p *Compiler) dostruct(hasCase int, m int, cstyle int) {
+func (p *Compiler) dostruct(nDynExpr int, m int, cstyle int) {
 
-	var caseR bpl.Ruler
-	if hasCase != 0 {
-		caseR = p.popRule()
-	}
-
+	dynExprR := p.popRules(nDynExpr)
 	if m == 0 {
-		if caseR == nil {
-			caseR = bpl.Nil
+		if dynExprR == nil {
+			dynExprR = bpl.Nil
 		}
-		p.stk = append(p.stk, caseR)
+		p.stk = append(p.stk, dynExprR)
 		return
 	}
 
@@ -203,22 +222,22 @@ func (p *Compiler) dostruct(hasCase int, m int, cstyle int) {
 		name := stk[idx+cstyle].(string)
 		members[i] = bpl.Member{Name: name, Type: typ}
 	}
-	stk[base] = bpl.Struct(members, caseR)
+	stk[base] = bpl.Struct(members, dynExprR)
 	p.stk = stk[:base+1]
 }
 
 func (p *Compiler) cstruct() {
 
-	hasCase := p.popArity()
+	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(hasCase, m, 1)
+	p.dostruct(nDynExpr, m, 1)
 }
 
 func (p *Compiler) gostruct() {
 
-	hasCase := p.popArity()
+	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(hasCase, m, 0)
+	p.dostruct(nDynExpr, m, 0)
 }
 
 // -----------------------------------------------------------------------------

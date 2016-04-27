@@ -235,11 +235,16 @@ func TestCase(t *testing.T) {
 
 const codeCase2 = `
 
+const (
+	NVAL = 1
+)
+
 headerType = {
 	type int32
 	_    int32
 	n    int32
 	m    int32
+	assert n == NVAL
 }
 
 recType = {h headerType} case h.type {
