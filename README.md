@@ -216,11 +216,18 @@ record = {
 ## assert
 
 ```
-assert <boolexpr>
+assert <condition>
 ```
 
-对 `<boolexpr>` 进行求值，如果结果为 true 表示成功，其他情况均失败。
+对 `<condition>` 进行求值，如果结果为 true 表示成功，其他情况均失败。
 
+## if..do
+
+```
+if <condition> do R
+```
+
+对 `<condition>` 进行求值，如果结果为 true 则执行 R 规则。
 
 ## read..do
 

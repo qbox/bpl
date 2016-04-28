@@ -208,6 +208,33 @@ func Read(n func(ctx *Context) int, r Ruler) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type ifType struct {
+	cond func(ctx *Context) bool
+	r    Ruler
+}
+
+func (p *ifType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	if p.cond(ctx) {
+		return p.r.Match(in, ctx)
+	}
+	return
+}
+
+func (p *ifType) SizeOf() int {
+
+	return -1
+}
+
+// If returns a matching unit that if cond(ctx) then matches it with R.
+//
+func If(cond func(ctx *Context) bool, r Ruler) Ruler {
+
+	return &ifType{r: r, cond: cond}
+}
+
+// -----------------------------------------------------------------------------
+
 type eval struct {
 	expr func(ctx *Context) []byte
 	r    Ruler

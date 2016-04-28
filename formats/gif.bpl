@@ -15,10 +15,7 @@ Header = {
     backgroundIndex uint8
     tmp             uint8
     assert tag == "GIF87a" || tag == "GIF89a"
-    case fields & fColorTable {
-        0: nil
-        default: ColorTable
-    }
+    if fields & fColorTable do ColorTable
 }
 
 sTrailer = nil
@@ -29,20 +26,14 @@ ImageHeader = {
     width  int16
     height int16
     fields byte
-    case fields & fColorTable {
-        0: nil
-        default: ColorTable
-    }
+    if fields & fColorTable do ColorTable
 }
 
 ExtBlocks = {
     len byte
-    case len {
-        0: nil
-        default: {
-            data [len]byte
-            next ExtBlocks
-        }
+    if len do {
+        data [len]byte
+        next ExtBlocks
     }
 }
 

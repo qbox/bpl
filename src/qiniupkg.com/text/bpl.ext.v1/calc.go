@@ -44,6 +44,17 @@ func toInt(a interface{}, msg string) int {
 	panic(msg)
 }
 
+func toBool(a interface{}, msg string) bool {
+
+	if v, ok := a.(bool); ok {
+		return v
+	}
+	if v, ok := castInt(a); ok {
+		return v != 0
+	}
+	panic(msg)
+}
+
 // CallFn generates a function call instruction. It is required by tpl.Interpreter engine.
 //
 func (p *Compiler) CallFn(fn interface{}) {
