@@ -245,7 +245,7 @@ OP_INSERT = {/C
 
 OP_QUERY = {/C
 	int32     flags;                  // bit vector of query options.  See below for details.
-	cstring   fullCollectionName ;    // "dbname.collectionname"
+	cstring   fullCollectionName;     // "dbname.collectionname"
 	int32     numberToSkip;           // number of documents to skip
 	int32     numberToReturn;         // number of documents to return
 		                              //  in the first OP_REPLY batch

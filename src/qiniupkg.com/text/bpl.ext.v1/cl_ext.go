@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"qiniupkg.com/text/bpl.ext.v1/lzw"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
@@ -151,8 +150,9 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 			expr := caseExprAndSources[i]
 			if eq(v, expr) {
 				if SetCaseType {
-					src := sourceOf(engine, caseExprAndSources[i+1])
-					ctx.SetVar("_type", src)
+					key := sourceOf(engine, srcSw)
+					val := sourceOf(engine, caseExprAndSources[i+1])
+					ctx.SetVar(key+".kind", val)
 				}
 				return caseRs[i>>1], nil
 			}
@@ -207,6 +207,7 @@ func (p *Compiler) fnRead() {
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
 }
 
+/*
 const (
 	lzwArgMsg = "lzw argument isn't an integer expression"
 )
@@ -225,6 +226,7 @@ func (p *Compiler) fnLzw() {
 	}
 	stk[i] = bpl.Dyntype(dynR)
 }
+*/
 
 // -----------------------------------------------------------------------------
 

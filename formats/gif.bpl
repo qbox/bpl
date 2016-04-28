@@ -35,45 +35,6 @@ ImageHeader = {
     }
 }
 
-sImage = {
-    h        ImageHeader
-    litWidth byte
-    assert litWidth >= 2 && litWidth <= 8
-    lzw 0, litWidth do {
-        _ [h.width*h.height]byte
-        _ eof
-    }
-}
-
-eText = {
-    text [13]char
-}
-
-eGraphicControl = {
-    _                byte
-    flags            byte
-    delayTime        int16
-    transparentIndex byte
-    _                byte
-}
-
-eComment = nil
-
-eApplication = {
-    len  byte
-    name [len]char
-}
-
-ExtHeader = {
-    etag byte
-    case etag {
-        0x01: eText
-        0xF9: eGraphicControl
-        0xFE: eComment
-        0xFF: eApplication
-    }
-}
-
 ExtBlocks = {
     len byte
     case len {
@@ -85,9 +46,44 @@ ExtBlocks = {
     }
 }
 
-sExtension = {
-    h      ExtHeader
+eComment = {
     blocks ExtBlocks
+}
+
+eApplication = {
+    len    byte
+    name   [len]char
+    blocks ExtBlocks
+}
+
+eText = {
+    text   [13]char
+    blocks ExtBlocks
+}
+
+eGraphicControl = {
+    _                byte
+    flags            byte
+    delayTime        int16
+    transparentIndex byte
+    _                byte
+}
+
+sExtension = {
+    etag byte
+    case etag {
+        0x01: eText
+        0xF9: eGraphicControl
+        0xFE: eComment
+        0xFF: eApplication
+    }
+}
+
+sImage = {
+    h        ImageHeader
+    litWidth byte
+    blocks   ExtBlocks
+    assert litWidth >= 2 && litWidth <= 8
 }
 
 Record = {
