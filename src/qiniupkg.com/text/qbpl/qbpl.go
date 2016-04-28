@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"qiniupkg.com/text/bpl.ext.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -20,10 +21,31 @@ var (
 func main() {
 
 	flag.Parse()
+
+	var in *bufio.Reader
+	args := flag.Args()
+	if len(args) > 0 {
+		file := args[0]
+		f, err := os.Open(file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Open failed:", file)
+		}
+		defer f.Close()
+		in = bufio.NewReader(f)
+	} else {
+		in = bufio.NewReader(os.Stdin)
+	}
+
 	if *protocol == "" {
-		fmt.Fprintln(os.Stderr, "Usage: qbpl -p <protocol>.bpl [-o <output>.log] <file>")
-		flag.PrintDefaults()
-		return
+		if len(args) == 0 {
+			fmt.Fprintln(os.Stderr, "Usage: qbpl [-p <protocol>.bpl -o <output>.log] <file>")
+			flag.PrintDefaults()
+			return
+		}
+		ext := filepath.Ext(args[0])
+		if ext != "" {
+			*protocol = os.Getenv("HOME") + "/.qbpl/formats/" + ext[1:] + ".bpl"
+		}
 	}
 
 	if *output != "" {
@@ -38,20 +60,6 @@ func main() {
 	ruler, err := bpl.NewFromFile(*protocol)
 	if err != nil {
 		log.Fatalln("bpl.NewFromFile failed:", err)
-	}
-
-	var in *bufio.Reader
-	args := flag.Args()
-	if len(args) > 0 {
-		file := args[0]
-		f, err := os.Open(file)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Open failed:", file)
-		}
-		defer f.Close()
-		in = bufio.NewReader(f)
-	} else {
-		in = bufio.NewReader(os.Stdin)
 	}
 
 	ctx := bpl.NewContext()

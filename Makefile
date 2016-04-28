@@ -5,7 +5,8 @@ rebuild:
 	cd src; go install -a -v ./...
 
 install: all
-	@echo
+	@mkdir -p ~/.qbpl/formats
+	cp formats/*.bpl ~/.qbpl/formats/
 
 test:
 	cd src; go test ./...
