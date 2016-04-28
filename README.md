@@ -176,11 +176,11 @@ doc = R1 {varx Rx} ... {varn Rn}
 
 ```
 case <expr> {
-<val1>: R1
-<val2>: R2
-...
-<valn>: Rn
-default: Rdefault // 如果没有 default 并且前面各个分支都没有匹配成功，那么整个条件规则匹配会失败
+	<val1>: R1
+	<val2>: R2
+	...
+	<valn>: Rn
+	default: Rdefault // 如果没有 default 并且前面各个分支都没有匹配成功，那么整个条件规则匹配会失败
 }
 ```
 
@@ -206,9 +206,9 @@ doc = *record
 record = {
 	h header
 	case h.type {
-	type1: body1
-	type2: body2
-	...
+		type1: body1
+		type2: body2
+		...
 	}
 }
 ```
@@ -219,7 +219,7 @@ record = {
 assert <condition>
 ```
 
-对 `<condition>` 进行求值，如果结果为 true 表示成功，其他情况均失败。
+对 `<condition>` 进行求值，如果结果为 true 或非零整数表示成功，其他情况均失败。
 
 ## if..do
 
@@ -227,7 +227,7 @@ assert <condition>
 if <condition> do R
 ```
 
-对 `<condition>` 进行求值，如果结果为 true 则执行 R 规则。
+对 `<condition>` 进行求值，如果结果为 true 或非零整数则执行 R 规则。
 
 ## read..do
 
