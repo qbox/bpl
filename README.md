@@ -1,6 +1,41 @@
 BPL - Binary Processing Language
 ============
 
+## 快速入门
+
+了解 BPL 最快的方式是学习 qbpl 和 qbplproxy 两个实用程序：
+
+### qbpl
+
+qbpl 可用来分析任意的文件格式。使用方法如下：
+
+```
+qbpl [-p <protocol>.bpl -o <output>.log] <file>
+```
+
+多数情况下，你不需要自己指定格式，我们根据文件后缀来确定应该使用何种 protocol 来解析这个文件。例如：
+
+```
+qbpl 1.gif
+```
+
+不过为了让 qbpl 能够找到所有的 protocols，我们需要先安装：
+
+```
+make install # 这将将所有的bpl文件拷贝到 ~/.qbpl/formats/
+```
+
+### qbplproxy
+
+qbplproxy 可用来分析服务器和客户端之间的网络包。它通过代理要分析的服务，让客户端请求自己来分析请求包和返回包。使用方式如下：
+
+```
+qbplproxy -h <listenIp:port> -b <backendIp:port> -p <protocol>.bpl [-o <output>.log]
+```
+
+其中，`<listenIp:port>` 是 qbplproxy 自身监听的IP和端口，`<backendIp:port>` 是原始的服务。
+
+
 ## 基础规则
 
 其实也就是内建类型 (builtin types)，如下：
