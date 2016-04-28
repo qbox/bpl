@@ -187,7 +187,7 @@ func (p *Compiler) fnAssert(src interface{}) {
 	e := p.popExpr()
 	expr := func(ctx *bpl.Context) bool {
 		v := p.Eval(ctx, e.start, e.end)
-		return v.(bool)
+		return toBool(v, "assert condition isn't a boolean expression")
 	}
 	msg := sourceOf(p.ipt, src)
 	p.stk = append(p.stk, bpl.Assert(expr, msg))
@@ -205,6 +205,20 @@ func (p *Compiler) fnRead() {
 		return toInt(v, "read bytes isn't an integer expression")
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) fnIf() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	cond := func(ctx *bpl.Context) bool {
+		v := p.Eval(ctx, e.start, e.end)
+		return toBool(v, "if condition isn't a boolean expression")
+	}
+	stk[i] = bpl.If(cond, stk[i].(bpl.Ruler))
 }
 
 /*
