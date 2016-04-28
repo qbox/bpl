@@ -115,4 +115,12 @@ func (p *Compiler) repeat01() {
 	stk[i] = bpl.Repeat01(stk[i].(bpl.Ruler))
 }
 
+func (p *Compiler) xline(src interface{}) {
+
+	f := p.ipt.FileLine(src)
+	stk := p.stk
+	i := len(stk) - 1
+	stk[i] = bpl.FileLine(f.File, f.Line, stk[i].(bpl.Ruler))
+}
+
 // -----------------------------------------------------------------------------

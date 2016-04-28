@@ -45,11 +45,11 @@ readexpr = "read"/istart! iexpr "do"/iend expr /read
 
 evalexpr = "eval"/istart! iexpr "do"/iend expr /eval
 
-assertexpr = ("assert"/istart! iexpr /iend)/source /assert
+assertexpr = ("assert"/istart! iexpr /iend) /assert
 
 lzwexpr = "lzw"/istart! iexpr ','/iend /istart iexpr "do"/iend expr /lzw
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr | lzwexpr
+dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | lzwexpr)/xline
 
 cstruct = (ctype IDENT/var) %= ';'/ARITY *(';' dynexpr)/ARITY /cstruct
 
@@ -103,12 +103,11 @@ type Compiler struct {
 	vars     map[string]*bpl.TypeVar
 	consts   map[string]interface{}
 	gstk     exec.Stack
+	ipt      interpreter.Engine
 	idxStart int
 }
 
-// NewCompiler returns a bpl compiler.
-//
-func NewCompiler() (p *Compiler) {
+func newCompiler() (p *Compiler) {
 
 	rulers := make(map[string]bpl.Ruler)
 	vars := make(map[string]*bpl.TypeVar)
@@ -214,6 +213,7 @@ var fntable = map[string]interface{}{
 	"$source":  (*Compiler).source,
 	"$cstruct": (*Compiler).cstruct,
 	"$struct":  (*Compiler).gostruct,
+	"$xline":   (*Compiler).xline,
 }
 
 var builtins = map[string]bpl.Ruler{

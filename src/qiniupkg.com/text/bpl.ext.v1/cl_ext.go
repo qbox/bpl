@@ -76,7 +76,7 @@ func (p *Compiler) array() {
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
 		v := p.Eval(ctx.Parent, e.start, e.end)
-		return v.(int)
+		return toInt(v, "index isn't an integer expression")
 	}
 	stk[i] = bpl.Dynarray(stk[i].(bpl.Ruler), n)
 }
@@ -130,16 +130,6 @@ func sourceOf(engine interpreter.Engine, src interface{}) string {
 	return strings.Trim(string(b), " \t\r\n")
 }
 
-func newError(engine interpreter.Engine, src interface{}, err error) error {
-
-	f := engine.FileLine(src)
-	return &Error{
-		File: f.File,
-		Line: f.Line,
-		Err:  err,
-	}
-}
-
 func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 	var defaultR bpl.Ruler
@@ -170,8 +160,7 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 		if defaultR != nil {
 			return defaultR, nil
 		}
-		err := fmt.Errorf("case `%s(=%v)` is not found", sourceOf(engine, srcSw), v)
-		return nil, newError(engine, srcSw, err)
+		return nil, fmt.Errorf("case `%s(=%v)` is not found", sourceOf(engine, srcSw), v)
 	}
 	stk[n-arity] = bpl.Dyntype(r)
 	p.stk = stk[:n-arity+1]
@@ -193,15 +182,14 @@ func (p *Compiler) fnEval() {
 
 // -----------------------------------------------------------------------------
 
-func (p *Compiler) fnAssert(engine interpreter.Engine) {
+func (p *Compiler) fnAssert(src interface{}) {
 
-	src, _ := p.gstk.Pop()
 	e := p.popExpr()
 	expr := func(ctx *bpl.Context) bool {
 		v := p.Eval(ctx, e.start, e.end)
 		return v.(bool)
 	}
-	msg := sourceOf(engine, src)
+	msg := sourceOf(p.ipt, src)
 	p.stk = append(p.stk, bpl.Assert(expr, msg))
 }
 
@@ -214,10 +202,14 @@ func (p *Compiler) fnRead() {
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
 		v := p.Eval(ctx, e.start, e.end)
-		return v.(int)
+		return toInt(v, "read bytes isn't an integer expression")
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
 }
+
+const (
+	lzwArgMsg = "lzw argument isn't an integer expression"
+)
 
 func (p *Compiler) fnLzw() {
 
@@ -229,7 +221,7 @@ func (p *Compiler) fnLzw() {
 	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
 		v1 := p.Eval(ctx, e1.start, e1.end)
 		v2 := p.Eval(ctx, e2.start, e2.end)
-		return lzw.Type(v1.(int), v2.(int), r), nil
+		return lzw.Type(toInt(v1, lzwArgMsg), toInt(v2, lzwArgMsg), r), nil
 	}
 	stk[i] = bpl.Dyntype(dynR)
 }
