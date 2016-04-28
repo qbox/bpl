@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -116,27 +115,6 @@ func (p dump) SizeOf() int {
 
 // -----------------------------------------------------------------------------
 
-// A Error represents an matching error.
-//
-type Error struct {
-	Err  error
-	File string
-	Line int
-}
-
-func (p *Error) Error() string {
-
-	if p.Line == 0 {
-		return p.Err.Error()
-	}
-	if p.File == "" {
-		return fmt.Sprintf("line %d: %v", p.Line, p.Err)
-	}
-	return fmt.Sprintf("%s:%d: %v", p.File, p.Line, p.Err)
-}
-
-// -----------------------------------------------------------------------------
-
 // A Ruler is a matching unit.
 //
 type Ruler struct {
@@ -187,12 +165,13 @@ func (p Ruler) MatchBuffer(b []byte) (v interface{}, err error) {
 //
 func New(code []byte, fname string) (r Ruler, err error) {
 
-	p := NewCompiler()
+	p := newCompiler()
 	engine, err := interpreter.New(p, interpreter.InsertSemis)
 	if err != nil {
 		panic(err)
 	}
 
+	p.ipt = engine
 	err = engine.MatchExactly(code, fname)
 	if err != nil {
 		return

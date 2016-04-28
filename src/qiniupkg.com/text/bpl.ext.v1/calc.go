@@ -36,6 +36,14 @@ func castInt(a interface{}) (int, bool) {
 	return 0, false
 }
 
+func toInt(a interface{}, msg string) int {
+
+	if v, ok := castInt(a); ok {
+		return v
+	}
+	panic(msg)
+}
+
 // CallFn generates a function call instruction. It is required by tpl.Interpreter engine.
 //
 func (p *Compiler) CallFn(fn interface{}) {
@@ -217,8 +225,10 @@ func quo(a, b interface{}) interface{} {
 
 func mod(a, b interface{}) interface{} {
 
-	if a1, ok := a.(int); ok {
-		if b1, ok := b.(int); ok {
+	switch a1 := a.(type) {
+	case int:
+		switch b1 := b.(type) {
+		case int:
 			return a1 % b1
 		}
 	}
