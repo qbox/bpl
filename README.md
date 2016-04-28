@@ -5,10 +5,10 @@ BPL - Binary Processing Language
 
 其实也就是内建类型 (builtin types)，如下：
 
-* int8, uint8(byte), int16, uint16
+* int8, char, uint8(byte), int16, uint16
 * int32, uint32, int64, uint64
 * float32, float64
-* cstring
+* cstring, `[n]char`
 * bson
 * nil
 
@@ -178,6 +178,15 @@ record = {
 }
 ```
 
+## assert
+
+```
+assert <boolexpr>
+```
+
+对 `<boolexpr>` 进行求值，如果结果为 true 表示成功，其他情况均失败。
+
+
 ## read..do
 
 ```
@@ -214,6 +223,28 @@ record = {
 		type2: body2
 		...
 	}
+}
+```
+
+## 常量
+
+```
+const (
+	<ident> = <constvalue>
+	...
+)
+```
+
+语法和 Go 语言类似。例如：
+
+```
+const (
+	N = 6
+)
+
+record = {
+	tag [N]char
+    assert tag == "GIF87a" || tag == "GIF89a"
 }
 ```
 
