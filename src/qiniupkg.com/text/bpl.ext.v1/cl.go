@@ -41,11 +41,13 @@ casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/AR
 
 caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
-ifexpr = "if"/istart! iexpr "do"/iend expr /if
+do = @'{' | "do"
 
-readexpr = "read"/istart! iexpr "do"/iend expr /read
+ifexpr = "if"/istart! iexpr do/iend expr /if
 
-evalexpr = "eval"/istart! iexpr "do"/iend expr /eval
+readexpr = "read"/istart! iexpr do/iend expr /read
+
+evalexpr = "eval"/istart! iexpr do/iend expr /eval
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 

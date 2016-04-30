@@ -173,8 +173,8 @@ headerType = {
 recType = {
 	h headerType
 	case h.type {
-	1: {t1 [3]cstring}
-	2: {t2 [2]cstring}
+		1: {t1 [3]cstring}
+		2: {t2 [2]cstring}
 	}
 }
 
@@ -329,6 +329,7 @@ doc = [int32] *[recType]
 
 func TestRead(t *testing.T) {
 
+	SetCaseType = false
 	foo := &fooType3{
 		N: 2,
 		R1: recType1{

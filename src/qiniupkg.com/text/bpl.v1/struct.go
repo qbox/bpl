@@ -44,7 +44,7 @@ func (p *Member) SizeOf() int {
 type structType struct {
 	members []Member
 	size    int
-	caseR   Ruler
+	doR     Ruler
 }
 
 func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -55,8 +55,8 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 			return
 		}
 	}
-	if p.caseR != nil {
-		_, err = p.caseR.Match(in, ctx)
+	if p.doR != nil {
+		_, err = p.doR.Match(in, ctx)
 		if err != nil {
 			return
 		}
@@ -66,7 +66,7 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 
 func (p *structType) SizeOf() int {
 
-	if p.caseR != nil {
+	if p.doR != nil {
 		return -1
 	}
 	return p.size
@@ -74,7 +74,7 @@ func (p *structType) SizeOf() int {
 
 // Struct returns a compound matching unit.
 //
-func Struct(members []Member, caseR ...Ruler) Ruler {
+func Struct(members []Member, doR ...Ruler) Ruler {
 
 	n := len(members)
 	if n == 0 {
@@ -92,10 +92,10 @@ func Struct(members []Member, caseR ...Ruler) Ruler {
 	}
 
 	var r Ruler
-	if len(caseR) > 0 {
-		r = caseR[0]
+	if len(doR) > 0 {
+		r = doR[0]
 	}
-	return &structType{members: members, size: size, caseR: r}
+	return &structType{members: members, size: size, doR: r}
 }
 
 // -----------------------------------------------------------------------------
