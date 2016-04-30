@@ -41,21 +41,21 @@ casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/AR
 
 caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
-do = @'{' | "do"
+exprblock = true/istart! iexpr (@'{' | "do")/iend expr
 
-ifexpr = "if"/istart! iexpr do/iend expr /if
+ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else" expr)/ARITY /if
 
-readexpr = "read"/istart! iexpr do/iend expr /read
+readexpr = "read" exprblock /read
 
-evalexpr = "eval"/istart! iexpr do/iend expr /eval
+evalexpr = "eval" exprblock /eval
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 
 dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr)/xline
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY *(';' dynexpr)/ARITY /cstruct
+cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY /cstruct
 
-struct = (IDENT/var type) %= ';'/ARITY *(';' dynexpr)/ARITY /struct
+struct = (IDENT/var type) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY /struct
 
 factor =
 	IDENT/ident |

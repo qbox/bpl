@@ -380,3 +380,79 @@ func TestRead(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeIf = `
+
+headerType = {
+	type int32
+	len  int32
+	_    int32
+	_    int32
+}
+
+recType = {
+	h headerType
+	read h.len - sizeof(headerType) do {
+		if h.type == 1 {
+			t1 [2]cstring
+		} elif h.type == 2 {
+			t2 [1]cstring
+		}
+	}
+}
+
+doc = [int32] *[recType]
+`
+
+func TestIf(t *testing.T) {
+
+	foo := &fooType3{
+		N: 2,
+		R1: recType1{
+			H: headerType{
+				Type: 1,
+				Len:  16 + 16,
+				N:    1,
+				M:    2,
+			},
+			A1: "hello", // 6
+			A2: "world", // 6
+			A3: "bpl",   // 4
+		},
+		R2: recType2{
+			H: headerType{
+				Type: 2,
+				Len:  16 + 8,
+				N:    1,
+				M:    1,
+			},
+			A1: "foo", // 4
+			A2: "bar", // 4
+		},
+	}
+	b, err := binary.Marshal(&foo)
+	if err != nil {
+		t.Fatal("binary.Marshal failed:", err)
+	}
+	if len(b) != 60 {
+		t.Fatal("len(b) != 60, len:", len(b), "data:", string(b))
+	}
+
+	r, err := NewFromString(codeIf, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(b)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `[2,{"h":{"len":32,"type":1},"t1":["hello","world"]},{"h":{"len":24,"type":2},"t2":["foo"]}]` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------

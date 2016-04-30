@@ -168,6 +168,37 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnIf() {
+
+	var elseR bpl.Ruler
+	if p.popArity() != 0 {
+		elseR = p.popRule()
+	} else {
+		elseR = bpl.Nil
+	}
+
+	arity := p.popArity() + 1
+
+	stk := p.stk
+	n := len(stk)
+	bodyRs := clone(stk[n-arity:])
+	condExprs := p.gstk.PopNArgs(arity)
+	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		for i := 0; i < arity; i++ {
+			e := condExprs[i].(*exprBlock)
+			v := p.Eval(ctx, e.start, e.end)
+			if toBool(v, "condition isn't a boolean expression") {
+				return bodyRs[i], nil
+			}
+		}
+		return elseR, nil
+	}
+	stk[n-arity] = bpl.Dyntype(r)
+	p.stk = stk[:n-arity+1]
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnEval() {
 
 	e := p.popExpr()
@@ -205,20 +236,6 @@ func (p *Compiler) fnRead() {
 		return toInt(v, "read bytes isn't an integer expression")
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
-}
-
-// -----------------------------------------------------------------------------
-
-func (p *Compiler) fnIf() {
-
-	e := p.popExpr()
-	stk := p.stk
-	i := len(stk) - 1
-	cond := func(ctx *bpl.Context) bool {
-		v := p.Eval(ctx, e.start, e.end)
-		return toBool(v, "if condition isn't a boolean expression")
-	}
-	stk[i] = bpl.If(cond, stk[i].(bpl.Ruler))
 }
 
 /*
