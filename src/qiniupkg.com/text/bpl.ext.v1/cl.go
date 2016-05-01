@@ -8,6 +8,7 @@ import (
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
+	"qlang.io/qlang.spec.v1"
 )
 
 const grammar = `
@@ -22,9 +23,9 @@ term2 = term1 *('+' term1/add | '-' term1/sub | '|' term1/bitor | '^' term1/xor)
 
 term3 = term2 *('<' term2/lt | '>' term2/gt | "==" term2/eq | "<=" term2/le | ">=" term2/ge | "!=" term2/ne)
 
-term4 = term3 *("&&" term3/and)
+term4 = term3 *("&&" term3/iand)
 
-iexpr = term4 *("||" term4/or)
+iexpr = term4 *("||" term4/ior)
 
 index = '['/istart iexpr ']'/iend
 
@@ -53,9 +54,11 @@ assertexpr = ("assert"/istart! iexpr /iend) /assert
 
 letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
 
+gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
+
 lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
 
-dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | lzwexpr)/xline
+dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | gblexpr | lzwexpr)/xline
 
 retexpr = ?';' "return"/istart! iexpr /iend
 
@@ -80,8 +83,9 @@ atom =
 ifactor =
 	INT/pushi |
 	STRING/pushs |
-	(IDENT/ref | '('! iexpr ')') *atom |
+	(IDENT/ref | '('! iexpr ')' | '[' iexpr %= ','/ARITY ?',' ']'/slice) *atom |
 	"sizeof"! '(' IDENT/sizeof ')' |
+	'{'! (iexpr ':' iexpr) %= ','/ARITY ?',' '}'/map |
 	'^' ifactor/bitnot |
 	'-' ifactor/neg |
 	'+' ifactor
@@ -156,7 +160,7 @@ func (p *Compiler) Grammar() string {
 //
 func (p *Compiler) Fntable() map[string]interface{} {
 
-	return fntable
+	return qlang.Fntable
 }
 
 // Stack returns nil (no stack). It is required by tpl.Interpreter engine.
@@ -168,7 +172,11 @@ func (p *Compiler) Stack() interpreter.Stack {
 
 // -----------------------------------------------------------------------------
 
-var fntable = map[string]interface{}{
+func init() {
+	qlang.Import("", exports)
+}
+
+var exports = map[string]interface{}{
 	"$And":      (*Compiler).and,
 	"$Seq":      (*Compiler).seq,
 	"$istart":   (*Compiler).istart,
@@ -184,28 +192,12 @@ var fntable = map[string]interface{}{
 	"$repeat1":  (*Compiler).repeat1,
 	"$repeat01": (*Compiler).repeat01,
 
-	"$mul":     mul,
-	"$quo":     quo,
-	"$mod":     mod,
-	"$neg":     neg,
-	"$add":     add,
-	"$sub":     sub,
-	"$lt":      lt,
-	"$gt":      gt,
-	"$eq":      equ,
-	"$le":      le,
-	"$ge":      ge,
-	"$ne":      ne,
-	"$and":     and,
-	"$or":      or,
-	"$xor":     xor,
-	"$lshr":    lshr,
-	"$rshr":    rshr,
-	"$bitand":  bitand,
-	"$bitor":   bitor,
-	"$bitnot":  bitnot,
-	"$andnot":  andnot,
+	"$iand": and,
+	"$ior":  or,
+
 	"$sizeof":  (*Compiler).sizeof,
+	"$map":     (*Compiler).fnMap,
+	"$slice":   (*Compiler).fnSlice,
 	"$ARITY":   (*Compiler).arity,
 	"$call":    (*Compiler).call,
 	"$ref":     (*Compiler).ref,
@@ -214,6 +206,7 @@ var fntable = map[string]interface{}{
 	"$pushs":   (*Compiler).pushs,
 	"$cpushi":  (*Compiler).cpushi,
 	"$let":     (*Compiler).fnLet,
+	"$global":  (*Compiler).fnGlobal,
 	"$eval":    (*Compiler).fnEval,
 	"$if":      (*Compiler).fnIf,
 	"$read":    (*Compiler).fnRead,

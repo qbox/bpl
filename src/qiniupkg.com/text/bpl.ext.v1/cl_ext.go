@@ -231,6 +231,22 @@ func (p *Compiler) fnLet() {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnGlobal() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	name := stk[i].(string)
+	fn := func(ctx *bpl.Context) error {
+		v := p.Eval(ctx, e.start, e.end)
+		ctx.Globals[name] = v
+		return nil
+	}
+	stk[i] = bpl.Do(fn)
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnAssert(src interface{}) {
 
 	e := p.popExpr()

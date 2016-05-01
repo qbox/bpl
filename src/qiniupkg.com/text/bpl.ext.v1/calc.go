@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"qlang.io/exec.v2"
+	"qlang.io/qlang.spec.v1"
 )
 
 // -----------------------------------------------------------------------------
@@ -62,24 +63,6 @@ func (p *Compiler) CallFn(fn interface{}) {
 	p.code.Block(exec.Call(fn))
 }
 
-func neg(a interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		return -a1
-	}
-	return panicUnsupportedOp1("-", a)
-}
-
-func bitnot(a interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		return ^a1
-	}
-	return panicUnsupportedOp1("^", a)
-}
-
 func eq(a, b interface{}) bool {
 
 	if a1, ok := castInt(a); ok {
@@ -92,114 +75,6 @@ func eq(a, b interface{}) bool {
 	return false
 }
 
-func equ(a, b interface{}) bool {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 == b1
-		}
-	case string:
-		switch b1 := b.(type) {
-		case string:
-			return a1 == b1
-		}
-	}
-	panicUnsupportedOp2("==", a, b)
-	return false
-}
-
-func ne(a, b interface{}) bool {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 != b1
-		}
-	case string:
-		switch b1 := b.(type) {
-		case string:
-			return a1 != b1
-		}
-	}
-	panicUnsupportedOp2("!=", a, b)
-	return false
-}
-
-func le(a, b interface{}) bool {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 <= b1
-		}
-	case string:
-		switch b1 := b.(type) {
-		case string:
-			return a1 <= b1
-		}
-	}
-	panicUnsupportedOp2("<=", a, b)
-	return false
-}
-
-func lt(a, b interface{}) bool {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 < b1
-		}
-	case string:
-		switch b1 := b.(type) {
-		case string:
-			return a1 < b1
-		}
-	}
-	panicUnsupportedOp2("<", a, b)
-	return false
-}
-
-func ge(a, b interface{}) bool {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 >= b1
-		}
-	case string:
-		switch b1 := b.(type) {
-		case string:
-			return a1 >= b1
-		}
-	}
-	panicUnsupportedOp2(">=", a, b)
-	return false
-}
-
-func gt(a, b interface{}) bool {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 > b1
-		}
-	case string:
-		switch b1 := b.(type) {
-		case string:
-			return a1 > b1
-		}
-	}
-	panicUnsupportedOp2(">", a, b)
-	return false
-}
-
 func and(a, b bool) bool {
 
 	return a && b
@@ -208,138 +83,6 @@ func and(a, b bool) bool {
 func or(a, b bool) bool {
 
 	return a || b
-}
-
-func mul(a, b interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 * b1
-		}
-	}
-	return panicUnsupportedOp2("*", a, b)
-}
-
-func quo(a, b interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 / b1
-		}
-	}
-	return panicUnsupportedOp2("/", a, b)
-}
-
-func mod(a, b interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 % b1
-		}
-	}
-	return panicUnsupportedOp2("%", a, b)
-}
-
-func add(a, b interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 + b1
-		}
-	}
-	return panicUnsupportedOp2("+", a, b)
-}
-
-func sub(a, b interface{}) interface{} {
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 - b1
-		}
-	}
-	return panicUnsupportedOp2("-", a, b)
-}
-
-func lshr(a, b interface{}) interface{} { // a << b
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 << uint(b1)
-		}
-	}
-	return panicUnsupportedOp2("<<", a, b)
-}
-
-func rshr(a, b interface{}) interface{} { // a >> b
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 >> uint(b1)
-		}
-	}
-	return panicUnsupportedOp2(">>", a, b)
-}
-
-func bitand(a, b interface{}) interface{} { // a & b
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 & b1
-		}
-	}
-	return panicUnsupportedOp2("&", a, b)
-}
-
-func bitor(a, b interface{}) interface{} { // a | b
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 | b1
-		}
-	}
-	return panicUnsupportedOp2("|", a, b)
-}
-
-func xor(a, b interface{}) interface{} { // a ^ b
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 ^ b1
-		}
-	}
-	return panicUnsupportedOp2("^", a, b)
-}
-
-func andnot(a, b interface{}) interface{} { // a &^ b
-
-	switch a1 := a.(type) {
-	case int:
-		switch b1 := b.(type) {
-		case int:
-			return a1 &^ b1
-		}
-	}
-	return panicUnsupportedOp2("&^", a, b)
 }
 
 func panicUnsupportedOp1(op string, a interface{}) interface{} {
@@ -429,6 +172,20 @@ func (p *Compiler) cpushi(v int) {
 func (p *Compiler) fnConst(name string) {
 
 	p.consts[name] = p.popConstInt()
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) fnMap() {
+
+	arity := p.popArity()
+	p.code.Block(exec.Call(qlang.MapFrom, arity*2))
+}
+
+func (p *Compiler) fnSlice() {
+
+	arity := p.popArity()
+	p.code.Block(exec.SliceFrom(arity))
 }
 
 // -----------------------------------------------------------------------------

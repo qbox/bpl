@@ -12,22 +12,24 @@ import (
 // A Context represents the matching context of bpl.
 //
 type Context struct {
-	dom    interface{}
-	Parent *Context
+	dom     interface{}
+	Parent  *Context
+	Globals map[string]interface{}
 }
 
 // NewContext returns a new matching Context.
 //
 func NewContext() *Context {
 
-	return &Context{}
+	gbl := make(map[string]interface{})
+	return &Context{Globals: gbl}
 }
 
 // NewSub returns a new sub Context.
 //
 func (p *Context) NewSub() *Context {
 
-	return &Context{Parent: p}
+	return &Context{Parent: p, Globals: p.Globals}
 }
 
 func (p *Context) requireVarSlice() []interface{} {
