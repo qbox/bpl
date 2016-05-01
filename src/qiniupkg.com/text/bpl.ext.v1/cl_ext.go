@@ -1,9 +1,11 @@
 package bpl
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
+	"qiniupkg.com/text/bpl.ext.v1/lzw"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
@@ -213,6 +215,22 @@ func (p *Compiler) fnEval() {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnLet() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	name := stk[i].(string)
+	fn := func(ctx *bpl.Context) error {
+		v := p.Eval(ctx, e.start, e.end)
+		ctx.SetVar(name, v)
+		return nil
+	}
+	stk[i] = bpl.Do(fn)
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnAssert(src interface{}) {
 
 	e := p.popExpr()
@@ -238,26 +256,31 @@ func (p *Compiler) fnRead() {
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
 }
 
-/*
+// -----------------------------------------------------------------------------
+
 const (
 	lzwArgMsg = "lzw argument isn't an integer expression"
 )
 
 func (p *Compiler) fnLzw() {
 
+	e3 := p.popExpr()
 	e2 := p.popExpr()
 	e1 := p.popExpr()
 	stk := p.stk
 	i := len(stk) - 1
 	r := stk[i].(bpl.Ruler)
 	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		v1 := p.Eval(ctx, e1.start, e1.end)
+		v1, ok1 := p.Eval(ctx, e1.start, e1.end).([]byte)
+		if !ok1 {
+			panic("lzw source, order, litWidth: source isn't a []byte expression")
+		}
 		v2 := p.Eval(ctx, e2.start, e2.end)
-		return lzw.Type(toInt(v1, lzwArgMsg), toInt(v2, lzwArgMsg), r), nil
+		v3 := p.Eval(ctx, e3.start, e3.end)
+		return lzw.Type(bytes.NewReader(v1), toInt(v2, lzwArgMsg), toInt(v3, lzwArgMsg), r), nil
 	}
 	stk[i] = bpl.Dyntype(dynR)
 }
-*/
 
 // -----------------------------------------------------------------------------
 
@@ -281,7 +304,7 @@ func (p *Compiler) dostruct(nDynExpr int, m int, cstyle int) {
 		name := stk[idx+cstyle].(string)
 		members[i] = bpl.Member{Name: name, Type: typ}
 	}
-	stk[base] = bpl.Struct(members, dynExprR)
+	stk[base] = bpl.StructEx(members, dynExprR, nil)
 	p.stk = stk[:base+1]
 }
 

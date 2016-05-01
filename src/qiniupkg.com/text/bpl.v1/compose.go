@@ -147,6 +147,33 @@ func Seq(rs ...Ruler) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type act struct {
+	fn func(ctx *Context) error
+}
+
+func (p *act) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	err = p.fn(ctx)
+	if err != nil {
+		return
+	}
+	return ctx.Dom(), nil
+}
+
+func (p *act) SizeOf() int {
+
+	return -1
+}
+
+// Do returns a matching unit that executes action fn(ctx).
+//
+func Do(fn func(ctx *Context) error) Ruler {
+
+	return &act{fn: fn}
+}
+
+// -----------------------------------------------------------------------------
+
 type dyntype struct {
 	r func(ctx *Context) (Ruler, error)
 }

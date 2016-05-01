@@ -456,3 +456,31 @@ func TestIf(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeLet = `
+
+doc = {
+	let a = 1
+}
+`
+
+func TestLet(t *testing.T) {
+
+	r, err := NewFromString(codeLet, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(nil)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"a":1}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------

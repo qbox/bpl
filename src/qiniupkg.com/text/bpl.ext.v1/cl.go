@@ -43,7 +43,7 @@ caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
 exprblock = true/istart! iexpr (@'{' | "do")/iend expr
 
-ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else" expr)/ARITY /if
+ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else"! expr)/ARITY /if
 
 readexpr = "read" exprblock /read
 
@@ -51,7 +51,11 @@ evalexpr = "eval" exprblock /eval
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 
-dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr)/xline
+letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
+
+lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
+
+dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | lzwexpr)/xline
 
 cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY /cstruct
 
@@ -67,7 +71,7 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
-atom = 
+atom =
 	'(' iexpr %= ','/ARITY ')'/call |
 	'.' IDENT/mref
 
@@ -205,9 +209,11 @@ var fntable = map[string]interface{}{
 	"$pushi":   (*Compiler).pushi,
 	"$pushs":   (*Compiler).pushs,
 	"$cpushi":  (*Compiler).cpushi,
+	"$let":     (*Compiler).fnLet,
 	"$eval":    (*Compiler).fnEval,
 	"$if":      (*Compiler).fnIf,
 	"$read":    (*Compiler).fnRead,
+	"$lzw":     (*Compiler).fnLzw,
 	"$case":    (*Compiler).fnCase,
 	"$assert":  (*Compiler).fnAssert,
 	"$const":   (*Compiler).fnConst,
