@@ -49,15 +49,17 @@ readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
 
-assertexpr = ("assert"/istart! iexpr /iend) /assert
+doexpr = "do"/istart! iexpr /iend /do
 
 letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
+
+assertexpr = ("assert"/istart! iexpr /iend) /assert
 
 gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
 lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
 
-dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | gblexpr | lzwexpr)/xline
+dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | gblexpr | lzwexpr)/xline
 
 retexpr = ?';' "return"/istart! iexpr /iend
 
@@ -196,6 +198,7 @@ var exports = map[string]interface{}{
 	"$let":     (*Compiler).fnLet,
 	"$global":  (*Compiler).fnGlobal,
 	"$eval":    (*Compiler).fnEval,
+	"$do":      (*Compiler).fnDo,
 	"$if":      (*Compiler).fnIf,
 	"$read":    (*Compiler).fnRead,
 	"$lzw":     (*Compiler).fnLzw,

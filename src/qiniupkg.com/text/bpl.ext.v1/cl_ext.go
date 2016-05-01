@@ -36,7 +36,11 @@ func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 	}
 	code := &p.code
 	stk := p.estk
-	ectx := exec.NewSimpleContext(vars, stk, code)
+	var parent *exec.Context
+	if len(ctx.Globals) > 0 {
+		parent = exec.NewSimpleContext(ctx.Globals, nil, nil, nil)
+	}
+	ectx := exec.NewSimpleContext(vars, stk, code, parent)
 	code.Exec(start, end, stk, ectx)
 	v, _ := stk.Pop()
 	return v
@@ -211,6 +215,18 @@ func (p *Compiler) fnEval() {
 		return v.([]byte)
 	}
 	stk[i] = bpl.Eval(expr, stk[i].(bpl.Ruler))
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) fnDo() {
+
+	e := p.popExpr()
+	fn := func(ctx *bpl.Context) error {
+		p.Eval(ctx, e.start, e.end)
+		return nil
+	}
+	p.stk = append(p.stk, bpl.Do(fn))
 }
 
 // -----------------------------------------------------------------------------

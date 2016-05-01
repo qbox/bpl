@@ -554,3 +554,77 @@ func TestReturn2(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeGlobal = `
+
+record = {
+	do set(msgs, 1234, 35, 123, 36)
+	let a = get(msgs, 123)
+}
+
+init = {
+	global msgs = mkmap("int:int")
+}
+
+doc = init record
+`
+
+func TestGlobal(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+
+	r, err := NewFromString(codeGlobal, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(b)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"a":36}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeMap = `
+
+record = {
+	do set(msgs, "foo", 35, "bar", 36)
+	let a = get(msgs, "bar")
+}
+
+init = {
+	global msgs = {}
+}
+
+doc = init record
+`
+
+func TestMap(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+
+	r, err := NewFromString(codeMap, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(b)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"a":36}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
