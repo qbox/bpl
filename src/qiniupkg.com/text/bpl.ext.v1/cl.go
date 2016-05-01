@@ -8,7 +8,6 @@ import (
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
-	"qlang.io/qlang.spec.v1"
 )
 
 const grammar = `
@@ -156,13 +155,6 @@ func (p *Compiler) Grammar() string {
 	return grammar
 }
 
-// Fntable returns the qlang compiler's function table. It is required by tpl.Interpreter engine.
-//
-func (p *Compiler) Fntable() map[string]interface{} {
-
-	return qlang.Fntable
-}
-
 // Stack returns nil (no stack). It is required by tpl.Interpreter engine.
 //
 func (p *Compiler) Stack() interpreter.Stack {
@@ -171,10 +163,6 @@ func (p *Compiler) Stack() interpreter.Stack {
 }
 
 // -----------------------------------------------------------------------------
-
-func init() {
-	qlang.Import("", exports)
-}
 
 var exports = map[string]interface{}{
 	"$And":      (*Compiler).and,
