@@ -306,6 +306,30 @@ func bitand(a, b interface{}) interface{} { // a & b
 	return panicUnsupportedOp2("&", a, b)
 }
 
+func bitor(a, b interface{}) interface{} { // a | b
+
+	switch a1 := a.(type) {
+	case int:
+		switch b1 := b.(type) {
+		case int:
+			return a1 | b1
+		}
+	}
+	return panicUnsupportedOp2("|", a, b)
+}
+
+func xor(a, b interface{}) interface{} { // a ^ b
+
+	switch a1 := a.(type) {
+	case int:
+		switch b1 := b.(type) {
+		case int:
+			return a1 ^ b1
+		}
+	}
+	return panicUnsupportedOp2("^", a, b)
+}
+
 func andnot(a, b interface{}) interface{} { // a &^ b
 
 	switch a1 := a.(type) {

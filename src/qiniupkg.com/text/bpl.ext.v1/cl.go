@@ -18,7 +18,7 @@ term1 = ifactor *(
 	'*' ifactor/mul | '/' ifactor/quo | '%' ifactor/mod |
 	"<<" ifactor/lshr | ">>" ifactor/rshr | '&' ifactor/bitand | "&^" ifactor/andnot)
 
-term2 = term1 *('+' term1/add | '-' term1/sub)
+term2 = term1 *('+' term1/add | '-' term1/sub | '|' term1/bitor | '^' term1/xor)
 
 term3 = term2 *('<' term2/lt | '>' term2/gt | "==" term2/eq | "<=" term2/le | ">=" term2/ge | "!=" term2/ne)
 
@@ -198,9 +198,11 @@ var fntable = map[string]interface{}{
 	"$ne":      ne,
 	"$and":     and,
 	"$or":      or,
+	"$xor":     xor,
 	"$lshr":    lshr,
 	"$rshr":    rshr,
 	"$bitand":  bitand,
+	"$bitor":   bitor,
 	"$bitnot":  bitnot,
 	"$andnot":  andnot,
 	"$sizeof":  (*Compiler).sizeof,
