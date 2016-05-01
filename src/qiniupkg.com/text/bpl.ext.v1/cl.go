@@ -57,9 +57,11 @@ lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr 
 
 dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | lzwexpr)/xline
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY /cstruct
+retexpr = ?';' "return"/istart! iexpr /iend
 
-struct = (IDENT/var type) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY /struct
+cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /cstruct
+
+struct = (IDENT/var type) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /struct
 
 factor =
 	IDENT/ident |

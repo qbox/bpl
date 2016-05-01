@@ -484,3 +484,35 @@ func TestLet(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeRet = `
+
+uint32be = {
+	return 1
+}
+
+doc = {
+	a uint32be
+}
+`
+
+func TestReturn(t *testing.T) {
+
+	r, err := NewFromString(codeRet, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(nil)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"a":1}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------

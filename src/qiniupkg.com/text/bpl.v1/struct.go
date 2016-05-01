@@ -102,7 +102,7 @@ func Struct(members []Member) Ruler {
 func StructEx(members []Member, doR Ruler, retFn func(ctx *Context) (v interface{}, err error)) Ruler {
 
 	n := len(members)
-	if n == 0 {
+	if n == 0 && doR == nil && retFn == nil {
 		return Nil
 	}
 

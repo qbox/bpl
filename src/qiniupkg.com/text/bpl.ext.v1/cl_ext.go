@@ -284,42 +284,52 @@ func (p *Compiler) fnLzw() {
 
 // -----------------------------------------------------------------------------
 
-func (p *Compiler) dostruct(nDynExpr int, m int, cstyle int) {
+func (p *Compiler) doret() func(ctx *bpl.Context) (v interface{}, err error) {
+
+	if p.popArity() != 0 {
+		e := p.popExpr()
+		return func(ctx *bpl.Context) (v interface{}, err error) {
+			v = p.Eval(ctx, e.start, e.end)
+			return
+		}
+	}
+	return nil
+}
+
+func (p *Compiler) dostruct(nDynExpr int, m int, fnRet func(ctx *bpl.Context) (v interface{}, err error), cstyle int) {
 
 	dynExprR := p.popRules(nDynExpr)
-	if m == 0 {
-		if dynExprR == nil {
-			dynExprR = bpl.Nil
-		}
-		p.stk = append(p.stk, dynExprR)
-		return
-	}
-
 	stk := p.stk
-	base := len(stk) - (m << 1)
-	members := make([]bpl.Member, m)
-	for i := 0; i < m; i++ {
-		idx := base + (i << 1)
-		typ := stk[idx+1-cstyle].(bpl.Ruler)
-		name := stk[idx+cstyle].(string)
-		members[i] = bpl.Member{Name: name, Type: typ}
+	if m > 0 {
+		base := len(stk) - (m << 1)
+		members := make([]bpl.Member, m)
+		for i := 0; i < m; i++ {
+			idx := base + (i << 1)
+			typ := stk[idx+1-cstyle].(bpl.Ruler)
+			name := stk[idx+cstyle].(string)
+			members[i] = bpl.Member{Name: name, Type: typ}
+		}
+		stk[base] = bpl.StructEx(members, dynExprR, fnRet)
+		p.stk = stk[:base+1]
+	} else {
+		p.stk = append(stk, bpl.StructEx(nil, dynExprR, fnRet))
 	}
-	stk[base] = bpl.StructEx(members, dynExprR, nil)
-	p.stk = stk[:base+1]
 }
 
 func (p *Compiler) cstruct() {
 
+	fnRet := p.doret()
 	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(nDynExpr, m, 1)
+	p.dostruct(nDynExpr, m, fnRet, 1)
 }
 
 func (p *Compiler) gostruct() {
 
+	fnRet := p.doret()
 	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(nDynExpr, m, 0)
+	p.dostruct(nDynExpr, m, fnRet, 0)
 }
 
 // -----------------------------------------------------------------------------
