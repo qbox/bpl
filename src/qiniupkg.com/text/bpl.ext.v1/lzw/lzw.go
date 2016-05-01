@@ -12,14 +12,14 @@ import (
 
 type typeImpl struct {
 	r        bpl.Ruler
-	src      func(ctx *bpl.Context) io.Reader
+	src      io.Reader
 	order    lzw.Order
 	litWidth int
 }
 
 func (p typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
-	f := lzw.NewReader(p.src(ctx), p.order, p.litWidth)
+	f := lzw.NewReader(p.src, p.order, p.litWidth)
 	defer f.Close()
 
 	in = bufio.NewReader(f)
@@ -33,7 +33,7 @@ func (p typeImpl) SizeOf() int {
 
 // Type is a matching unit that matches R with a lzw decoded stream.
 //
-func Type(src func(ctx *bpl.Context) io.Reader, order, litWidth int, R bpl.Ruler) bpl.Ruler {
+func Type(src io.Reader, order, litWidth int, R bpl.Ruler) bpl.Ruler {
 
 	return &typeImpl{src: src, order: lzw.Order(order), litWidth: litWidth, r: R}
 }

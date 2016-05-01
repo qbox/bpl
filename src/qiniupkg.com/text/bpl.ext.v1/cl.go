@@ -41,19 +41,27 @@ casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/AR
 
 caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
-ifexpr = "if"/istart! iexpr "do"/iend expr /if
+exprblock = true/istart! iexpr (@'{' | "do")/iend expr
 
-readexpr = "read"/istart! iexpr "do"/iend expr /read
+ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else"! expr)/ARITY /if
 
-evalexpr = "eval"/istart! iexpr "do"/iend expr /eval
+readexpr = "read" exprblock /read
+
+evalexpr = "eval" exprblock /eval
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 
-dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr)/xline
+letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY *(';' dynexpr)/ARITY /cstruct
+lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
 
-struct = (IDENT/var type) %= ';'/ARITY *(';' dynexpr)/ARITY /struct
+dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | lzwexpr)/xline
+
+retexpr = ?';' "return"/istart! iexpr /iend
+
+cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /cstruct
+
+struct = (IDENT/var type) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /struct
 
 factor =
 	IDENT/ident |
@@ -65,7 +73,7 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
-atom = 
+atom =
 	'(' iexpr %= ','/ARITY ')'/call |
 	'.' IDENT/mref
 
@@ -203,9 +211,11 @@ var fntable = map[string]interface{}{
 	"$pushi":   (*Compiler).pushi,
 	"$pushs":   (*Compiler).pushs,
 	"$cpushi":  (*Compiler).cpushi,
+	"$let":     (*Compiler).fnLet,
 	"$eval":    (*Compiler).fnEval,
 	"$if":      (*Compiler).fnIf,
 	"$read":    (*Compiler).fnRead,
+	"$lzw":     (*Compiler).fnLzw,
 	"$case":    (*Compiler).fnCase,
 	"$assert":  (*Compiler).fnAssert,
 	"$const":   (*Compiler).fnConst,

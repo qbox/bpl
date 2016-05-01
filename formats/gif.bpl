@@ -31,7 +31,7 @@ ImageHeader = {
 
 ExtBlocks = {
     len byte
-    if len do {
+    if len {
         data [len]byte
         next ExtBlocks
     }

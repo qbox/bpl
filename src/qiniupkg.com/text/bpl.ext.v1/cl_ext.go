@@ -1,9 +1,11 @@
 package bpl
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
+	"qiniupkg.com/text/bpl.ext.v1/lzw"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
@@ -168,6 +170,37 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnIf() {
+
+	var elseR bpl.Ruler
+	if p.popArity() != 0 {
+		elseR = p.popRule()
+	} else {
+		elseR = bpl.Nil
+	}
+
+	arity := p.popArity() + 1
+
+	stk := p.stk
+	n := len(stk)
+	bodyRs := clone(stk[n-arity:])
+	condExprs := p.gstk.PopNArgs(arity)
+	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		for i := 0; i < arity; i++ {
+			e := condExprs[i].(*exprBlock)
+			v := p.Eval(ctx, e.start, e.end)
+			if toBool(v, "condition isn't a boolean expression") {
+				return bodyRs[i], nil
+			}
+		}
+		return elseR, nil
+	}
+	stk[n-arity] = bpl.Dyntype(r)
+	p.stk = stk[:n-arity+1]
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnEval() {
 
 	e := p.popExpr()
@@ -178,6 +211,22 @@ func (p *Compiler) fnEval() {
 		return v.([]byte)
 	}
 	stk[i] = bpl.Eval(expr, stk[i].(bpl.Ruler))
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) fnLet() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	name := stk[i].(string)
+	fn := func(ctx *bpl.Context) error {
+		v := p.Eval(ctx, e.start, e.end)
+		ctx.SetVar(name, v)
+		return nil
+	}
+	stk[i] = bpl.Do(fn)
 }
 
 // -----------------------------------------------------------------------------
@@ -209,77 +258,78 @@ func (p *Compiler) fnRead() {
 
 // -----------------------------------------------------------------------------
 
-func (p *Compiler) fnIf() {
-
-	e := p.popExpr()
-	stk := p.stk
-	i := len(stk) - 1
-	cond := func(ctx *bpl.Context) bool {
-		v := p.Eval(ctx, e.start, e.end)
-		return toBool(v, "if condition isn't a boolean expression")
-	}
-	stk[i] = bpl.If(cond, stk[i].(bpl.Ruler))
-}
-
-/*
 const (
 	lzwArgMsg = "lzw argument isn't an integer expression"
 )
 
 func (p *Compiler) fnLzw() {
 
+	e3 := p.popExpr()
 	e2 := p.popExpr()
 	e1 := p.popExpr()
 	stk := p.stk
 	i := len(stk) - 1
 	r := stk[i].(bpl.Ruler)
 	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		v1 := p.Eval(ctx, e1.start, e1.end)
+		v1, ok1 := p.Eval(ctx, e1.start, e1.end).([]byte)
+		if !ok1 {
+			panic("lzw source, order, litWidth: source isn't a []byte expression")
+		}
 		v2 := p.Eval(ctx, e2.start, e2.end)
-		return lzw.Type(toInt(v1, lzwArgMsg), toInt(v2, lzwArgMsg), r), nil
+		v3 := p.Eval(ctx, e3.start, e3.end)
+		return lzw.Type(bytes.NewReader(v1), toInt(v2, lzwArgMsg), toInt(v3, lzwArgMsg), r), nil
 	}
 	stk[i] = bpl.Dyntype(dynR)
 }
-*/
 
 // -----------------------------------------------------------------------------
 
-func (p *Compiler) dostruct(nDynExpr int, m int, cstyle int) {
+func (p *Compiler) doret() func(ctx *bpl.Context) (v interface{}, err error) {
+
+	if p.popArity() != 0 {
+		e := p.popExpr()
+		return func(ctx *bpl.Context) (v interface{}, err error) {
+			v = p.Eval(ctx, e.start, e.end)
+			return
+		}
+	}
+	return nil
+}
+
+func (p *Compiler) dostruct(nDynExpr int, m int, fnRet func(ctx *bpl.Context) (v interface{}, err error), cstyle int) {
 
 	dynExprR := p.popRules(nDynExpr)
-	if m == 0 {
-		if dynExprR == nil {
-			dynExprR = bpl.Nil
-		}
-		p.stk = append(p.stk, dynExprR)
-		return
-	}
-
 	stk := p.stk
-	base := len(stk) - (m << 1)
-	members := make([]bpl.Member, m)
-	for i := 0; i < m; i++ {
-		idx := base + (i << 1)
-		typ := stk[idx+1-cstyle].(bpl.Ruler)
-		name := stk[idx+cstyle].(string)
-		members[i] = bpl.Member{Name: name, Type: typ}
+	if m > 0 {
+		base := len(stk) - (m << 1)
+		members := make([]bpl.Member, m)
+		for i := 0; i < m; i++ {
+			idx := base + (i << 1)
+			typ := stk[idx+1-cstyle].(bpl.Ruler)
+			name := stk[idx+cstyle].(string)
+			members[i] = bpl.Member{Name: name, Type: typ}
+		}
+		stk[base] = bpl.StructEx(members, dynExprR, fnRet)
+		p.stk = stk[:base+1]
+	} else {
+		p.stk = append(stk, bpl.StructEx(nil, dynExprR, fnRet))
 	}
-	stk[base] = bpl.Struct(members, dynExprR)
-	p.stk = stk[:base+1]
 }
 
 func (p *Compiler) cstruct() {
 
+	fnRet := p.doret()
 	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(nDynExpr, m, 1)
+	p.dostruct(nDynExpr, m, fnRet, 1)
 }
 
 func (p *Compiler) gostruct() {
 
+	fnRet := p.doret()
 	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(nDynExpr, m, 0)
+	p.dostruct(nDynExpr, m, fnRet, 0)
 }
 
 // -----------------------------------------------------------------------------
