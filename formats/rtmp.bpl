@@ -13,6 +13,8 @@ uint32be = {
     return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
 }
 
+Msg = {
+}
 
 Chunk = {
     tag byte
@@ -54,10 +56,14 @@ Chunk = {
     }
     if left <= 128 {
         data [left]byte
+        do _msg.data.write(data)
+        eval _msg.data.bytes() do {
+            msg Msg
+        }
     } else {
         data [128]byte
+        do _msg.data.write(data)
     }
-    do _msg.write(data)
 }
 
 init = {
