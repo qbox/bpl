@@ -24,15 +24,11 @@ func newExecutor() *executor {
 	}
 }
 
-var (
-	nilVars = map[string]interface{}{}
-)
-
 func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 
-	vars, _ := ctx.Dom().(map[string]interface{})
+	vars, hasDom := ctx.Dom().(map[string]interface{})
 	if vars == nil {
-		vars = nilVars
+		vars = make(map[string]interface{})
 	}
 	code := &p.code
 	stk := p.estk
@@ -42,6 +38,9 @@ func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 	}
 	ectx := exec.NewSimpleContext(vars, stk, code, parent)
 	code.Exec(start, end, stk, ectx)
+	if !hasDom && len(vars) > 0 { // update dom
+		ctx.SetDom(vars)
+	}
 	v, _ := stk.Pop()
 	return v
 }

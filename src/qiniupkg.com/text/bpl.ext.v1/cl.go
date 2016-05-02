@@ -79,7 +79,8 @@ factor =
 
 atom =
 	'(' iexpr %= ','/ARITY ')'/call |
-	'.' IDENT/mref
+	'.' IDENT/mref |
+	'[' ?iexpr/ARITY ?':'/ARITY ?iexpr/ARITY ']'/index
 
 ifactor =
 	INT/pushi |
@@ -188,6 +189,7 @@ var exports = map[string]interface{}{
 	"$sizeof":  (*Compiler).sizeof,
 	"$map":     (*Compiler).fnMap,
 	"$slice":   (*Compiler).fnSlice,
+	"$index":   (*Compiler).index,
 	"$ARITY":   (*Compiler).arity,
 	"$call":    (*Compiler).call,
 	"$ref":     (*Compiler).ref,

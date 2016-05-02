@@ -201,4 +201,20 @@ func (p *Compiler) fnSlice() {
 	p.code.Block(exec.SliceFrom(arity))
 }
 
+func (p *Compiler) index() {
+
+	arity2 := p.popArity()
+	arityMid := p.popArity()
+	arity1 := p.popArity()
+
+	if arityMid == 0 {
+		if arity1 == 0 {
+			panic("call operator[] without index")
+		}
+		p.code.Block(exec.Get)
+	} else {
+		p.code.Block(exec.Op3(qlang.SubSlice, arity1 != 0, arity2 != 0))
+	}
+}
+
 // -----------------------------------------------------------------------------

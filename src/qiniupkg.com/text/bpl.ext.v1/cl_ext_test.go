@@ -559,7 +559,7 @@ const codeGlobal = `
 
 record = {
 	do set(msgs, 1234, 35, 123, 36)
-	let a = get(msgs, 123)
+	let a = msgs[123]
 }
 
 init = {
