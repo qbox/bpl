@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -70,6 +71,9 @@ func DumpDom(b *bytes.Buffer, dom interface{}, lvl int) {
 		b.WriteByte('{')
 		keys := make([]string, 0, len(v))
 		for key := range v {
+			if strings.HasPrefix(key, "_") {
+				continue
+			}
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
