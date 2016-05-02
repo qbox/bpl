@@ -238,7 +238,7 @@ func (p *Compiler) fnLet() {
 	name := stk[i].(string)
 	fn := func(ctx *bpl.Context) error {
 		v := p.Eval(ctx, e.start, e.end)
-		ctx.SetVar(name, v)
+		ctx.LetVar(name, v)
 		return nil
 	}
 	stk[i] = bpl.Do(fn)

@@ -461,6 +461,7 @@ const codeLet = `
 
 doc = {
 	let a = 1
+	let a = 3
 }
 `
 
@@ -478,7 +479,7 @@ func TestLet(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if string(ret) != `{"a":1}` {
+	if string(ret) != `{"a":3}` {
 		t.Fatal("ret:", string(ret))
 	}
 }
