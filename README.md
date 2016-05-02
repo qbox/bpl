@@ -387,7 +387,7 @@ record = {
 
 bpl 集成了 qlang 表达式（不包含赋值）。以上所有 `<expr>`、`<condition>`、`<nbytes>` 这些地方，都是 bpl 引用 qlang 表达式的地方。
 
-qlang 表达式支持如下这些特性：
+bpl 中的 qlang 表达式支持如下这些特性：
 
 * 所有 qlang 操作符；
 * string、slice、map 等内置类型；
