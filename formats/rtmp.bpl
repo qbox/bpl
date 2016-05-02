@@ -13,6 +13,9 @@ uint32be = {
     return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
 }
 
+uint16le = uint16
+uint32le = uint32
+
 Msg = {
 }
 
@@ -24,7 +27,7 @@ Chunk = {
         _v byte
         let csid = _v + 0x40
     } elif csid == 1 {
-        _v uint16
+        _v uint16le
         let csid = _v + 0x40
     }
     if cfmt < 3 {
@@ -32,7 +35,7 @@ Chunk = {
         if cfmt == 0 {
             mlen   uint24be
             typeid byte
-            strmid uint32
+            strmid uint32le
             let left = mlen
             let _msg = {mlen: mlen, data: bytes.buffer()}
             do set(msgs, csid, _msg)
