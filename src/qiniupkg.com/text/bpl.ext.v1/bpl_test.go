@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
@@ -159,6 +160,40 @@ func TestStruct(t *testing.T) {
 	}
 	if string(ret) != `{"c":3,"d":3.14,"e":"Hello","f":{"f":"foo"},"sub1":{"a":1,"b":2}}` {
 		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeDump = `
+
+doc = {
+	let a = 1
+	let _b = 3
+}
+`
+
+func TestDump(t *testing.T) {
+
+	r, err := NewFromString(codeDump, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(nil)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"_b":3,"a":1}` {
+		t.Fatal("ret:", string(ret))
+	}
+	var b bytes.Buffer
+	DumpDom(&b, v, 0)
+	if b.String() != "{\n  a: 1\n}" {
+		t.Fatal("dump:", b.String())
 	}
 }
 
