@@ -180,21 +180,6 @@ doc = *(record dump)
 
 这样每个 record 匹配成功后会 dump 匹配结果。如果希望某个变量不进行 dump，则该变量需要以 _ 开头。
 
-## let
-
-```
-let <var> = <expr>
-```
-
-这将给当前 Context 添加一个名为 `<var>` 的变量，其值为 `<expr>` 的求值结果。如：
-
-```
-record = {
-	let a = 1
-	let _b = 2  // 变量 _b 不会被 dump
-}
-```
-
 ## case
 
 ```
@@ -223,7 +208,7 @@ record = {h header} case h.type {type1: body1; type2: body2; ...}
 doc = *record
 ```
 
-另外条件规则也可以出现在结构体中。如：
+另外条件规则也可以出现在结构体中（下文大部分规则除非特殊说明，一般都可以同时出现在规则列表和结构体）。如：
 
 ```
 record = {
@@ -298,6 +283,21 @@ record = {
 		type2: body2
 		...
 	}
+}
+```
+
+## let
+
+```
+let <var> = <expr>
+```
+
+这将给当前 Context 添加一个名为 `<var>` 的变量，其值为 `<expr>` 的求值结果。如：
+
+```
+record = {
+	let a = 1
+	let _b = 2  // 变量 _b 不会被 dump
 }
 ```
 
