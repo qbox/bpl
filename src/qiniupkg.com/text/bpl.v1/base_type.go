@@ -302,3 +302,74 @@ func FixedType(t reflect.Type) Ruler {
 }
 
 // -----------------------------------------------------------------------------
+
+type uintbe int
+
+func (p uintbe) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	t, err := in.Peek(int(p))
+	if err != nil {
+		return
+	}
+	var val uint
+	for i := 0; i < int(p); i++ {
+		val = (val << 8) | uint(t[i])
+	}
+	in.Discard(int(p))
+	return val, nil
+}
+
+func (p uintbe) SizeOf() int {
+
+	return int(p)
+}
+
+// Uintbe returns a matching unit that matches a uintbe(n) type.
+//
+func Uintbe(n int) Ruler {
+
+	if n < 2 || n > 8 {
+		panic("Uintbe: invalid argument (n >= 2 && n <= 8)")
+	}
+	return uintbe(n)
+}
+
+// -----------------------------------------------------------------------------
+
+type uintle int
+
+func (p uintle) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	t, err := in.Peek(int(p))
+	if err != nil {
+		return
+	}
+	var val uint
+	for i := int(p); i > 0; {
+		i--
+		val = (val << 8) | uint(t[i])
+	}
+	in.Discard(int(p))
+	return val, nil
+}
+
+func (p uintle) SizeOf() int {
+
+	return int(p)
+}
+
+// Uintle returns a matching unit that matches a uintle(n) type.
+//
+func Uintle(n int) Ruler {
+
+	if n < 2 || n > 8 {
+		panic("Uintle: invalid argument (n >= 2 && n <= 8)")
+	}
+	return uintle(n)
+}
+
+// Uint24 is a matching unit that matches a uintle(3) type.
+//
+var Uint24 = Uintle(3)
+
+// -----------------------------------------------------------------------------

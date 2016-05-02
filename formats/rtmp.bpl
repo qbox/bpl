@@ -1,21 +1,3 @@
-uint24be = {
-    b3 uint8
-    b2 uint8
-    b1 uint8
-    return (b3 << 16) | (b2 << 8) | b1
-}
-
-uint32be = {
-    b4 uint8
-    b3 uint8
-    b2 uint8
-    b1 uint8
-    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
-}
-
-uint16le = uint16
-uint32le = uint32
-
 Msg = {
 }
 

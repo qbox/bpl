@@ -52,3 +52,29 @@ func TestCString(t *testing.T) {
 		t.Fatal("json.Marshal result:", b2)
 	}
 }
+
+func TestUintbe(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+	in := bufio.NewReaderBuffer(b)
+	v, err := bpl.Uintbe(3).Match(in, nil)
+	if err != nil {
+		t.Fatal("Uintbe.Match failed:", err)
+	}
+	if v != uint(0x010203) {
+		t.Fatal("v != 0x010203:", v)
+	}
+}
+
+func TestUintle(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+	in := bufio.NewReaderBuffer(b)
+	v, err := bpl.Uintle(3).Match(in, nil)
+	if err != nil {
+		t.Fatal("Uintbe.Match failed:", err)
+	}
+	if v != uint(0x030201) {
+		t.Fatal("v != 0x030201:", v)
+	}
+}

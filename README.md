@@ -41,7 +41,9 @@ qbplproxy -h <listenIp:port> -b <backendIp:port> -p <protocol>.bpl [-o <output>.
 其实也就是内建类型 (builtin types)，如下：
 
 * int8, char, uint8(byte), int16, uint16
-* int32, uint32, int64, uint64
+* uint24, int32, uint32, int64, uint64
+* uint16be, uint24be, uint32be, uint64be
+* uint16le, uint24le, uint32le, uint64le
 * float32, float64
 * cstring, `[n]char`
 * bson
@@ -325,6 +327,8 @@ uint32be = {
     return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
 }
 ```
+
+当然，在 bpl 里面已经内置了 uint24be 和 uint32be。这里仅仅只是演示如何基于 bpl 本身来自己实现这样的内置规则。
 
 ## global
 
