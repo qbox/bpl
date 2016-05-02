@@ -172,7 +172,30 @@ doc = R1 {varx Rx} ... {varn Rn}
 那么结果就是 `{"varx": [<R2的匹配结果>, <R3的匹配结果>], "varn": <Rn的匹配结果>}`。
 
 
-## 条件规则
+## dump
+
+dump 规则不匹配任何内容，但是会打印当前 Context 中已经捕获的所有变量值。如：
+
+doc = *(record dump)
+
+这样每个 record 匹配成功后会 dump 匹配结果。如果希望某个变量不进行 dump，则该变量需要以 _ 开头。
+
+## let
+
+```
+let <var> = <expr>
+```
+
+这将给当前 Context 添加一个名为 `<var>` 的变量，其值为 `<expr>` 的求值结果。如：
+
+```
+record = {
+	let a = 1
+	let _b = 2  // 变量 _b 不会被 dump
+}
+```
+
+## case
 
 ```
 case <expr> {
@@ -180,7 +203,7 @@ case <expr> {
 	<val2>: R2
 	...
 	<valn>: Rn
-	default: Rdefault // 如果没有 default 并且前面各个分支都没有匹配成功，那么整个条件规则匹配会失败
+	default: Rdefault // 如果没有 default 并且前面各个分支都没有匹配成功，那么整个规则匹配会失败
 }
 ```
 
@@ -213,6 +236,24 @@ record = {
 }
 ```
 
+## if..elif..else
+
+```
+if <condition1> do R1 elif <condition2> do R2 ... else Rn
+```
+
+对 `<condition1>` 进行求值，如果结果为 true 或非零整数则执行 R1 规则，以此类推。如果 R1 是结构体 { ... }，则 do 可以忽略。例如：
+
+```
+record = {
+	len uint32
+	if len {
+		data [len]byte
+		next record
+	}
+}
+```
+
 ## assert
 
 ```
@@ -221,21 +262,13 @@ assert <condition>
 
 对 `<condition>` 进行求值，如果结果为 true 或非零整数表示成功，其他情况均失败。
 
-## if..do
-
-```
-if <condition> do R
-```
-
-对 `<condition>` 进行求值，如果结果为 true 或非零整数则执行 R 规则。
-
 ## read..do
 
 ```
 read <nbytes> do R
 ```
 
-读 `<nbytes>` 字节的内容后，再用 R 匹配这段内容。如：
+这里 `<nbytes>` 是一个 qlang 表达式。对 `<nbytes>` 求值，读如相应字节数的内容后，再用 R 匹配这段内容。如：
 
 ```
 record = {
@@ -268,6 +301,66 @@ record = {
 }
 ```
 
+## return
+
+return 语句只能出现在结构体中，用来改写结构体的匹配结果。如：
+
+```
+uint24be = {
+    b3 uint8
+    b2 uint8
+    b1 uint8
+    return (b3 << 16) | (b2 << 8) | b1
+}
+```
+
+在正常情况下，以上 uint34be 的匹配结果应该是 `{"b1": <val1>, "b2": <val2>, "b3": <val3>}`，但是由于 return 语句的存在，其匹配结果变成返回一个整数。类似地我们可以有：
+
+```
+uint32be = {
+    b4 uint8
+    b3 uint8
+    b2 uint8
+    b1 uint8
+    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
+}
+```
+
+## global
+
+```
+global <var> = <expr>
+```
+
+global 语句用于定义全局变量，这些变量并不出现在 Context 的捕获结果中。如：
+
+```
+init = {
+	global msgs = mkmap("int:var")
+}
+```
+
+## do
+
+```
+do <expr>
+```
+
+do 语句用来执行一个表达式。如：
+
+```
+init = {
+	global msgs = {"a": 12, "b": 32}
+}
+
+record = {
+	do set(msgs, "c", 56, "d", 78) // 现在 msgs = {"a": 12, "b": 32, "c": 56, "d": 78}
+	let a = msgs["a"]
+}
+
+doc = init record
+```
+
 ## 常量
 
 ```
@@ -289,6 +382,19 @@ record = {
     assert tag == "GIF87a" || tag == "GIF89a"
 }
 ```
+
+## qlang 表达式
+
+bpl 集成了 qlang 表达式（不包含赋值）。以上所有 `<expr>`、`<condition>`、`<nbytes>` 这些地方，都是 bpl 引用 qlang 表达式的地方。
+
+qlang 表达式支持如下这些特性：
+
+* 所有 qlang 操作符；
+* string、slice、map 等内置类型；
+* 变量、成员变量引用；
+* 函数、成员函数调用；
+* 模块（但是我们很克制地支持了非常有限的几个模块，如：builtin、bytes 等）；
+
 
 ## 样例：MongoDB 网络协议
 
