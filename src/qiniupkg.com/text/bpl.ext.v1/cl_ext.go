@@ -24,20 +24,23 @@ func newExecutor() *executor {
 	}
 }
 
-var (
-	nilVars = map[string]interface{}{}
-)
-
 func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
 
-	vars, _ := ctx.Dom().(map[string]interface{})
+	vars, hasDom := ctx.Dom().(map[string]interface{})
 	if vars == nil {
-		vars = nilVars
+		vars = make(map[string]interface{})
 	}
 	code := &p.code
 	stk := p.estk
-	ectx := exec.NewSimpleContext(vars, stk, code)
+	var parent *exec.Context
+	if len(ctx.Globals) > 0 {
+		parent = exec.NewSimpleContext(ctx.Globals, nil, nil, nil)
+	}
+	ectx := exec.NewSimpleContext(vars, stk, code, parent)
 	code.Exec(start, end, stk, ectx)
+	if !hasDom && len(vars) > 0 { // update dom
+		ctx.SetDom(vars)
+	}
 	v, _ := stk.Pop()
 	return v
 }
@@ -215,6 +218,18 @@ func (p *Compiler) fnEval() {
 
 // -----------------------------------------------------------------------------
 
+func (p *Compiler) fnDo() {
+
+	e := p.popExpr()
+	fn := func(ctx *bpl.Context) error {
+		p.Eval(ctx, e.start, e.end)
+		return nil
+	}
+	p.stk = append(p.stk, bpl.Do(fn))
+}
+
+// -----------------------------------------------------------------------------
+
 func (p *Compiler) fnLet() {
 
 	e := p.popExpr()
@@ -224,6 +239,22 @@ func (p *Compiler) fnLet() {
 	fn := func(ctx *bpl.Context) error {
 		v := p.Eval(ctx, e.start, e.end)
 		ctx.SetVar(name, v)
+		return nil
+	}
+	stk[i] = bpl.Do(fn)
+}
+
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) fnGlobal() {
+
+	e := p.popExpr()
+	stk := p.stk
+	i := len(stk) - 1
+	name := stk[i].(string)
+	fn := func(ctx *bpl.Context) error {
+		v := p.Eval(ctx, e.start, e.end)
+		ctx.Globals[name] = v
 		return nil
 	}
 	stk[i] = bpl.Do(fn)
