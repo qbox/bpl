@@ -64,6 +64,22 @@ func (p *Context) SetVar(name string, v interface{}) {
 	vars[name] = v
 }
 
+// LetVar sets a variable to matching context.
+//
+func (p *Context) LetVar(name string, v interface{}) {
+
+	var vars map[string]interface{}
+	if p.dom == nil {
+		vars = make(map[string]interface{})
+		p.dom = vars
+	} else if domv, ok := p.dom.(map[string]interface{}); ok {
+		vars = domv
+	} else {
+		panic("dom type isn't map[string]interface{}")
+	}
+	vars[name] = v
+}
+
 // Var gets a variable from matching context.
 //
 func (p *Context) Var(name string) (v interface{}, ok bool) {
