@@ -43,9 +43,9 @@ qbplproxy -h <listenIp:port> -b <backendIp:port> -p <protocol>.bpl [-o <output>.
 * int8, char, uint8(byte), int16, uint16
 * uint24, int32, uint32, int64, uint64
 * uint16be, uint24be, uint32be, uint64be
-* uint16le, uint24le, uint32le, uint64le
+* uint16le, uint24le, uint32le, uint64le (实际上就是 uint16, uint24, uint32, uint64，这里只是强调下 LittleEndian)
 * float32, float64
-* cstring, `[n]char`
+* cstring, [n]char
 * bson
 * nil
 
