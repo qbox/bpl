@@ -35,7 +35,7 @@ qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.
 
 其中，`<listenIp:port>` 是 qbplproxy 自身监听的IP和端口，`<backendIp:port>` 是原始的服务。
 
-多少情况下，你不需要指定 `-p <protocol>.bpl` 参数，qbplproxy 程序可以根据你监听的端口来猜测网络协议。例如：
+多数情况下，你不需要指定 `-p <protocol>.bpl` 参数，qbplproxy 程序可以根据你监听的端口来猜测网络协议。例如：
 
 ```
 mongod --port 37017
