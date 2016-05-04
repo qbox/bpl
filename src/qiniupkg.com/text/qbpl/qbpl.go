@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	protocol = flag.String("p", "", "protocol file in BPL syntax.")
+	protocol = flag.String("p", "", "protocol file in BPL syntax. default is guessed by extension.")
 	output   = flag.String("o", "", "output log file, default is stderr.")
 )
 

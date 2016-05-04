@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
+	"strings"
 
 	"qiniupkg.com/text/bpl.ext.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -109,19 +111,56 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 var (
 	host     = flag.String("h", "", "listen host (listenIp:port).")
 	backend  = flag.String("b", "", "backend host (backendIp:port).")
-	protocol = flag.String("p", "", "protocol file in BPL syntax.")
+	protocol = flag.String("p", "", "protocol file in BPL syntax, default is guessed by <port>.")
 	output   = flag.String("o", "", "output log file, default is stderr.")
 )
 
-// qbplproxy -h <listenIp:port> -b <backendIp:port> -p <protocol>.bpl -o <output>.log
+var (
+	baseDir string // $HOME/.qbpl/formats/
+)
+
+func fileExists(file string) bool {
+
+	_, err := os.Stat(file)
+	return err == nil
+}
+
+func guessProtocol(host string) string {
+
+	index := strings.Index(host, ":")
+	if index >= 0 {
+		proto := baseDir + host[index+1:] + ".bpl"
+		if fileExists(proto) {
+			return proto
+		}
+	}
+	return ""
+}
+
+// qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.log]
 //
 func main() {
 
 	flag.Parse()
-	if *host == "" || *backend == "" || *protocol == "" {
-		fmt.Fprintln(os.Stderr, "Usage: qbplproxy -h <listenIp:port> -b <backendIp:port> -p <protocol>.bpl [-o <output>.log]")
+	if *host == "" || *backend == "" {
+		fmt.Fprintln(os.Stderr, "Usage: qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.log]")
 		flag.PrintDefaults()
 		return
+	}
+
+	baseDir = os.Getenv("HOME") + "/.qbpl/formats/"
+	if *protocol == "" {
+		*protocol = guessProtocol(*host)
+		if *protocol == "" {
+			*protocol = guessProtocol(*backend)
+			if *protocol == "" {
+				log.Fatalln("I can't know protocol by listening port, please use -p <protocol>.")
+			}
+		}
+	} else {
+		if path.Ext(*protocol) == "" {
+			*protocol = baseDir + *protocol + ".bpl"
+		}
 	}
 
 	onBpl := onNil
