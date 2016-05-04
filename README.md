@@ -13,7 +13,7 @@ qbpl 可用来分析任意的文件格式。使用方法如下：
 qbpl [-p <protocol>.bpl -o <output>.log] <file>
 ```
 
-多数情况下，你不需要自己指定格式，我们根据文件后缀来确定应该使用何种 protocol 来解析这个文件。例如：
+多数情况下，你不需要指定 `-p <protocol>.bpl` 参数，我们根据文件后缀来确定应该使用何种 protocol 来解析这个文件。例如：
 
 ```
 qbpl 1.gif
@@ -30,10 +30,19 @@ make install # 这将将所有的bpl文件拷贝到 ~/.qbpl/formats/
 qbplproxy 可用来分析服务器和客户端之间的网络包。它通过代理要分析的服务，让客户端请求自己来分析请求包和返回包。使用方式如下：
 
 ```
-qbplproxy -h <listenIp:port> -b <backendIp:port> -p <protocol>.bpl [-o <output>.log]
+qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.log]
 ```
 
 其中，`<listenIp:port>` 是 qbplproxy 自身监听的IP和端口，`<backendIp:port>` 是原始的服务。
+
+多少情况下，你不需要指定 `-p <protocol>.bpl` 参数，qbplproxy 程序可以根据你监听的端口来猜测网络协议。例如：
+
+```
+mongod --port 37017
+qbplproxy -h localhost:27017 -b localhost:37017
+```
+
+我们会依据端口 27017 知道你要分析的是 mongodb 的网络协议。
 
 
 ## 基础规则
