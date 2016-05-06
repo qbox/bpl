@@ -38,22 +38,28 @@ ChunkHeader = {
             length uint24be
             typeid byte
             if format < 1 {
-                streamid uint24be
+                streamid uint32le
             } else {
                 let ts = ts + _last["ts"]
                 let streamid = _last["streamid"]
             }
+            let remain = length
         } else {
             let ts = ts + _last["ts"]
             let length = _last["length"]
             let typeid = _last["typeid"]
             let streamid = _last["streamid"]
+            let remain = _last["remain"]
         }
     } else {
         let ts = _last["ts"]
         let length = _last["length"]
         let typeid = _last["typeid"]
         let streamid = _last["streamid"]
+        let remain = _last["remain"]
+    }
+    if remain == 0 {
+        let remain = length
     }
 }
 
@@ -61,15 +67,16 @@ Chunk = {
     header ChunkHeader
 
     let _length = chunksize
-    if header.length < _length {
-        let _length = header.length
+    if header.remain < _length {
+        let _length = header.remain
     }
 
     let _header = {
         "ts": header.ts,
-        "length": header.length - _length,
+        "length": header.length,
         "typeid": header.typeid,
         "streamid": header.streamid,
+        "remain": header.remain - _length,
     }
     do set(msgs, header.csid, _header)
     do {
@@ -78,6 +85,18 @@ Chunk = {
 
     if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
         let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+    }
+    if header.csid == 2 && header.streamid == 0 && header.typeid == 2 {
+        let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+        let _last = msgs[_csid]
+        let _newLast = {
+            "ts": _last["ts"],
+            "length": _last["length"],
+            "typeid": _last["typeid"],
+            "streamid": _last["streamid"],
+            "remain": 0,
+        }
+        do set(msgs, _csid, _newLast)
     }
 }
 
