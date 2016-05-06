@@ -46,7 +46,7 @@ ChunkHeader = {
                 let ts = ts + _last["ts"]
                 let streamid = _last["streamid"]
             }
-            let remain = length
+            let remain = 0
         } else {
             let ts = ts + _last["ts"]
             let length = _last["length"]
@@ -61,8 +61,12 @@ ChunkHeader = {
         let streamid = _last["streamid"]
         let remain = _last["remain"]
     }
+
     if remain == 0 {
         let remain = length
+        let _body = bytes.buffer()
+    } else {
+        let _body = _last["body"]
     }
 }
 
@@ -74,46 +78,36 @@ Chunk = {
         let _length = header.remain
     }
 
-    if _last == undefined {
-        let _msg = bytes.buffer()
-    } else {
-        let _msg = _last["msg"]
-    }
-
     let _header = {
         "ts": header.ts,
         "length": header.length,
         "typeid": header.typeid,
         "streamid": header.streamid,
         "remain": header.remain - _length,
-        "msg": _msg,
+        "body": header._body,
     }
     do set(msgs, header.csid, _header)
+
     do {
         data [_length]byte
     }
-    do _msg.write(data)
+    do header._body.write(data)
     if _header.remain == 0 {
-        eval _msg.bytes() do {
+        eval header._body.bytes() do {
             msg Msg
         }
     }
 
-    if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
-        let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
-    }
-    if header.csid == 2 && header.streamid == 0 && header.typeid == 2 {
-        let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
-        let _last = msgs[_csid]
-        let _newLast = {
-            "ts": _last["ts"],
-            "length": _last["length"],
-            "typeid": _last["typeid"],
-            "streamid": _last["streamid"],
-            "remain": 0,
-            "msg": _last["msg"],
+    if header.csid == 2 && header.streamid == 0 {
+        case header.typeid {
+            1: let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+            2: {
+                let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+                let _last = msgs[_csid]
+                do set(_last, "remain", 0)
+            }
         }
-        do set(msgs, _csid, _newLast)
+
     }
 }
 
