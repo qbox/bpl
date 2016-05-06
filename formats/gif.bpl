@@ -86,4 +86,4 @@ Record = {
     }
 }
 
-doc = (Header dump) *(Record dump)
+doc = Header dump *(Record dump)
