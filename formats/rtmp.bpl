@@ -1,6 +1,7 @@
 init = {
     global msgs = mkmap("int:var")
-    global chunksize = 128
+    global chunksize = mkmap("string:var")
+    do set(chunksize, "v", 128)
 }
 
 Handshake0 = {
@@ -66,7 +67,7 @@ ChunkHeader = {
 Chunk = {
     header ChunkHeader
 
-    let _length = chunksize
+    let _length = chunksize["v"]
     if header.remain < _length {
         let _length = header.remain
     }
@@ -84,7 +85,7 @@ Chunk = {
     }
 
     if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
-        let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+        do set(chunksize, "v", (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3])
     }
     if header.csid == 2 && header.streamid == 0 && header.typeid == 2 {
         let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
