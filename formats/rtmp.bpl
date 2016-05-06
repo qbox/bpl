@@ -15,29 +15,6 @@ Handshake2 = {
     h2 [1536]byte
 }
 
-ChunkHeaderF0 = {
-    _v [11]byte
-
-    let timestamp = (_v[0] << 16) | (_v[1] << 8) | (_v[2])
-    let length = (_v[3] << 16) | (_v[4] << 8) | (_v[5])
-    let typeid = (_v[6])
-    let streamid = (_v[7] << 24) | (_v[8] << 16) | (_v[9] << 8) | (_v[10])
-}
-
-ChunkHeaderF1 = {
-    _v [7]byte
-
-    let timedelta = (_v[0] << 16) | (_v[1] << 8) | (_v[2])
-    let length = (_v[3] << 16) | (_v[4] << 8) | (_v[5])
-    let typeid = (_v[6])
-}
-
-ChunkHeaderF2 = {
-    _v [3]byte
-
-    let timedelta = (_v[0] << 16) | (_v[1] << 8) | (_v[2])
-}
-
 ChunkHeader = {
     _tag byte
 
