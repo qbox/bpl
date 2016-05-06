@@ -43,6 +43,7 @@ ChunkHeader = {
                 let ts = ts + _last["ts"]
                 let streamid = _last["streamid"]
             }
+            let remain = length
         } else {
             let ts = ts + _last["ts"]
             let length = _last["length"]
@@ -50,13 +51,15 @@ ChunkHeader = {
             let streamid = _last["streamid"]
             let remain = _last["remain"]
         }
-        let remain = length
     } else {
         let ts = _last["ts"]
         let length = _last["length"]
         let typeid = _last["typeid"]
         let streamid = _last["streamid"]
         let remain = _last["remain"]
+    }
+    if remain == 0 {
+        let remain = length
     }
 }
 
