@@ -3,7 +3,8 @@ init = {
     global chunksize = 128
 }
 
-Msg = {
+MsgBody = {
+    data *byte
 }
 
 Handshake0 = {
@@ -89,12 +90,19 @@ Chunk = {
     do set(msgs, header.csid, _header)
 
     do {
-        data [_length]byte
+        _data [_length]byte
     }
-    do header._body.write(data)
+    if _header.length > chunksize {
+        if len(_data) > 16 {
+            let data = _data[:16]
+        } else {
+            let data = _data
+        }
+    }
+    do header._body.write(_data)
     if _header.remain == 0 {
         eval header._body.bytes() do {
-            msg Msg
+            body MsgBody
         }
     }
 
