@@ -19,10 +19,6 @@ VideoBody = {
     body *byte
 }
 
-OtherBody = {
-    body *byte
-}
-
 SetChunkSize = {
     size uint32be
     let chunksize = size
@@ -133,15 +129,15 @@ Chunk = {
             eval _body do case header.typeid {
                 1: SetChunkSize
                 2: Abort
-                default: { body *byte }
+                default: {body *byte}
             }
         } else {
             eval _body do case header.typeid {
                 18: Amf0Body
                 15: Amf3Body
-                8: AudioBody
-                9: VideoBody
-                default: OtherBody
+                8:  AudioBody
+                9:  VideoBody
+                default: {body *byte}
             }
         }
     }
