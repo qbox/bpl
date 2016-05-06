@@ -133,7 +133,7 @@ Chunk = {
             eval _body do case header.typeid {
                 1: SetChunkSize
                 2: Abort
-                default: nil
+                default: { body *byte }
             }
         } else {
             eval _body do case header.typeid {
