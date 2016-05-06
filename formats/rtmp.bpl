@@ -1,4 +1,5 @@
-Msg = {
+init = {
+    global msgs = mkmap("int:var")
 }
 
 Chunk = {
@@ -41,18 +42,35 @@ Chunk = {
     }
     if left <= 128 {
         data [left]byte
-        do _msg.data.write(data)
+    } else {
+        data [128]byte
+    }
+    do _msg.data.write(data)
+    let left = left - len(data)
+}
+
+Msg = {
+}
+
+MsgChunk = Chunk {
+    if left == 0 {
         eval _msg.data.bytes() do {
             msg Msg
         }
-    } else {
-        data [128]byte
-        do _msg.data.write(data)
     }
 }
 
-init = {
-    global msgs = mkmap("int:var")
+HandshakeMsg = {
 }
 
-doc = init *(Chunk dump)
+HandshakeChunks = Chunk {
+    if left {
+        next HandshakeChunks
+    } else {
+        eval _msg.data.bytes() do {
+            handshake HandshakeMsg
+        }
+    }
+}
+
+doc = init HandshakeChunks *(MsgChunk dump)
