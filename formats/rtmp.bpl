@@ -99,21 +99,16 @@ Chunk = {
         }
     }
 
-    if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
-        let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
-    }
-    if header.csid == 2 && header.streamid == 0 && header.typeid == 2 {
-        let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
-        let _last = msgs[_csid]
-        let _newLast = {
-            "ts": _last["ts"],
-            "length": _last["length"],
-            "typeid": _last["typeid"],
-            "streamid": _last["streamid"],
-            "remain": 0,
-            "msg": _last["msg"],
+    if header.csid == 2 && header.streamid == 0 {
+        case header.typeid {
+            1: let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+            2: {
+                let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+                let _last = msgs[_csid]
+                do set(_last, "remain", 0)
+            }
         }
-        do set(msgs, _csid, _newLast)
+
     }
 }
 
