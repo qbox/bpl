@@ -3,6 +3,9 @@ init = {
     global chunksize = 128
 }
 
+Msg = {
+}
+
 Handshake0 = {
     h0 byte
 }
@@ -71,16 +74,29 @@ Chunk = {
         let _length = header.remain
     }
 
+    if _last == undefined {
+        let _msg = bytes.buffer()
+    } else {
+        let _msg = _last["msg"]
+    }
+
     let _header = {
         "ts": header.ts,
         "length": header.length,
         "typeid": header.typeid,
         "streamid": header.streamid,
         "remain": header.remain - _length,
+        "msg": _msg,
     }
     do set(msgs, header.csid, _header)
     do {
         data [_length]byte
+    }
+    do _msg.write(data)
+    if _header.remain == 0 {
+        eval _msg.bytes() do {
+            msg Msg
+        }
     }
 
     if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
