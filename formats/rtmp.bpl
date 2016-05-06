@@ -111,6 +111,7 @@ Chunk = {
             "typeid": _last["typeid"],
             "streamid": _last["streamid"],
             "remain": 0,
+            "msg": _msg,
         }
         do set(msgs, _csid, _newLast)
     }
