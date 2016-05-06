@@ -49,6 +49,10 @@ func (p *Context) requireVarSlice() []interface{} {
 //
 func (p *Context) SetVar(name string, v interface{}) {
 
+	if _, ok := p.Globals[name]; ok {
+		panic(fmt.Errorf("variable `%s` exists globally", name))
+	}
+
 	var vars map[string]interface{}
 	if p.dom == nil {
 		vars = make(map[string]interface{})
@@ -67,6 +71,11 @@ func (p *Context) SetVar(name string, v interface{}) {
 // LetVar sets a variable to matching context.
 //
 func (p *Context) LetVar(name string, v interface{}) {
+
+	if _, ok := p.Globals[name]; ok {
+		p.Globals[name] = v
+		return
+	}
 
 	var vars map[string]interface{}
 	if p.dom == nil {

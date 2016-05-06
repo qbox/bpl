@@ -17,13 +17,21 @@ import (
 
 // -----------------------------------------------------------------------------
 
+// A Env is the environment of a callback.
+//
+type Env struct {
+	Src       *net.TCPConn
+	Dest      *net.TCPConn
+	Direction string
+}
+
 // A ReverseProxier is a reverse proxier server.
 //
 type ReverseProxier struct {
 	Addr       string
 	Backend    string
-	OnResponse func(io.Reader) (err error)
-	OnRequest  func(io.Reader) (err error)
+	OnResponse func(io.Reader, *Env) (err error)
+	OnRequest  func(io.Reader, *Env) (err error)
 	Listened   chan bool
 }
 
@@ -47,7 +55,7 @@ func (p *ReverseProxier) ListenAndServe() (err error) {
 	return
 }
 
-func onNil(r io.Reader) (err error) {
+func onNil(r io.Reader, env *Env) (err error) {
 
 	_, err = io.Copy(ioutil.Discard, r)
 	return
@@ -90,13 +98,13 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 
 			go func() {
 				r2 := io.TeeReader(c2, c)
-				onResponse(r2)
+				onResponse(r2, &Env{Src: c2, Dest: c, Direction: "RESP"})
 				c.CloseWrite()
 				c2.CloseRead()
 			}()
 
 			r := io.TeeReader(c, c2)
-			err2 = onRequest(r)
+			err2 = onRequest(r, &Env{Src: c, Dest: c2, Direction: "REQ"})
 			if err2 != nil {
 				log.Info("tcprproxy (request):", err2)
 			}
@@ -177,9 +185,10 @@ func main() {
 		if err != nil {
 			log.Fatalln("bpl.NewFromFile failed:", err)
 		}
-		onBpl = func(r io.Reader) (err error) {
+		onBpl = func(r io.Reader, env *Env) (err error) {
 			in := bufio.NewReader(r)
 			ctx := bpl.NewContext()
+			ctx.Globals["DUMP_PREFIX"] = "[" + env.Direction + "]"
 			_, err = ruler.SafeMatch(in, ctx)
 			if err != nil {
 				log.Error("Match failed:", err)
