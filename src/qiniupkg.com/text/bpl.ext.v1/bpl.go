@@ -169,10 +169,23 @@ func (p Ruler) MatchBuffer(b []byte) (v interface{}, err error) {
 //
 func New(code []byte, fname string) (r Ruler, err error) {
 
+	defer func() {
+		if e := recover(); e != nil {
+			switch v := e.(type) {
+			case string:
+				err = errors.New(v)
+			case error:
+				err = v
+			default:
+				panic(e)
+			}
+		}
+	}()
+
 	p := newCompiler()
 	engine, err := interpreter.New(p, interpreter.InsertSemis)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	p.ipt = engine

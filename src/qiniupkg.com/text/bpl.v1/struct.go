@@ -43,9 +43,9 @@ func (p *Member) SizeOf() int {
 
 type structType struct {
 	members []Member
-	size    int
 	doR     Ruler
 	retFn   func(ctx *Context) (v interface{}, err error)
+	size    int
 }
 
 func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -70,10 +70,28 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 
 func (p *structType) SizeOf() int {
 
+	if p.size == -2 {
+		p.size = p.sizeof()
+	}
+	return p.size
+}
+
+func (p *structType) sizeof() int {
+
 	if p.doR != nil || p.retFn != nil {
 		return -1
 	}
-	return p.size
+
+	size := 0
+	for _, m := range p.members {
+		if n := m.Type.SizeOf(); n < 0 {
+			size = -1
+			break
+		} else {
+			size += n
+		}
+	}
+	return size
 }
 
 // Struct returns a compound matching unit.
@@ -85,16 +103,7 @@ func Struct(members []Member) Ruler {
 		return Nil
 	}
 
-	size := 0
-	for _, m := range members {
-		if n := m.Type.SizeOf(); n < 0 {
-			size = -1
-			break
-		} else {
-			size += n
-		}
-	}
-	return &structType{members: members, size: size}
+	return &structType{members: members, size: -2}
 }
 
 // StructEx returns a compound matching unit.
@@ -106,16 +115,7 @@ func StructEx(members []Member, doR Ruler, retFn func(ctx *Context) (v interface
 		return Nil
 	}
 
-	size := 0
-	for _, m := range members {
-		if n := m.Type.SizeOf(); n < 0 {
-			size = -1
-			break
-		} else {
-			size += n
-		}
-	}
-	return &structType{members: members, size: size, doR: doR, retFn: retFn}
+	return &structType{members: members, size: -2, doR: doR, retFn: retFn}
 }
 
 // -----------------------------------------------------------------------------
