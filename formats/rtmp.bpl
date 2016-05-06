@@ -61,8 +61,12 @@ ChunkHeader = {
         let streamid = _last["streamid"]
         let remain = _last["remain"]
     }
+
     if remain == 0 {
         let remain = length
+        let _body = bytes.buffer()
+    } else {
+        let _body = _last["body"]
     }
 }
 
@@ -74,27 +78,22 @@ Chunk = {
         let _length = header.remain
     }
 
-    if _last == undefined {
-        let _msg = bytes.buffer()
-    } else {
-        let _msg = _last["msg"]
-    }
-
     let _header = {
         "ts": header.ts,
         "length": header.length,
         "typeid": header.typeid,
         "streamid": header.streamid,
         "remain": header.remain - _length,
-        "msg": _msg,
+        "body": header._body,
     }
     do set(msgs, header.csid, _header)
+
     do {
         data [_length]byte
     }
-    do _msg.write(data)
+    do header._body.write(data)
     if _header.remain == 0 {
-        eval _msg.bytes() do {
+        eval header._body.bytes() do {
             msg Msg
         }
     }
