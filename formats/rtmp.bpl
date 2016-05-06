@@ -3,6 +3,9 @@ init = {
     global chunksize = 128
 }
 
+Msg = {
+}
+
 Handshake0 = {
     h0 byte
 }
@@ -81,6 +84,11 @@ Chunk = {
     do set(msgs, header.csid, _header)
     do {
         data [_length]byte
+    }
+    if _header.remain == 0 {
+        eval data do {
+            msg Msg
+        }
     }
 
     if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
