@@ -64,6 +64,16 @@ OP_REPLY = {/C
 	document* documents;      // documents
 }
 
+OP_REQ = {/C
+	cstring  dbName;
+	cstring  cmd;
+	document param;
+}
+
+OP_RET = {/C
+	document ret;
+}
+
 Message = {
 	header MsgHeader   // standard message header
 	read header.messageLength - sizeof(MsgHeader) do case header.opCode {
@@ -75,6 +85,8 @@ Message = {
 		2005: OP_GET_MORE // Get more data from a query. See Cursors.
 		2006: OP_DELETE
 		2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
+		2010: OP_REQ
+		2011: OP_RET
 		default: {body *byte}
 	}
 }
