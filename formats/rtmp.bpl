@@ -46,7 +46,7 @@ ChunkHeader = {
                 let ts = ts + _last["ts"]
                 let streamid = _last["streamid"]
             }
-            let remain = length
+            let remain = 0
         } else {
             let ts = ts + _last["ts"]
             let length = _last["length"]
