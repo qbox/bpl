@@ -3,8 +3,35 @@ init = {
     global chunksize = 128
 }
 
-MsgBody = {
-    data *byte
+Amf0Body = {
+    body *byte
+}
+
+Amf3Body = {
+    body *byte
+}
+
+AudioBody = {
+    body *byte
+}
+
+VideoBody = {
+    body *byte
+}
+
+OtherBody = {
+    body *byte
+}
+
+SetChunkSize = {
+    size uint32be
+    let chunksize = size
+}
+
+Abort = {
+    csid uint32be
+    let _last = msgs[csid]
+    do set(_last, "remain", 0)
 }
 
 Handshake0 = {
@@ -101,21 +128,22 @@ Chunk = {
     }
     do header._body.write(_data)
     if _header.remain == 0 {
-        eval header._body.bytes() do {
-            body MsgBody
-        }
-    }
-
-    if header.csid == 2 && header.streamid == 0 {
-        case header.typeid {
-            1: let chunksize = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
-            2: {
-                let _csid = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
-                let _last = msgs[_csid]
-                do set(_last, "remain", 0)
+        let _body = header._body.bytes()
+        if header.csid == 2 && header.streamid == 0 {
+            eval _body do case header.typeid {
+                1: SetChunkSize
+                2: Abort
+                default: nil
+            }
+        } else {
+            eval _body do case header.typeid {
+                18: Amf0Body
+                15: Amf3Body
+                8: AudioBody
+                9: VideoBody
+                default: OtherBody
             }
         }
-
     }
 }
 
