@@ -49,7 +49,9 @@ readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
 
-doexpr = "do"/istart! iexpr /iend /do
+doexpr = "do"! (
+		~'{' /istart iexpr /iend /do |
+		'{' ('/' "C" ';' cstruct | struct) ?';' '}')
 
 letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
 

@@ -38,7 +38,7 @@ ChunkHeader = {
             length uint24be
             typeid byte
             if format < 1 {
-                streamid uint23be
+                streamid uint24be
             } else {
                 let ts = ts + _last["ts"]
                 let streamid = _last["streamid"]
@@ -72,9 +72,8 @@ Chunk = {
         "streamid": header.streamid,
     }
     do set(msgs, header.csid, _header)
-
-    read _length do {
-        data []byte
+    do {
+        data [_length]byte
     }
 
     if header.csid == 2 && header.streamid == 0 && header.typeid == 1 {
