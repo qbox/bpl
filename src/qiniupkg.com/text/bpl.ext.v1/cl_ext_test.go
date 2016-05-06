@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"qiniupkg.com/text/bpl.v1/binary"
+	"qiniupkg.com/text/bpl.v1/bufio"
 )
 
 // -----------------------------------------------------------------------------
@@ -587,6 +588,48 @@ func TestGlobal(t *testing.T) {
 		t.Fatal("json.Marshal failed:", err)
 	}
 	if string(ret) != `{"a":36}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeGlobal2 = `
+
+record = {
+	let a = 3
+	let b = 4
+}
+
+init = {
+	global a = 1
+}
+
+doc = init record
+`
+
+func TestGlobal2(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+
+	r, err := NewFromString(codeGlobal2, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	in := bufio.NewReaderBuffer(b)
+	ctx := NewContext()
+	v, err := r.SafeMatch(in, ctx)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if v, ok := ctx.Globals["a"]; !ok || v != 3 {
+		t.Fatal("v != 3: v =", v, ok)
+	}
+	if string(ret) != `{"b":4}` {
 		t.Fatal("ret:", string(ret))
 	}
 }
