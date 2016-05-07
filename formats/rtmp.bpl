@@ -112,17 +112,14 @@ Chunk = {
     }
     do set(msgs, header.csid, _header)
 
-    do {
-        _data [_length]byte
-    }
-    if _header.length > chunksize {
-        if len(_data) > 16 {
-            let data = _data[:16]
-        } else {
-            let data = _data
-        }
+    _data [_length]byte
+    if _length > 16 {
+        let data = _data[:16]
+    } else {
+        let data = _data
     }
     do header._body.write(_data)
+
     if _header.remain == 0 {
         let _body = header._body.bytes()
         if header.csid == 2 && header.streamid == 0 {

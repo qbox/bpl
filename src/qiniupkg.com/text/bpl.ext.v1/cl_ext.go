@@ -119,13 +119,16 @@ func (p *Compiler) popRule() bpl.Ruler {
 	return r
 }
 
-func (p *Compiler) popRules(m int) bpl.Ruler {
+func (p *Compiler) popRules(m int) []bpl.Ruler {
 
 	if m == 0 {
 		return nil
 	}
-	p.and(m)
-	return p.popRule()
+	stk := p.stk
+	n := len(stk)
+	rulers := clone(stk[n-m:])
+	p.stk = stk[:n-m]
+	return rulers
 }
 
 func sourceOf(engine interpreter.Engine, src interface{}) string {
@@ -327,40 +330,19 @@ func (p *Compiler) doret() func(ctx *bpl.Context) (v interface{}, err error) {
 	return nil
 }
 
-func (p *Compiler) dostruct(nDynExpr int, m int, fnRet func(ctx *bpl.Context) (v interface{}, err error), cstyle int) {
+func (p *Compiler) member(name string) {
 
-	dynExprR := p.popRules(nDynExpr)
 	stk := p.stk
-	if m > 0 {
-		base := len(stk) - (m << 1)
-		members := make([]bpl.Member, m)
-		for i := 0; i < m; i++ {
-			idx := base + (i << 1)
-			typ := stk[idx+1-cstyle].(bpl.Ruler)
-			name := stk[idx+cstyle].(string)
-			members[i] = bpl.Member{Name: name, Type: typ}
-		}
-		stk[base] = bpl.StructEx(members, dynExprR, fnRet)
-		p.stk = stk[:base+1]
-	} else {
-		p.stk = append(stk, bpl.StructEx(nil, dynExprR, fnRet))
-	}
-}
-
-func (p *Compiler) cstruct() {
-
-	fnRet := p.doret()
-	nDynExpr := p.popArity()
-	m := p.popArity()
-	p.dostruct(nDynExpr, m, fnRet, 1)
+	i := len(stk) - 1
+	stk[i] = &bpl.Member{Name: name, Type: stk[i].(bpl.Ruler)}
 }
 
 func (p *Compiler) gostruct() {
 
 	fnRet := p.doret()
-	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(nDynExpr, m, fnRet, 0)
+	rulers := p.popRules(m)
+	p.stk = append(p.stk, bpl.StructEx(rulers, fnRet))
 }
 
 // -----------------------------------------------------------------------------
