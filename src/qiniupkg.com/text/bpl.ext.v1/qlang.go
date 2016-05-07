@@ -145,8 +145,16 @@ func (p *Compiler) arity(arity int) {
 
 func (p *Compiler) call() {
 
+	variadic := p.popArity()
 	arity := p.popArity()
-	p.code.Block(exec.CallFn(arity))
+	if variadic != 0 {
+		if arity == 0 {
+			panic("what do you mean of `...`?")
+		}
+		p.code.Block(exec.CallFnv(arity))
+	} else {
+		p.code.Block(exec.CallFn(arity))
+	}
 }
 
 func (p *Compiler) ref(name string) {

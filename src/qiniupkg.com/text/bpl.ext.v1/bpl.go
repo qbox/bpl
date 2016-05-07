@@ -58,13 +58,14 @@ func DumpDom(b *bytes.Buffer, dom interface{}, lvl int) {
 	}
 	switch v := dom.(type) {
 	case []interface{}:
-		writePrefix(b, lvl)
 		b.WriteByte('[')
 		for _, item := range v {
 			b.WriteByte('\n')
 			writePrefix(b, lvl+1)
 			DumpDom(b, item, lvl+1)
+			b.WriteByte(',')
 		}
+		b.WriteByte('\n')
 		writePrefix(b, lvl)
 		b.WriteByte(']')
 	case map[string]interface{}:
