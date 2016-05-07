@@ -80,7 +80,7 @@ factor =
 	dynexpr
 
 atom =
-	'(' iexpr %= ','/ARITY ')'/call |
+	'(' iexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
 	'.' IDENT/mref |
 	'[' ?iexpr/ARITY ?':'/ARITY ?iexpr/ARITY ']'/index
 
