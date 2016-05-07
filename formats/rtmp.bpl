@@ -112,13 +112,11 @@ Chunk = {
     }
     do set(msgs, header.csid, _header)
 
-    _data [_length]byte
+    data [_length]byte
+    do header._body.write(data)
     if _length > 16 {
-        let data = _data[:16]
-    } else {
-        let data = _data
+        let data = data[:16]
     }
-    do header._body.write(_data)
 
     if _header.remain == 0 {
         let _body = header._body.bytes()
@@ -126,7 +124,7 @@ Chunk = {
             eval _body do case header.typeid {
                 1: SetChunkSize
                 2: Abort
-                default: {body *byte}
+                default: let body = _body
             }
         } else {
             eval _body do case header.typeid {
@@ -134,7 +132,7 @@ Chunk = {
                 15: Amf3Body
                 8:  AudioBody
                 9:  VideoBody
-                default: {body *byte}
+                default: let body = _body
             }
         }
     }
