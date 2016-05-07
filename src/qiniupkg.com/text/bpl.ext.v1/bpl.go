@@ -24,7 +24,7 @@ var (
 	Ldefault = log.Llevel | log.LstdFlags
 
 	// Dumper is used for dumping log informations.
-	Dumper = log.New(os.Stderr, "", Ldefault)
+	Dumper = log.New(os.Stdout, "", Ldefault)
 
 	// SetCaseType controls to set `_type` into matching result or not.
 	SetCaseType = true
