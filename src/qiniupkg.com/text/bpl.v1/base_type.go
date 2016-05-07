@@ -373,3 +373,55 @@ func Uintle(n int) Ruler {
 var Uint24 = Uintle(3)
 
 // -----------------------------------------------------------------------------
+
+func float32frombits(b uint32) float32 { return *(*float32)(unsafe.Pointer(&b)) }
+
+type float32be int
+
+func (p float32be) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	t, err := in.Peek(4)
+	if err != nil {
+		return
+	}
+	v = float32frombits(binary.BigEndian.Uint32(t))
+	in.Discard(4)
+	return
+}
+
+func (p float32be) SizeOf() int {
+
+	return 4
+}
+
+// Float32be returns a matching unit that matches a float32be type.
+//
+var Float32be Ruler = float32be(0)
+
+// -----------------------------------------------------------------------------
+
+func float64frombits(b uint64) float64 { return *(*float64)(unsafe.Pointer(&b)) }
+
+type float64be int
+
+func (p float64be) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	t, err := in.Peek(8)
+	if err != nil {
+		return
+	}
+	v = float64frombits(binary.BigEndian.Uint64(t))
+	in.Discard(8)
+	return
+}
+
+func (p float64be) SizeOf() int {
+
+	return 8
+}
+
+// Float64be returns a matching unit that matches a float64be type.
+//
+var Float64be Ruler = float64be(0)
+
+// -----------------------------------------------------------------------------

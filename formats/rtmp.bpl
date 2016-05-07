@@ -6,7 +6,7 @@ init = {
 // --------------------------------------------------------------
 
 AMF0_NUMBER = {
-    val float64
+    val float64be
 }
 
 AMF0_BOOLEAN = {
@@ -51,9 +51,7 @@ AMF0_ECMA_ARRAY = {
     assert false
 }
 
-AMF0_OBJECT_END = {
-    return undefined
-}
+AMF0_OBJECT_END = nil
 
 AMF0_STRICT_ARRAY = {
     len uint32be
@@ -62,7 +60,7 @@ AMF0_STRICT_ARRAY = {
 }
 
 AMF0_DATE = {
-    timestamp float64
+    timestamp float64be
     tz        uint16be
 }
 
@@ -174,7 +172,7 @@ AMF3_INTEGER = {
 }
 
 AMF3_DOUBLE = {
-    val float64
+    val float64be
 }
 
 AMF3_STRING = {
@@ -192,7 +190,7 @@ AMF3_XMLDOC = {
 AMF3_DATE = {
     tag AMF3_INT
     assert (tag & 1) != 0 // reference unsupported
-    timestamp float64
+    timestamp float64be
 }
 
 AMF3_ARRAY = {
