@@ -44,7 +44,7 @@ func TestFixedStruct(t *testing.T) {
 	}
 	struc := bpl.Struct(members)
 	if struc.SizeOf() != 11 {
-		t.Fatal("struct.size != 11")
+		t.Fatal("struct.size != 11 - ", struc.SizeOf())
 	}
 
 	in := bufio.NewReaderBuffer(b.Bytes())
