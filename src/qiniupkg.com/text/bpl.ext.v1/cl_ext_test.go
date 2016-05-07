@@ -242,9 +242,11 @@ const (
 
 headerType = {
 	type int32
-	_    int32
-	n    int32
-	m    int32
+	do println("type:", type)
+
+	_ int32
+	n int32
+	m int32
 	assert n == NVAL
 }
 
@@ -640,6 +642,7 @@ const codeMap = `
 
 record = {
 	do set(msgs, "foo", 35, "bar", 36)
+	do println("msgs:", msgs)
 	let a = get(msgs, "bar")
 }
 

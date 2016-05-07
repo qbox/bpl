@@ -358,12 +358,9 @@ init = {
 
 ```
 do <expr>
-do {
-   ... // 详细见上面关于“结构体”一节
-}
 ```
 
-do 语句可用来执行一个表达式，也可以用来匹配一个结构体。如：
+do 语句执行一个 qlang 表达式。如：
 
 ```
 init = {
@@ -372,12 +369,12 @@ init = {
 
 record = {
 	do set(msgs, "c", 56, "d", 78) // 现在 msgs = {"a": 12, "b": 32, "c": 56, "d": 78}
+	do println("msgs:", msgs)
 	let a = msgs["a"]
 }
 
 doc = init record
 ```
-
 
 ## 常量
 

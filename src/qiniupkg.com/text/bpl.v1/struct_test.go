@@ -36,11 +36,11 @@ func TestFixedStruct(t *testing.T) {
 		t.Fatal("len != 11")
 	}
 
-	members := []bpl.Member{
-		{Name: "a", Type: bpl.Int8},
-		{Name: "b", Type: bpl.Uint16},
-		{Name: "c", Type: bpl.Uint32},
-		{Name: "d", Type: bpl.Float32},
+	members := []bpl.Ruler{
+		&bpl.Member{Name: "a", Type: bpl.Int8},
+		&bpl.Member{Name: "b", Type: bpl.Uint16},
+		&bpl.Member{Name: "c", Type: bpl.Uint32},
+		&bpl.Member{Name: "d", Type: bpl.Float32},
 	}
 	struc := bpl.Struct(members)
 	if struc.SizeOf() != 11 {

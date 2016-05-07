@@ -89,18 +89,14 @@ func (p *structType) sizeof() int {
 
 // Struct returns a compound matching unit.
 //
-func Struct(members []Member) Ruler {
+func Struct(members []Ruler) Ruler {
 
 	n := len(members)
 	if n == 0 {
 		return Nil
 	}
 
-	rulers := make([]Ruler, len(members))
-	for i := range members {
-		rulers[i] = &members[i]
-	}
-	return &structType{rulers: rulers, size: -2}
+	return &structType{rulers: members, size: -2}
 }
 
 // StructEx returns a compound matching unit.
@@ -120,7 +116,7 @@ func StructEx(rulers []Ruler, retFn func(ctx *Context) (v interface{}, err error
 func structFrom(t reflect.Type) (r Ruler, err error) {
 
 	n := t.NumField()
-	members := make([]Member, n)
+	rulers := make([]Ruler, n)
 	for i := 0; i < n; i++ {
 		sf := t.Field(i)
 		r, err = TypeFrom(sf.Type)
@@ -128,9 +124,9 @@ func structFrom(t reflect.Type) (r Ruler, err error) {
 			log.Warn("bpl.TypeFrom failed:", err)
 			return
 		}
-		members[i] = Member{Name: strings.ToLower(sf.Name), Type: r}
+		rulers[i] = &Member{Name: strings.ToLower(sf.Name), Type: r}
 	}
-	return Struct(members), nil
+	return StructEx(rulers, nil), nil
 }
 
 // TypeFrom creates a matching unit from a Go type.

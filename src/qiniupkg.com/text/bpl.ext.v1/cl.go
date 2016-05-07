@@ -28,15 +28,6 @@ iexpr = term4 *("||" term4/ior)
 
 index = '['/istart iexpr ']'/iend
 
-ctype = IDENT/ident ?(index/array | '*'/array0 | '?'/array01 | '+'/array1)
-
-type =
-	IDENT/ident |
-	(index IDENT/ident)/array |
-	('*'! IDENT/ident)/array0 |
-	('?'! IDENT/ident)/array01 |
-	('+'! IDENT/ident)/array1
-
 casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
 caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
@@ -49,9 +40,7 @@ readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
 
-doexpr = "do"! (
-		~'{' /istart iexpr /iend /do |
-		'{' ('/' "C" ';' cstruct | struct) ?';' '}')
+doexpr = "do"/istart! iexpr /iend /do
 
 letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
 
@@ -61,13 +50,24 @@ gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
 lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
 
-dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | gblexpr | lzwexpr)/xline
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | gblexpr | lzwexpr
 
-retexpr = ?';' "return"/istart! iexpr /iend
+type =
+	IDENT/ident |
+	(index IDENT/ident)/array |
+	('*'! IDENT/ident)/array0 |
+	('?'! IDENT/ident)/array01 |
+	('+'! IDENT/ident)/array1
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /cstruct
+member = ((IDENT type)/member | dynexpr)/xline
 
-struct = (IDENT/var type) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /struct
+cmember = (IDENT/ident ?(index/array | '*'/array0 | '?'/array01 | '+'/array1) IDENT/member | dynexpr)/xline
+
+retexpr = "return"/istart! iexpr /iend
+
+cstruct = cmember %= ';'/ARITY ?';' ?retexpr/ARITY /struct
+
+struct = member %= ';'/ARITY ?';' ?retexpr/ARITY /struct
 
 factor =
 	IDENT/ident |
@@ -99,7 +99,7 @@ cexpr = INT/cpushi
 const = (IDENT '=' cexpr ';')/const
 
 doc = +(
-	(IDENT '=' expr ';')/assign |
+	(IDENT '=' expr/xline ';')/assign |
 	"const" '(' *const ')' ';')
 `
 
@@ -188,32 +188,32 @@ var exports = map[string]interface{}{
 	"$iand": and,
 	"$ior":  or,
 
-	"$sizeof":  (*Compiler).sizeof,
-	"$map":     (*Compiler).fnMap,
-	"$slice":   (*Compiler).fnSlice,
-	"$index":   (*Compiler).index,
-	"$ARITY":   (*Compiler).arity,
-	"$call":    (*Compiler).call,
-	"$ref":     (*Compiler).ref,
-	"$mref":    (*Compiler).mref,
-	"$pushi":   (*Compiler).pushi,
-	"$pushs":   (*Compiler).pushs,
-	"$cpushi":  (*Compiler).cpushi,
-	"$let":     (*Compiler).fnLet,
-	"$global":  (*Compiler).fnGlobal,
-	"$eval":    (*Compiler).fnEval,
-	"$do":      (*Compiler).fnDo,
-	"$if":      (*Compiler).fnIf,
-	"$read":    (*Compiler).fnRead,
-	"$lzw":     (*Compiler).fnLzw,
-	"$case":    (*Compiler).fnCase,
-	"$assert":  (*Compiler).fnAssert,
-	"$const":   (*Compiler).fnConst,
-	"$casei":   (*Compiler).casei,
-	"$source":  (*Compiler).source,
-	"$cstruct": (*Compiler).cstruct,
-	"$struct":  (*Compiler).gostruct,
-	"$xline":   (*Compiler).xline,
+	"$sizeof": (*Compiler).sizeof,
+	"$map":    (*Compiler).fnMap,
+	"$slice":  (*Compiler).fnSlice,
+	"$index":  (*Compiler).index,
+	"$ARITY":  (*Compiler).arity,
+	"$call":   (*Compiler).call,
+	"$ref":    (*Compiler).ref,
+	"$mref":   (*Compiler).mref,
+	"$pushi":  (*Compiler).pushi,
+	"$pushs":  (*Compiler).pushs,
+	"$cpushi": (*Compiler).cpushi,
+	"$let":    (*Compiler).fnLet,
+	"$global": (*Compiler).fnGlobal,
+	"$eval":   (*Compiler).fnEval,
+	"$do":     (*Compiler).fnDo,
+	"$if":     (*Compiler).fnIf,
+	"$read":   (*Compiler).fnRead,
+	"$lzw":    (*Compiler).fnLzw,
+	"$case":   (*Compiler).fnCase,
+	"$assert": (*Compiler).fnAssert,
+	"$const":  (*Compiler).fnConst,
+	"$casei":  (*Compiler).casei,
+	"$source": (*Compiler).source,
+	"$member": (*Compiler).member,
+	"$struct": (*Compiler).gostruct,
+	"$xline":  (*Compiler).xline,
 }
 
 var builtins = map[string]bpl.Ruler{
