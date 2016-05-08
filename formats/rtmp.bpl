@@ -11,6 +11,7 @@ init = {
         1: "Soft",
         2: "Dynamic",
     }
+
     global audioFormats = {
         0:  "Linear PCM",
         1:  "ADPCM",
@@ -30,6 +31,28 @@ init = {
     global audioRates = ["5.5 kHz", "11 kHz", "22 kHz", "44 kHz"]
     global audioBits = ["8 bits", "16 bits"]
     global audioChannels = ["Mono", "Stereo"]
+
+    global videoTypes = {
+        1: "AVC keyframe",
+        2: "AVC inter frame",
+        3: "H.263 disposable inter frame",
+        4: "generated keyframe",
+        5: "video info/command frame",
+    }
+    global videoCodecs = {
+        1: "JPEG",
+        2: "H.263",
+        3: "screen video",
+        4: "On2 VP6",
+        5: "On2 VP6 with alpha channel",
+        6: "screen video v2",
+        7: "AVC",
+    }
+    global avcTypes = {
+        0: "sequence header",
+        1: "NALU",
+        2: "end of sequence",
+    }
 }
 
 // --------------------------------------------------------------
@@ -398,6 +421,17 @@ Audio = {
 
 Video = {
     body *byte
+    let type = body[0] >> 4
+    let typeKind = videoTypes[type]
+    let codec = body[0] & 0xf
+    let codecKind = videoCodecs[codec]
+    let body = body[1:]
+    if codecKind == "AVC" {
+        let avctype = int(body[0])
+        let avctypeKind = avcTypes[avctype]
+        let compositionTime = int(body[1]<<16 | body[2]<<8 | body[3])
+        let body = body[4:]
+    }
 }
 
 // --------------------------------------------------------------
