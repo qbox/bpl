@@ -382,6 +382,14 @@ Audio = {
         1: let type = "stereo"
     }
     let body = body[1:]
+    if format == "AAC" {
+        if body[0] == 0 {
+            let aacPacketType = "sequence header"
+        } else {
+            let aacPacketType = "raw data"
+        }
+        let body = body[1:]
+    }
 }
 
 // --------------------------------------------------------------
