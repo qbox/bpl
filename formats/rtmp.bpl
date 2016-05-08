@@ -32,14 +32,14 @@ init = {
     global audioBits = ["8 bits", "16 bits"]
     global audioChannels = ["Mono", "Stereo"]
 
-    global videoType = {
+    global videoTypes = {
         1: "AVC keyframe",
         2: "AVC inter frame",
         3: "H.263 disposable inter frame",
         4: "generated keyframe",
         5: "video info/command frame",
     }
-    global videoCodec = {
+    global videoCodecs = {
         1: "JPEG",
         2: "H.263",
         3: "screen video",
@@ -48,7 +48,7 @@ init = {
         6: "screen video v2",
         7: "AVC",
     }
-    global avcType = {
+    global avcTypes = {
         0: "sequence header",
         1: "NALU",
         2: "end of sequence",
@@ -422,13 +422,13 @@ Audio = {
 Video = {
     body *byte
     let type = body[0] >> 4
-    let typeKind = videoType[type]
+    let typeKind = videoTypes[type]
     let codec = body[0] & 0xf
-    let codecKind = videoCodec[codec]
+    let codecKind = videoCodecs[codec]
     let body = body[1:]
     if codecKind == "AVC" {
         let avctype = int(body[0])
-        let avctypeKind = avcType[avctype]
+        let avctypeKind = avcTypes[avctype]
         let compositionTime = int(body[1]<<16 | body[2]<<8 | body[3])
         let body = body[4:]
     }
