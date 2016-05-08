@@ -11,6 +11,32 @@ import (
 
 // -----------------------------------------------------------------------------
 
+type ret func(ctx *Context) (v interface{}, err error)
+
+func (p ret) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	v, err = p(ctx)
+	if err != nil {
+		return
+	}
+	ctx.dom = v
+	return
+}
+
+func (p ret) SizeOf() int {
+
+	return -1
+}
+
+// Return returns a matching unit that returns fnRet(ctx).
+//
+func Return(fnRet func(ctx *Context) (v interface{}, err error)) Ruler {
+
+	return ret(fnRet)
+}
+
+// -----------------------------------------------------------------------------
+
 // A Member is typeinfo of a `Struct` member.
 //
 type Member struct {
@@ -43,7 +69,6 @@ func (p *Member) SizeOf() int {
 
 type structType struct {
 	rulers []Ruler
-	retFn  func(ctx *Context) (v interface{}, err error)
 	size   int
 }
 
@@ -54,9 +79,6 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 		if err != nil {
 			return
 		}
-	}
-	if p.retFn != nil {
-		return p.retFn(ctx)
 	}
 	return ctx.Dom(), nil
 }
@@ -70,10 +92,6 @@ func (p *structType) SizeOf() int {
 }
 
 func (p *structType) sizeof() int {
-
-	if p.retFn != nil {
-		return -1
-	}
 
 	size := 0
 	for _, r := range p.rulers {
@@ -99,18 +117,6 @@ func Struct(members []Ruler) Ruler {
 	return &structType{rulers: members, size: -2}
 }
 
-// StructEx returns a compound matching unit.
-//
-func StructEx(rulers []Ruler, retFn func(ctx *Context) (v interface{}, err error)) Ruler {
-
-	n := len(rulers)
-	if n == 0 && retFn == nil {
-		return Nil
-	}
-
-	return &structType{rulers: rulers, size: -2, retFn: retFn}
-}
-
 // -----------------------------------------------------------------------------
 
 func structFrom(t reflect.Type) (r Ruler, err error) {
@@ -126,7 +132,7 @@ func structFrom(t reflect.Type) (r Ruler, err error) {
 		}
 		rulers[i] = &Member{Name: strings.ToLower(sf.Name), Type: r}
 	}
-	return StructEx(rulers, nil), nil
+	return Struct(rulers), nil
 }
 
 // TypeFrom creates a matching unit from a Go type.

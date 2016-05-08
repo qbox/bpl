@@ -1,32 +1,65 @@
+const (
+    VERBOSE = 0
+)
+
 init = {
     global msgs = mkmap("int:var")
     global chunksize = 128
+    global objectend = errors.new("object end") 
 }
 
 // --------------------------------------------------------------
 
 AMF0_NUMBER = {
     val float64be
+    if VERBOSE == 0 {
+        return val
+    }
 }
 
 AMF0_BOOLEAN = {
     val byte
+    if VERBOSE == 0 {
+        return byte != 0
+    }
 }
 
 AMF0_STRING = {
     len uint16be
     val [len]char
+    if VERBOSE == 0 {
+        return val
+    }
 }
 
-AMF0_OBJECT = {
+AMF0_OBJECT_ITEMS = {
     _key AMF0_STRING
     _val AMF0_TYPE
-    let items = [{"key": _key, "val": _val}]
-    if _val.marker != 0x09 { // AMF0_OBJECT_END
-        _next AMF0_OBJECT
+    let items = slice("var", 2)
+    do set(items, 0, _key, 1, _val)
+    if _val != objectend {
+        _next AMF0_OBJECT_ITEMS
         let items = append(items, _next.items...)
     }
 }
+
+AMF0_OBJECT_NORMAL = {
+    val AMF0_OBJECT_ITEMS
+    let n = len(val.items)
+    return mapFrom(val.items[:n-2]...) // 去掉了最后的 objectend
+}
+
+AMF0_OBJECT_VERBOSE = {
+    _key AMF0_STRING
+    _val AMF0_TYPE
+    let items = [{"key": _key, "val": _val}]
+    if _val.marker != 0x09 {
+        _next AMF0_OBJECT_VERBOSE
+        let items = append(items, _next.items...)
+    }
+}
+
+AMF0_OBJECT = if VERBOSE do AMF0_OBJECT_VERBOSE else AMF0_OBJECT_NORMAL
 
 AMF0_STRICT_ARRAY = {
     len uint32be
@@ -40,11 +73,19 @@ AMF0_MOVIECLIP = {
 }
 
 AMF0_NULL = {
-    let val = nil
+    if VERBOSE {
+        let val = nil
+    } else {
+        return nil
+    }
 }
 
 AMF0_UNDEFINED = {
-    let val = undefined
+    if VERBOSE {
+        let val = undefined
+    } else {
+        return undefined
+    }
 }
 
 AMF0_REFERENCE = {
@@ -54,9 +95,14 @@ AMF0_REFERENCE = {
 AMF0_ECMA_ARRAY = {
     len uint32be
     val AMF0_OBJECT
+    if VERBOSE == 0 {
+        return val
+    }
 }
 
-AMF0_OBJECT_END = nil
+AMF0_OBJECT_END = if VERBOSE do nil else {
+    return objectend
+}
 
 AMF0_DATE = {
     timestamp float64be
@@ -118,7 +164,6 @@ AMF0_CMDDATA = {
     cmd           AMF0_TYPE
     transactionId AMF0_TYPE
     value         AMF0_TYPE
-    body          *byte
 }
 
 AMF0 = {

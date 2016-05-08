@@ -318,17 +318,17 @@ func (p *Compiler) fnLzw() {
 
 // -----------------------------------------------------------------------------
 
-func (p *Compiler) doret() func(ctx *bpl.Context) (v interface{}, err error) {
+func (p *Compiler) fnReturn() {
 
-	if p.popArity() != 0 {
-		e := p.popExpr()
-		return func(ctx *bpl.Context) (v interface{}, err error) {
-			v = p.Eval(ctx, e.start, e.end)
-			return
-		}
+	e := p.popExpr()
+	fnRet := func(ctx *bpl.Context) (v interface{}, err error) {
+		v = p.Eval(ctx, e.start, e.end)
+		return
 	}
-	return nil
+	p.stk = append(p.stk, bpl.Return(fnRet))
 }
+
+// -----------------------------------------------------------------------------
 
 func (p *Compiler) member(name string) {
 
@@ -339,10 +339,9 @@ func (p *Compiler) member(name string) {
 
 func (p *Compiler) gostruct() {
 
-	fnRet := p.doret()
 	m := p.popArity()
 	rulers := p.popRules(m)
-	p.stk = append(p.stk, bpl.StructEx(rulers, fnRet))
+	p.stk = append(p.stk, bpl.Struct(rulers))
 }
 
 // -----------------------------------------------------------------------------
