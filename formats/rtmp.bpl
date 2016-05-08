@@ -467,7 +467,7 @@ AckWinsize = {
 SetPeerBandwidth = {
     winsize   uint32be
     limitType byte
-    let limitTypeKind = limitTypes[limitType]
+    let limitTypeKind = limitTypes[int(limitType)]
 }
 
 // --------------------------------------------------------------
