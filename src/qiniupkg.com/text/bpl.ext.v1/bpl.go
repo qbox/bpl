@@ -198,6 +198,9 @@ func New(code []byte, fname string) (r Ruler, err error) {
 		return
 	}
 
+	if DumpCode != 0 {
+		p.code.Dump()
+	}
 	return p.Ret()
 }
 
@@ -224,6 +227,25 @@ func NewFromFile(fname string) (r Ruler, err error) {
 func NewContext() *bpl.Context {
 
 	return bpl.NewContext()
+}
+
+// -----------------------------------------------------------------------------
+
+// SetDumpCode sets dump code mode:
+//	"1" - dump code with rem instruction.
+//	"2" - dump code without rem instruction.
+//  else - don't dump code.
+//
+func SetDumpCode(dumpCode string) {
+
+	switch dumpCode {
+	case "true", "1":
+		DumpCode = 1
+	case "2":
+		DumpCode = 2
+	default:
+		DumpCode = 0
+	}
 }
 
 // -----------------------------------------------------------------------------

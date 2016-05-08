@@ -26,13 +26,15 @@ term4 = term3 *("&&" term3/iand)
 
 iexpr = term4 *("||" term4/ior)
 
-index = '['/istart iexpr ']'/iend
+ixexpr = iexpr/ixline
+
+index = '['/istart ixexpr ']'/iend
 
 casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
-caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
+caseexpr = "case"/istart! ixexpr/source '{'/iend casebody ?';' '}' /case
 
-exprblock = true/istart! iexpr (@'{' | "do")/iend expr
+exprblock = true/istart! ixexpr (@'{' | "do")/iend expr
 
 ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else"! expr)/ARITY /if
 
@@ -40,17 +42,17 @@ readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
 
-doexpr = "do"/istart! iexpr /iend /do
+doexpr = "do"/istart! ixexpr /iend /do
 
-letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
+letexpr = "let"! IDENT/var '='/istart! ixexpr /iend /let
 
-assertexpr = ("assert"/istart! iexpr /iend) /assert
+assertexpr = ("assert"/istart! ixexpr /iend) /assert
 
-gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
+gblexpr = "global"! IDENT/var '='/istart! ixexpr /iend /global
 
-lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
+lzwexpr = "lzw"/istart! ixexpr /iend ',' /istart! ixexpr /iend ',' /istart! ixexpr /iend exprblock /lzw
 
-retexpr = "return"/istart! iexpr /iend /return
+retexpr = "return"/istart! ixexpr /iend /return
 
 dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | lzwexpr
 
@@ -214,6 +216,7 @@ var exports = map[string]interface{}{
 	"$source": (*Compiler).source,
 	"$member": (*Compiler).member,
 	"$struct": (*Compiler).gostruct,
+	"$ixline": (*Compiler).codeLine,
 	"$xline":  (*Compiler).xline,
 }
 
