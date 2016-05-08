@@ -35,7 +35,7 @@ AMF0_STRING = {
 AMF0_OBJECT_ITEMS = {
     _key AMF0_STRING
     _val AMF0_TYPE
-    let items = slice("var", 2)
+    let items = mkslice("var", 2)
     do set(items, 0, _key, 1, _val)
     if _val != objectend {
         _next AMF0_OBJECT_ITEMS
