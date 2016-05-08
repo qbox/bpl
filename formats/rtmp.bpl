@@ -1,11 +1,11 @@
 const (
-    VERBOSE = 0
+    VERBOSE = 1
 )
 
 init = {
     global msgs = mkmap("int:var")
     global chunksize = 128
-    global objectend = errors.new("object end") 
+    global objectend = errors.new("object end")
 }
 
 // --------------------------------------------------------------
@@ -351,6 +351,37 @@ AMF3_CMD = {
 
 Audio = {
     body *byte
+    case body[0] >> 4 {
+        0: let format = "Linear PCM"
+        1: let format = "ADPCM"
+        2: let format = "MP3"
+        3: let format = "Linear PCM le"
+        4: let format = "Nellymoser 16kHz"
+        5: let format = "Nellymoser 8kHz"
+        6: let format = "Nellymoser"
+        7: let format = "G711 A-law"
+        8: let format = "G711 mu-law"
+        9: let format = "Reserved"
+        10: let format = "AAC"
+        11: let format = "Speex"
+        12: let format = "MP3 8kHz"
+        13: let format = "Device Specific"
+    }
+    case (body[0]>>2 & 0x3) {
+        0: let rate = "5.5 kHz"
+        1: let rate = "11 kHz"
+        2: let rate = "22 kHz"
+        3: let rate = "44 kHz"
+    }
+    case (body[0]>>1 & 0x1) {
+        0: let size = "8 bit"
+        1: let size = "16 bit"
+    }
+    case (body[0] & 0x1) {
+        0: let type = "mono"
+        1: let type = "stereo"
+    }
+    let body = body[1:]
 }
 
 // --------------------------------------------------------------
