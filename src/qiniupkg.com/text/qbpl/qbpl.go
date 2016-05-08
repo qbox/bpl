@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"qiniupkg.com/text/bpl.ext.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/log.v7"
 )
 
 var (
@@ -56,6 +56,7 @@ func main() {
 		defer f.Close()
 		bpl.SetDumper(f)
 	}
+	log.Std = bpl.Dumper
 
 	ruler, err := bpl.NewFromFile(*protocol)
 	if err != nil {

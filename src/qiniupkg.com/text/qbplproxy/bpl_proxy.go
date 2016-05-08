@@ -197,6 +197,7 @@ func main() {
 			return
 		}
 	}
+	log.Std = bpl.Dumper
 
 	rp := &ReverseProxier{
 		Addr:       *host,
