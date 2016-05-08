@@ -528,7 +528,9 @@ uint32be = {
     b3 uint8
     b2 uint8
     b1 uint8
-    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
+	if true {
+	    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
+	}
 }
 
 doc = {

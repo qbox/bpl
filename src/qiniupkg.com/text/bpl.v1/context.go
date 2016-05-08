@@ -7,6 +7,11 @@ import (
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
 
+var (
+	// ErrReturn is returned by the `return` rule.
+	ErrReturn = errors.New("return")
+)
+
 // -----------------------------------------------------------------------------
 
 // A Context represents the matching context of bpl.
@@ -164,7 +169,7 @@ type fileLine struct {
 func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	v, err = doMatch(p.r, in, ctx)
-	if err != nil {
+	if err != nil && err != ErrReturn {
 		if _, ok := err.(*Error); !ok {
 			err = &Error{Err: err, File: p.file, Line: p.line}
 		}

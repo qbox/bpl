@@ -50,7 +50,9 @@ gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
 lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | gblexpr | lzwexpr
+retexpr = "return"/istart! iexpr /iend /return
+
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | lzwexpr
 
 type =
 	IDENT/ident |
@@ -63,11 +65,9 @@ member = ((IDENT type)/member | dynexpr)/xline
 
 cmember = (IDENT/ident ?(index/array | '*'/array0 | '?'/array01 | '+'/array1) IDENT/member | dynexpr)/xline
 
-retexpr = "return"/istart! iexpr /iend
+cstruct = cmember %= ';'/ARITY /struct
 
-cstruct = cmember %= ';'/ARITY ?';' ?retexpr/ARITY /struct
-
-struct = member %= ';'/ARITY ?';' ?retexpr/ARITY /struct
+struct = member %= ';'/ARITY /struct
 
 factor =
 	IDENT/ident |
@@ -205,6 +205,7 @@ var exports = map[string]interface{}{
 	"$do":     (*Compiler).fnDo,
 	"$if":     (*Compiler).fnIf,
 	"$read":   (*Compiler).fnRead,
+	"$return": (*Compiler).fnReturn,
 	"$lzw":    (*Compiler).fnLzw,
 	"$case":   (*Compiler).fnCase,
 	"$assert": (*Compiler).fnAssert,
