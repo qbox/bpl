@@ -112,6 +112,9 @@ AMF0_DATE = {
 AMF0_LONG_STRING = {
     len uint32be
     val [len]char
+    if VERBOSE == 0 {
+        return val
+    }
 }
 
 AMF0_UNSUPPORTED = {
@@ -176,20 +179,24 @@ AMF0_CMD = {
 
 // --------------------------------------------------------------
 
-AMF3_UNDEFINED = {
-    let val = undefined
-}
+AMF3_UNDEFINED = AMF0_UNDEFINED
 
-AMF3_NULL = {
-    let val = nil
-}
+AMF3_NULL = AMF0_NULL
 
 AMF3_FALSE = {
-    let val = false
+    if VERBOSE {
+        let val = false
+    } else {
+        return false
+    }
 }
 
 AMF3_TRUE = {
-    let val = true
+    if VERBOSE {
+        let val = true
+    } else {
+        return true
+    }
 }
 
 AMF3_INT = {
@@ -216,19 +223,27 @@ AMF3_INT = {
     return val
 }
 
-AMF3_INTEGER = {
+AMF3_INTEGER_VERBOSE = {
     val AMF3_INT
 }
 
+AMF3_INTEGER = if VERBOSE do AMF3_INTEGER_VERBOSE else AMF3_INT
+
 AMF3_DOUBLE = {
     val float64be
+    if VERBOSE == 0 {
+        return val
+    }
 }
 
 AMF3_STRING = {
     tag AMF3_INT
     assert (tag & 1) != 0 // reference unsupported
     if tag & 1 {
-        val [tag>>1]char
+        val [tag >> 1]char
+    }
+    if VERBOSE == 0 {
+        return val
     }
 }
 
@@ -240,6 +255,10 @@ AMF3_DATE = {
     tag AMF3_INT
     assert (tag & 1) != 0 // reference unsupported
     timestamp float64be
+    let tz = tag >> 1
+    if VERBOSE == 0 {
+        do unset("tag")
+    }
 }
 
 AMF3_ARRAY = {
@@ -314,14 +333,18 @@ AMF3_TYPE = {
     }
 }
 
-AMF3 = {
-    msg AMF3_TYPE
-}
-
-AMF3_CMD = {
+AMF3_CMDDATA = {
     cmd           AMF3_TYPE
     transactionId AMF3_TYPE
     params        AMF3_TYPE
+}
+
+AMF3 = {
+    msg AMF3_CMDDATA
+}
+
+AMF3_CMD = {
+    msg AMF3_CMDDATA
 }
 
 // --------------------------------------------------------------

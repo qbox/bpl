@@ -677,3 +677,39 @@ func TestMap(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeUnset = `
+
+record = {
+	let a = 1
+	let b = 2
+	if true {
+		do unset("a")
+	}
+}
+
+doc = record
+`
+
+func TestUnset(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+
+	r, err := NewFromString(codeUnset, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(b)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"b":2}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
