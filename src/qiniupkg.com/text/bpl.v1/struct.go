@@ -20,7 +20,6 @@ func (p ret) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 		return
 	}
 	ctx.dom = v
-	err = ErrReturn
 	return
 }
 
@@ -78,9 +77,6 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 	for _, r := range p.rulers {
 		_, err = r.Match(in, ctx)
 		if err != nil {
-			if err == ErrReturn {
-				break
-			}
 			return
 		}
 	}

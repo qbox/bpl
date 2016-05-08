@@ -45,7 +45,8 @@ AMF0_OBJECT_ITEMS = {
 
 AMF0_OBJECT_NORMAL = {
     val AMF0_OBJECT_ITEMS
-    return mapFrom(val.items...)
+    let n = len(val.items)
+    return mapFrom(val.items[:n-2]...) // 去掉了最后的 objectend
 }
 
 AMF0_OBJECT_VERBOSE = {
@@ -95,7 +96,7 @@ AMF0_ECMA_ARRAY = {
     len uint32be
     val AMF0_OBJECT
     if VERBOSE == 0 {
-        return val.items
+        return val
     }
 }
 
