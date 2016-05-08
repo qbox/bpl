@@ -21,6 +21,7 @@ var (
 func main() {
 
 	flag.Parse()
+	bpl.SetDumpCode(os.Getenv("BPL_DUMPCODE"))
 
 	var in *bufio.Reader
 	args := flag.Args()

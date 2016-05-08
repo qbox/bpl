@@ -232,3 +232,25 @@ func (p *Compiler) index() {
 }
 
 // -----------------------------------------------------------------------------
+
+// DumpCode is mode how to dump code.
+// 1 means to dump code with `rem` instruction; 2 means to dump clean code; 0 means don't dump code.
+//
+var DumpCode int
+
+func (p *Compiler) codeLine(src interface{}) {
+
+	ipt := p.ipt
+	if ipt == nil {
+		return
+	}
+
+	f := ipt.FileLine(src)
+	p.code.CodeLine(f.File, f.Line)
+	if DumpCode == 1 {
+		text := string(ipt.Source(src))
+		p.code.Block(exec.Rem(f.File, f.Line, text))
+	}
+}
+
+// -----------------------------------------------------------------------------

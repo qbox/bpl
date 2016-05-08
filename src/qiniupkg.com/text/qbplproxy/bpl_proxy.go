@@ -155,6 +155,7 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
+	bpl.SetDumpCode(os.Getenv("BPL_DUMPCODE"))
 
 	baseDir = os.Getenv("HOME") + "/.qbpl/formats/"
 	if *protocol == "" {
