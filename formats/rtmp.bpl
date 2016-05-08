@@ -210,17 +210,16 @@ AMF3_INT = {
             if b3 & 0x80 {
                 let b3 = b3 & 0x7f
                 b4 byte
-                let val = (b1 << 22) | (b2 << 15) | (b3 << 8) | b4
+                return (b1 << 22) | (b2 << 15) | (b3 << 8) | b4
             } else {
-                let val = (b1 << 14) | (b2 << 7) | b3
+                return (b1 << 14) | (b2 << 7) | b3
             }
         } else {
-            let val = (b1 << 7) | b2
+            return (b1 << 7) | b2
         }
     } else {
-        let val = b1
+        return b1
     }
-    return val
 }
 
 AMF3_INTEGER_VERBOSE = {
