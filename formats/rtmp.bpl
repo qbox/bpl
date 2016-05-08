@@ -28,6 +28,12 @@ AMF0_OBJECT = {
     }
 }
 
+AMF0_STRICT_ARRAY = {
+    len uint32be
+    body *byte
+    assert false
+}
+
 AMF0_MOVIECLIP = {
     body *byte
     assert false
@@ -46,18 +52,11 @@ AMF0_REFERENCE = {
 }
 
 AMF0_ECMA_ARRAY = {
-    len  uint32be
-    body *byte
-    assert false
+    len uint32be
+    val AMF0_OBJECT
 }
 
 AMF0_OBJECT_END = nil
-
-AMF0_STRICT_ARRAY = {
-    len uint32be
-    body *byte
-    assert false
-}
 
 AMF0_DATE = {
     timestamp float64be
@@ -86,7 +85,7 @@ AMF0_TYPED_OBJECT = {
     val  AMF0_OBJECT
 }
 
-AMF0_ACMPLUS_OBJECT = {
+AMF0_ACMPLUS_OBJECT = { // Switch to AMF3
     body *byte
     assert false
 }
@@ -115,14 +114,19 @@ AMF0_TYPE = {
     }
 }
 
+AMF0_CMDDATA = {
+    cmd           AMF0_TYPE
+    transactionId AMF0_TYPE
+    value         AMF0_TYPE
+    body          *byte
+}
+
 AMF0 = {
-    msg AMF0_TYPE
+    msg AMF0_CMDDATA
 }
 
 AMF0_CMD = {
-    cmd           AMF0_TYPE
-    transactionId AMF0_TYPE
-    params        AMF0_TYPE
+    msg AMF0_CMDDATA
 }
 
 // --------------------------------------------------------------
@@ -398,12 +402,12 @@ Chunk = {
     }
 
     let _header = {
-        "ts": header.ts,
-        "length": header.length,
-        "typeid": header.typeid,
+        "ts":       header.ts,
+        "length":   header.length,
+        "typeid":   header.typeid,
         "streamid": header.streamid,
-        "remain": header.remain - _length,
-        "body": header._body,
+        "remain":   header.remain - _length,
+        "body":     header._body,
     }
     do set(msgs, header.csid, _header)
 
@@ -438,6 +442,6 @@ Chunk = {
     }
 }
 
-doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dump)
+doc = init Handshake0 Handshake1 Handshake2 *(Chunk dump)
 
 // --------------------------------------------------------------
