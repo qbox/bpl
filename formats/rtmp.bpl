@@ -395,7 +395,7 @@ AMF3_CMD = {
 
 // --------------------------------------------------------------
 
-Audio = {
+AudioData = {
     tag byte
     let format = tag >> 4
     let formatKind = audioFormats[format]
@@ -409,29 +409,37 @@ Audio = {
     if formatKind == "AAC" {
         aacPacketType byte
         if aacPacketType == 0 {
-            let aacPacketTypeKind = "Sequence header"
+            let aacPacketTypeKind = "sequence header"
         } else {
-            let aacPacketTypeKind = "Raw data"
+            let aacPacketTypeKind = "raw data"
         }
     }
     raw *byte
 }
 
+Audio = {
+    audio AudioData
+}
+
 // --------------------------------------------------------------
 
-Video = {
-    body *byte
-    let type = body[0] >> 4
+VideoData = {
+    tag byte
+    let type = tag >> 4
     let typeKind = videoTypes[type]
-    let codec = body[0] & 0xf
+    let codec = tag & 0xf
     let codecKind = videoCodecs[codec]
-    let body = body[1:]
+
     if codecKind == "AVC" {
-        let avctype = int(body[0])
-        let avctypeKind = avcTypes[avctype]
-        let compositionTime = int(body[1]<<16 | body[2]<<8 | body[3])
-        let body = body[4:]
+        avctype         byte
+        compositionTime uint24be
+        let avctypeKind = avcTypes[int(avctype)]
     }
+    raw *byte
+}
+
+Video = {
+    video VideoData
 }
 
 // --------------------------------------------------------------
