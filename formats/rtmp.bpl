@@ -6,6 +6,30 @@ init = {
     global msgs = mkmap("int:var")
     global chunksize = 128
     global objectend = errors.new("object end")
+    global limitTypes = {
+        0: "Hard",
+        1: "Soft",
+        2: "Dynamic",
+    }
+    global audioFormats = {
+        0:  "Linear PCM",
+        1:  "ADPCM",
+        2:  "MP3",
+        3:  "Linear PCM le",
+        4:  "Nellymoser 16kHz",
+        5:  "Nellymoser 8kHz",
+        6:  "Nellymoser",
+        7:  "G711 A-law",
+        8:  "G711 mu-law",
+        9:  "Reserved",
+        10: "AAC",
+        11: "Speex",
+        12: "MP3 8kHz",
+        13: "Device Specific",
+    }
+    global audioRates = ["5.5 kHz", "11 kHz", "22 kHz", "44 kHz"]
+    global audioBits = ["8 bits", "16 bits"]
+    global audioChannels = ["Mono", "Stereo"]
 }
 
 // --------------------------------------------------------------
@@ -210,17 +234,16 @@ AMF3_INT = {
             if b3 & 0x80 {
                 let b3 = b3 & 0x7f
                 b4 byte
-                let val = (b1 << 22) | (b2 << 15) | (b3 << 8) | b4
+                return (b1 << 22) | (b2 << 15) | (b3 << 8) | b4
             } else {
-                let val = (b1 << 14) | (b2 << 7) | b3
+                return (b1 << 14) | (b2 << 7) | b3
             }
         } else {
-            let val = (b1 << 7) | b2
+            return (b1 << 7) | b2
         }
     } else {
-        let val = b1
+        return b1
     }
-    return val
 }
 
 AMF3_INTEGER_VERBOSE = {
@@ -350,46 +373,25 @@ AMF3_CMD = {
 // --------------------------------------------------------------
 
 Audio = {
-    body *byte
-    case body[0] >> 4 {
-        0: let format = "Linear PCM"
-        1: let format = "ADPCM"
-        2: let format = "MP3"
-        3: let format = "Linear PCM le"
-        4: let format = "Nellymoser 16kHz"
-        5: let format = "Nellymoser 8kHz"
-        6: let format = "Nellymoser"
-        7: let format = "G711 A-law"
-        8: let format = "G711 mu-law"
-        9: let format = "Reserved"
-        10: let format = "AAC"
-        11: let format = "Speex"
-        12: let format = "MP3 8kHz"
-        13: let format = "Device Specific"
-    }
-    case (body[0]>>2 & 0x3) {
-        0: let rate = "5.5 kHz"
-        1: let rate = "11 kHz"
-        2: let rate = "22 kHz"
-        3: let rate = "44 kHz"
-    }
-    case (body[0]>>1 & 0x1) {
-        0: let size = "8 bit"
-        1: let size = "16 bit"
-    }
-    case (body[0] & 0x1) {
-        0: let type = "mono"
-        1: let type = "stereo"
-    }
-    let body = body[1:]
-    if format == "AAC" {
-        if body[0] == 0 {
-            let aacPacketType = "sequence header"
+    tag byte
+    let format = tag >> 4
+    let formatKind = audioFormats[format]
+    let rate = (tag>>2) & 3
+    let rateKind = audioRates[rate]
+    let bits = (tag>>1) & 1
+    let bitsKind = audioBits[bits]
+    let channel = tag & 1
+    let channelKind = audioChannels[channel]
+
+    if formatKind == "AAC" {
+        aacPacketType byte
+        if aacPacketType == 0 {
+            let aacPacketTypeKind = "Sequence header"
         } else {
-            let aacPacketType = "raw data"
+            let aacPacketTypeKind = "Raw data"
         }
-        let body = body[1:]
     }
+    raw *byte
 }
 
 // --------------------------------------------------------------
@@ -423,13 +425,7 @@ AckWinsize = {
 SetPeerBandwidth = {
     winsize   uint32be
     limitType byte
-    if limitType == 0 {
-        let limitTypeKind = "Hard"
-    } elif limitType == 1 {
-        let limitTypeKind = "Soft"
-    } elif limitType == 2 {
-        let limitTypeKind = "Dynamic"
-    }
+    let limitTypeKind = limitTypes[limitType]
 }
 
 // --------------------------------------------------------------
