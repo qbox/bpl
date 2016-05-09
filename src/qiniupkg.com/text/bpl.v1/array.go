@@ -12,6 +12,7 @@ import (
 
 var (
 	typeIntf = reflect.TypeOf((*interface{})(nil)).Elem()
+	valIntf  = reflect.Zero(typeIntf)
 )
 
 func typeOf(v interface{}) reflect.Type {
@@ -20,6 +21,14 @@ func typeOf(v interface{}) reflect.Type {
 		return reflect.TypeOf(v)
 	}
 	return typeIntf
+}
+
+func valueOf(v interface{}) reflect.Value {
+
+	if v != nil {
+		return reflect.ValueOf(v)
+	}
+	return valIntf
 }
 
 func matchArray1(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -32,7 +41,7 @@ func matchArray1(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err er
 
 	t := typeOf(v1)
 	ret := reflect.MakeSlice(reflect.SliceOf(t), 0, 4)
-	ret = reflect.Append(ret, reflect.ValueOf(v1))
+	ret = reflect.Append(ret, valueOf(v1))
 	for {
 		_, err = in.Peek(1)
 		if err != nil {
@@ -46,7 +55,7 @@ func matchArray1(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err er
 			log.Error("matchArray failed:", err)
 			return
 		}
-		ret = reflect.Append(ret, reflect.ValueOf(v1))
+		ret = reflect.Append(ret, valueOf(v1))
 	}
 }
 
@@ -64,14 +73,14 @@ func matchArray(R Ruler, n int, in *bufio.Reader, ctx *Context) (v interface{}, 
 
 	t := typeOf(v1)
 	ret := reflect.MakeSlice(reflect.SliceOf(t), 0, n)
-	ret = reflect.Append(ret, reflect.ValueOf(v1))
+	ret = reflect.Append(ret, valueOf(v1))
 	for i := 1; i < n; i++ {
 		v1, err = R.Match(in, ctx.NewSub())
 		if err != nil {
 			log.Error("matchArray failed:", err)
 			return
 		}
-		ret = reflect.Append(ret, reflect.ValueOf(v1))
+		ret = reflect.Append(ret, valueOf(v1))
 	}
 	return ret.Interface(), nil
 }

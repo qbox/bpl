@@ -1,5 +1,5 @@
 const (
-    VERBOSE = 1
+    VERBOSE = 0
 )
 
 init = {

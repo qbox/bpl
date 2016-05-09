@@ -198,3 +198,66 @@ func TestDump(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+
+const codeRtmp1 = `
+
+AMF0_NULL = {
+	return nil
+}
+
+AMF0_NUMBER = {
+    val float64be
+	return val
+}
+
+AMF0_STRING = {
+    len uint16be
+    val [len]char
+	return val
+}
+
+AMF0_TYPE = {
+    marker byte
+    case marker {
+        0x00: AMF0_NUMBER
+        0x02: AMF0_STRING
+		0x05: AMF0_NULL
+    }
+}
+
+AMF0_CMDDATA = {
+    cmd           AMF0_TYPE
+    transactionId AMF0_TYPE
+    value         *AMF0_TYPE
+}
+
+doc = {
+    msg AMF0_CMDDATA
+}
+`
+
+func TestRtmp1(t *testing.T) {
+
+	buf := []byte{
+		0x02, 0x00, 0x08, 0x6f, 0x6e, 0x42, 0x57, 0x44,
+		0x6f, 0x6e, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x05,
+	}
+	r, err := NewFromString(codeRtmp1, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(buf)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"msg":{"cmd":"onBWDone","transactionId":0,"value":[null]}}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------

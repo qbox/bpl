@@ -1,6 +1,8 @@
 package bpl
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"runtime/debug"
@@ -150,15 +152,22 @@ type fileLine struct {
 type errorAt struct {
 	Err error
 	At  Ruler
+	Buf []byte
 }
 
 func (p *errorAt) Error() string {
 
-	b := make([]byte, 32)
+	b := make([]byte, 0, 32)
 	b = append(b, "Rule "...)
 	b = append(p.At.BuildFullName(b), ':', ' ')
 	b = append(b, p.Err.Error()...)
-	return string(b)
+	b = append(b, '\n')
+
+	w := bytes.NewBuffer(b)
+	d := hex.Dumper(w)
+	d.Write(p.Buf)
+	d.Close()
+	return string(w.Bytes())
 }
 
 func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -167,7 +176,7 @@ func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	if err != nil {
 		if _, ok := err.(*exec.Error); !ok {
 			err = &exec.Error{
-				Err:   &errorAt{Err: err, At: p.r},
+				Err:   &errorAt{Err: err, At: p.r, Buf: in.Buffer()},
 				File:  p.file,
 				Line:  p.line,
 				Stack: debug.Stack(),
