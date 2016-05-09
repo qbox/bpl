@@ -217,7 +217,7 @@ AMF0_CMDDATA = {
 }
 
 AMF0 = {
-    msg AMF0_CMDDATA
+    msg *AMF0_TYPE
 }
 
 AMF0_CMD = {
