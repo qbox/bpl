@@ -386,7 +386,7 @@ AMF3_CMDDATA = {
 }
 
 AMF3 = {
-    msg AMF3_CMDDATA
+    msg *AMF3_TYPE
 }
 
 AMF3_CMD = {

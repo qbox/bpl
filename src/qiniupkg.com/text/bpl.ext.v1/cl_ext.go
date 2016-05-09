@@ -180,17 +180,42 @@ func (p *Compiler) fnIf() {
 	n := len(stk)
 	bodyRs := clone(stk[n-arity:])
 	condExprs := p.gstk.PopNArgs(arity)
-	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		for i := 0; i < arity; i++ {
-			e := condExprs[i].(*exprBlock)
-			v := p.eval(ctx, e.start, e.end)
-			if toBool(v, "condition isn't a boolean expression") {
-				return bodyRs[i], nil
+
+	arityOptimized := 0
+	for i := 0; i < arity; i++ {
+		e := condExprs[i].(*exprBlock)
+		if e.end-e.start == 1 {
+			if v, ok := p.code.CheckConst(e.start); ok {
+				if toBool(v, "condition isn't a boolean expression") { // true
+					arityOptimized = i
+					elseR = bodyRs[i]
+					break
+				}
+				continue // false
 			}
 		}
-		return elseR, nil
+		if arityOptimized != i {
+			bodyRs[arityOptimized] = bodyRs[i]
+			condExprs[arityOptimized] = condExprs[i]
+		}
+		arityOptimized++
 	}
-	stk[n-arity] = bpl.Dyntype(r)
+
+	dynR := elseR
+	if arityOptimized > 0 {
+		r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+			for i := 0; i < arityOptimized; i++ {
+				e := condExprs[i].(*exprBlock)
+				v := p.eval(ctx, e.start, e.end)
+				if toBool(v, "condition isn't a boolean expression") {
+					return bodyRs[i], nil
+				}
+			}
+			return elseR, nil
+		}
+		dynR = bpl.Dyntype(r)
+	}
+	stk[n-arity] = dynR
 	p.stk = stk[:n-arity+1]
 }
 
