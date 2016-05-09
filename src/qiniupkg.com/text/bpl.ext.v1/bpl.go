@@ -107,7 +107,7 @@ type dump int
 func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
 	var b bytes.Buffer
-	if prefix, ok := ctx.Globals["DUMP_PREFIX"]; ok {
+	if prefix, ok := ctx.Globals["BPL_DUMP_PREFIX"]; ok {
 		b.WriteString(prefix.(string))
 	}
 	b.WriteByte('\n')

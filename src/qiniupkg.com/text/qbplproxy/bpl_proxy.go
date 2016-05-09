@@ -189,7 +189,7 @@ func main() {
 		onBpl = func(r io.Reader, env *Env) (err error) {
 			in := bufio.NewReader(r)
 			ctx := bpl.NewContext()
-			ctx.Globals["DUMP_PREFIX"] = "[" + env.Direction + "]"
+			ctx.Globals["BPL_DUMP_PREFIX"] = "[" + env.Direction + "]"
 			_, err = ruler.SafeMatch(in, ctx)
 			if err != nil {
 				log.Error("Match failed:", err)

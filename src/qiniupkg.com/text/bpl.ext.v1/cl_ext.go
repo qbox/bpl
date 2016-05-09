@@ -13,25 +13,14 @@ import (
 
 // -----------------------------------------------------------------------------
 
-type executor struct {
-	code exec.Code
-	estk *exec.Stack
-}
-
-func newExecutor() *executor {
-	return &executor{
-		estk: exec.NewStack(),
-	}
-}
-
-func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
+func (p *Compiler) eval(ctx *bpl.Context, start, end int) interface{} {
 
 	vars, hasDom := ctx.Dom().(map[string]interface{})
 	if vars == nil {
 		vars = make(map[string]interface{})
 	}
 	code := &p.code
-	stk := p.estk
+	stk := ctx.Stack
 	var parent *exec.Context
 	if len(ctx.Globals) > 0 {
 		parent = exec.NewSimpleContext(ctx.Globals, nil, nil, nil)
@@ -79,7 +68,7 @@ func (p *Compiler) array() {
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
-		v := p.Eval(ctx.Parent, e.start, e.end)
+		v := p.eval(ctx.Parent, e.start, e.end)
 		return toInt(v, "index isn't an integer expression")
 	}
 	stk[i] = bpl.Dynarray(stk[i].(bpl.Ruler), n)
@@ -153,7 +142,7 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 	e := p.popExpr()
 	srcSw, _ := p.gstk.Pop()
 	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		for i := 0; i < len(caseExprAndSources); i += 2 {
 			expr := caseExprAndSources[i]
 			if eq(v, expr) {
@@ -194,7 +183,7 @@ func (p *Compiler) fnIf() {
 	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
 		for i := 0; i < arity; i++ {
 			e := condExprs[i].(*exprBlock)
-			v := p.Eval(ctx, e.start, e.end)
+			v := p.eval(ctx, e.start, e.end)
 			if toBool(v, "condition isn't a boolean expression") {
 				return bodyRs[i], nil
 			}
@@ -213,7 +202,7 @@ func (p *Compiler) fnEval() {
 	stk := p.stk
 	i := len(stk) - 1
 	expr := func(ctx *bpl.Context) []byte {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		return v.([]byte)
 	}
 	stk[i] = bpl.Eval(expr, stk[i].(bpl.Ruler))
@@ -225,7 +214,7 @@ func (p *Compiler) fnDo() {
 
 	e := p.popExpr()
 	fn := func(ctx *bpl.Context) error {
-		p.Eval(ctx, e.start, e.end)
+		p.eval(ctx, e.start, e.end)
 		return nil
 	}
 	p.stk = append(p.stk, bpl.Do(fn))
@@ -240,7 +229,7 @@ func (p *Compiler) fnLet() {
 	i := len(stk) - 1
 	name := stk[i].(string)
 	fn := func(ctx *bpl.Context) error {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		ctx.LetVar(name, v)
 		return nil
 	}
@@ -256,7 +245,7 @@ func (p *Compiler) fnGlobal() {
 	i := len(stk) - 1
 	name := stk[i].(string)
 	fn := func(ctx *bpl.Context) error {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		ctx.Globals[name] = v
 		return nil
 	}
@@ -269,7 +258,7 @@ func (p *Compiler) fnAssert(src interface{}) {
 
 	e := p.popExpr()
 	expr := func(ctx *bpl.Context) bool {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		return toBool(v, "assert condition isn't a boolean expression")
 	}
 	msg := sourceOf(p.ipt, src)
@@ -284,7 +273,7 @@ func (p *Compiler) fnRead() {
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		return toInt(v, "read bytes isn't an integer expression")
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
@@ -305,12 +294,12 @@ func (p *Compiler) fnLzw() {
 	i := len(stk) - 1
 	r := stk[i].(bpl.Ruler)
 	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		v1, ok1 := p.Eval(ctx, e1.start, e1.end).([]byte)
+		v1, ok1 := p.eval(ctx, e1.start, e1.end).([]byte)
 		if !ok1 {
 			panic("lzw source, order, litWidth: source isn't a []byte expression")
 		}
-		v2 := p.Eval(ctx, e2.start, e2.end)
-		v3 := p.Eval(ctx, e3.start, e3.end)
+		v2 := p.eval(ctx, e2.start, e2.end)
+		v3 := p.eval(ctx, e3.start, e3.end)
 		return lzw.Type(bytes.NewReader(v1), toInt(v2, lzwArgMsg), toInt(v3, lzwArgMsg), r), nil
 	}
 	stk[i] = bpl.Dyntype(dynR)
@@ -322,7 +311,7 @@ func (p *Compiler) fnReturn() {
 
 	e := p.popExpr()
 	fnRet := func(ctx *bpl.Context) (v interface{}, err error) {
-		v = p.Eval(ctx, e.start, e.end)
+		v = p.eval(ctx, e.start, e.end)
 		return
 	}
 	p.stk = append(p.stk, bpl.Return(fnRet))
