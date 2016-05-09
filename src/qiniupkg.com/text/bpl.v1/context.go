@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
+	"qlang.io/exec.v2"
 )
 
 // -----------------------------------------------------------------------------
@@ -13,6 +14,7 @@ import (
 //
 type Context struct {
 	dom     interface{}
+	Stack   *exec.Stack
 	Parent  *Context
 	Globals map[string]interface{}
 }
@@ -22,14 +24,15 @@ type Context struct {
 func NewContext() *Context {
 
 	gbl := make(map[string]interface{})
-	return &Context{Globals: gbl}
+	stk := exec.NewStack()
+	return &Context{Globals: gbl, Stack: stk}
 }
 
 // NewSub returns a new sub Context.
 //
 func (p *Context) NewSub() *Context {
 
-	return &Context{Parent: p, Globals: p.Globals}
+	return &Context{Parent: p, Globals: p.Globals, Stack: p.Stack}
 }
 
 func (p *Context) requireVarSlice() []interface{} {
@@ -134,27 +137,6 @@ type Ruler interface {
 
 // -----------------------------------------------------------------------------
 
-// A Error represents an matching error.
-//
-type Error struct {
-	Err  error
-	File string
-	Line int
-}
-
-func (p *Error) Error() string {
-
-	if p.Line == 0 {
-		return p.Err.Error()
-	}
-	if p.File == "" {
-		return fmt.Sprintf("line %d: %v", p.Line, p.Err)
-	}
-	return fmt.Sprintf("%s:%d: %v", p.File, p.Line, p.Err)
-}
-
-// -----------------------------------------------------------------------------
-
 type fileLine struct {
 	r    Ruler
 	file string
@@ -165,8 +147,8 @@ func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 
 	v, err = doMatch(p.r, in, ctx)
 	if err != nil {
-		if _, ok := err.(*Error); !ok {
-			err = &Error{Err: err, File: p.file, Line: p.line}
+		if _, ok := err.(*exec.Error); !ok {
+			err = &exec.Error{Err: err, File: p.file, Line: p.line}
 		}
 	}
 	return

@@ -24,17 +24,17 @@ term3 = term2 *('<' term2/lt | '>' term2/gt | "==" term2/eq | "<=" term2/le | ">
 
 term4 = term3 *("&&" term3/iand)
 
-iexpr = term4 *("||" term4/ior)
+qexpr = term4 *("||" term4/ior)
 
-ixexpr = iexpr/ixline
+iexpr = qexpr/qline
 
-index = '['/istart ixexpr ']'/iend
+index = '['/istart iexpr ']'/iend
 
 casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
-caseexpr = "case"/istart! ixexpr/source '{'/iend casebody ?';' '}' /case
+caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
-exprblock = true/istart! ixexpr (@'{' | "do")/iend expr
+exprblock = true/istart! iexpr (@'{' | "do")/iend expr
 
 ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else"! expr)/ARITY /if
 
@@ -42,17 +42,17 @@ readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
 
-doexpr = "do"/istart! ixexpr /iend /do
+doexpr = "do"/istart! iexpr /iend /do
 
-letexpr = "let"! IDENT/var '='/istart! ixexpr /iend /let
+letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
 
-assertexpr = ("assert"/istart! ixexpr /iend) /assert
+assertexpr = ("assert"/istart! iexpr /iend) /assert
 
-gblexpr = "global"! IDENT/var '='/istart! ixexpr /iend /global
+gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
-lzwexpr = "lzw"/istart! ixexpr /iend ',' /istart! ixexpr /iend ',' /istart! ixexpr /iend exprblock /lzw
+lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
 
-retexpr = "return"/istart! ixexpr /iend /return
+retexpr = "return"/istart! iexpr /iend /return
 
 dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | lzwexpr
 
@@ -82,16 +82,16 @@ factor =
 	dynexpr
 
 atom =
-	'(' iexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
+	'(' qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
 	'.' IDENT/mref |
-	'[' ?iexpr/ARITY ?':'/ARITY ?iexpr/ARITY ']'/index
+	'[' ?qexpr/ARITY ?':'/ARITY ?qexpr/ARITY ']'/index
 
 ifactor =
 	INT/pushi |
 	STRING/pushs |
-	(IDENT/ref | '('! iexpr ')' | '[' iexpr %= ','/ARITY ?',' ']'/slice) *atom |
+	(IDENT/ref | '('! qexpr ')' | '[' qexpr %= ','/ARITY ?',' ']'/slice) *atom |
 	"sizeof"! '(' IDENT/sizeof ')' |
-	'{'! (iexpr ':' iexpr) %= ','/ARITY ?',' '}'/map |
+	'{'! (qexpr ':' qexpr) %= ','/ARITY ?',' '}'/map |
 	'^' ifactor/bitnot |
 	'-' ifactor/neg |
 	'+' ifactor
@@ -115,7 +115,7 @@ var (
 // A Compiler compiles bpl source code to matching units.
 //
 type Compiler struct {
-	*executor
+	code     exec.Code
 	stk      []interface{}
 	rulers   map[string]bpl.Ruler
 	vars     map[string]*bpl.TypeVar
@@ -130,8 +130,7 @@ func newCompiler() (p *Compiler) {
 	rulers := make(map[string]bpl.Ruler)
 	vars := make(map[string]*bpl.TypeVar)
 	consts := make(map[string]interface{})
-	e := newExecutor()
-	return &Compiler{rulers: rulers, vars: vars, consts: consts, executor: e}
+	return &Compiler{rulers: rulers, vars: vars, consts: consts}
 }
 
 // Ret returns compiling result.
@@ -216,7 +215,7 @@ var exports = map[string]interface{}{
 	"$source": (*Compiler).source,
 	"$member": (*Compiler).member,
 	"$struct": (*Compiler).gostruct,
-	"$ixline": (*Compiler).codeLine,
+	"$qline":  (*Compiler).codeLine,
 	"$xline":  (*Compiler).xline,
 }
 
