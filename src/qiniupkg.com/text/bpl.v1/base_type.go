@@ -4,11 +4,29 @@ import (
 	"encoding/binary"
 	"io"
 	"reflect"
-	"strconv"
 	"unsafe"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 	"qiniupkg.com/x/log.v7"
+)
+
+// -----------------------------------------------------------------------------
+
+var (
+	tyInt8           = reflect.TypeOf(int8(0))
+	tyInt16          = reflect.TypeOf(int16(0))
+	tyInt32          = reflect.TypeOf(int32(0))
+	tyInt64          = reflect.TypeOf(int64(0))
+	tyUint           = reflect.TypeOf(uint(0))
+	tyUint8          = reflect.TypeOf(uint8(0))
+	tyUint16         = reflect.TypeOf(uint16(0))
+	tyUint32         = reflect.TypeOf(uint32(0))
+	tyUint64         = reflect.TypeOf(uint64(0))
+	tyFloat32        = reflect.TypeOf(float32(0))
+	tyFloat64        = reflect.TypeOf(float64(0))
+	tyString         = reflect.TypeOf(string(""))
+	TyInterface      = reflect.TypeOf((*interface{})(nil)).Elem()
+	tyInterfaceSlice = reflect.SliceOf(TyInterface)
 )
 
 // -----------------------------------------------------------------------------
@@ -20,20 +38,21 @@ type BaseType uint
 type baseTypeInfo struct {
 	read   func(in *bufio.Reader) (v interface{}, err error)
 	newn   func(n int) interface{}
+	typ    reflect.Type
 	sizeOf int
 }
 
 var baseTypes = [...]baseTypeInfo{
-	reflect.Int8:    {readInt8, newInt8n, 1},
-	reflect.Int16:   {readInt16, newInt16n, 2},
-	reflect.Int32:   {readInt32, newInt32n, 4},
-	reflect.Int64:   {readInt64, newInt64n, 8},
-	reflect.Uint8:   {readUint8, newUint8n, 1},
-	reflect.Uint16:  {readUint16, newUint16n, 2},
-	reflect.Uint32:  {readUint32, newUint32n, 4},
-	reflect.Uint64:  {readUint64, newUint64n, 8},
-	reflect.Float32: {readFloat32, newFloat32n, 4},
-	reflect.Float64: {readFloat64, newFloat64n, 8},
+	reflect.Int8:    {readInt8, newInt8n, tyInt8, 1},
+	reflect.Int16:   {readInt16, newInt16n, tyInt16, 2},
+	reflect.Int32:   {readInt32, newInt32n, tyInt32, 4},
+	reflect.Int64:   {readInt64, newInt64n, tyInt64, 8},
+	reflect.Uint8:   {readUint8, newUint8n, tyUint8, 1},
+	reflect.Uint16:  {readUint16, newUint16n, tyUint16, 2},
+	reflect.Uint32:  {readUint32, newUint32n, tyUint32, 4},
+	reflect.Uint64:  {readUint64, newUint64n, tyUint64, 8},
+	reflect.Float32: {readFloat32, newFloat32n, tyFloat32, 4},
+	reflect.Float64: {readFloat64, newFloat64n, tyFloat64, 8},
 }
 
 func readInt8(in *bufio.Reader) (v interface{}, err error) {
@@ -191,11 +210,11 @@ func (p BaseType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return
 }
 
-// BuildFullName returns full name of this matching unit.
+// RetType returns matching result type.
 //
-func (p BaseType) BuildFullName(b []byte) []byte {
+func (p BaseType) RetType() reflect.Type {
 
-	return append(b, reflect.Kind(p).String()...)
+	return baseTypes[p].typ
 }
 
 // SizeOf is required by a matching unit. see Ruler interface.
@@ -250,11 +269,9 @@ func (p cstring) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return string(b[:len(b)-1]), nil
 }
 
-// BuildFullName returns full name of this matching unit.
-//
-func (p cstring) BuildFullName(b []byte) []byte {
+func (p cstring) RetType() reflect.Type {
 
-	return append(b, "cstring"...)
+	return tyString
 }
 
 func (p cstring) SizeOf() int {
@@ -275,11 +292,9 @@ func (p charType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return in.ReadByte()
 }
 
-// BuildFullName returns full name of this matching unit.
-//
-func (p charType) BuildFullName(b []byte) []byte {
+func (p charType) RetType() reflect.Type {
 
-	return append(b, "char"...)
+	return tyUint8
 }
 
 func (p charType) SizeOf() int {
@@ -311,11 +326,9 @@ func (p *fixedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err er
 	return val.Interface(), nil
 }
 
-// BuildFullName returns full name of this matching unit.
-//
-func (p *fixedType) BuildFullName(b []byte) []byte {
+func (p *fixedType) RetType() reflect.Type {
 
-	return append(b, "fixedType"...)
+	return p.typ
 }
 
 func (p *fixedType) SizeOf() int {
@@ -348,12 +361,9 @@ func (p uintbe) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 	return val, nil
 }
 
-// BuildFullName returns full name of this matching unit.
-//
-func (p uintbe) BuildFullName(b []byte) []byte {
+func (p uintbe) RetType() reflect.Type {
 
-	b = append(b, "uintbe"...)
-	return append(b, strconv.Itoa(int(p)*8)...)
+	return tyUint
 }
 
 func (p uintbe) SizeOf() int {
@@ -390,12 +400,9 @@ func (p uintle) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 	return val, nil
 }
 
-// BuildFullName returns full name of this matching unit.
-//
-func (p uintle) BuildFullName(b []byte) []byte {
+func (p uintle) RetType() reflect.Type {
 
-	b = append(b, "uintle"...)
-	return append(b, strconv.Itoa(int(p)*8)...)
+	return tyUint
 }
 
 func (p uintle) SizeOf() int {
@@ -434,9 +441,9 @@ func (p float32be) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	return
 }
 
-func (p float32be) BuildFullName(b []byte) []byte {
+func (p float32be) RetType() reflect.Type {
 
-	return append(b, "float32be"...)
+	return tyFloat32
 }
 
 func (p float32be) SizeOf() int {
@@ -465,9 +472,9 @@ func (p float64be) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	return
 }
 
-func (p float64be) BuildFullName(b []byte) []byte {
+func (p float64be) RetType() reflect.Type {
 
-	return append(b, "float32be"...)
+	return tyFloat64
 }
 
 func (p float64be) SizeOf() int {

@@ -2,6 +2,7 @@ package bpl
 
 import (
 	"io"
+	"reflect"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
@@ -72,9 +73,9 @@ func (p *repeat0) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return repeat(p.r, in, ctx)
 }
 
-func (p *repeat0) BuildFullName(b []byte) []byte {
+func (p *repeat0) RetType() reflect.Type {
 
-	return append(p.r.BuildFullName(b), '*')
+	return TyInterface
 }
 
 func (p *repeat0) SizeOf() int {
@@ -104,9 +105,9 @@ func (p *repeat1) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return repeat(p.r, in, ctx)
 }
 
-func (p *repeat1) BuildFullName(b []byte) []byte {
+func (p *repeat1) RetType() reflect.Type {
 
-	return append(p.r.BuildFullName(b), '+')
+	return TyInterface
 }
 
 func (p *repeat1) SizeOf() int {
@@ -139,9 +140,9 @@ func (p *repeat01) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	return p.r.Match(in, ctx)
 }
 
-func (p *repeat01) BuildFullName(b []byte) []byte {
+func (p *repeat01) RetType() reflect.Type {
 
-	return append(p.r.BuildFullName(b), '?')
+	return TyInterface
 }
 
 func (p *repeat01) SizeOf() int {

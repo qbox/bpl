@@ -3,6 +3,7 @@ package lzw
 import (
 	"compress/lzw"
 	"io"
+	"reflect"
 
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -26,11 +27,9 @@ func (p *typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err
 	return p.r.Match(in, ctx)
 }
 
-func (p *typeImpl) BuildFullName(b []byte) []byte {
+func (p *typeImpl) RetType() reflect.Type {
 
-	b = append(b, "lzw .. do {"...)
-	b = p.r.BuildFullName(b)
-	return append(b, '}')
+	return p.r.RetType()
 }
 
 func (p *typeImpl) SizeOf() int {
