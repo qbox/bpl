@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"reflect"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 )
@@ -28,9 +29,9 @@ func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return nil, nil
 }
 
-func (p nilType) BuildFullName(b []byte) []byte {
+func (p nilType) RetType() reflect.Type {
 
-	return append(b, "nil"...)
+	return TyInterface
 }
 
 func (p nilType) SizeOf() int {
@@ -55,9 +56,9 @@ func (p eof) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return nil, ErrNotEOF
 }
 
-func (p eof) BuildFullName(b []byte) []byte {
+func (p eof) RetType() reflect.Type {
 
-	return append(b, "eof"...)
+	return TyInterface
 }
 
 func (p eof) SizeOf() int {
@@ -79,9 +80,9 @@ func (p done) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return
 }
 
-func (p done) BuildFullName(b []byte) []byte {
+func (p done) RetType() reflect.Type {
 
-	return append(b, "done"...)
+	return TyInterface
 }
 
 func (p done) SizeOf() int {
@@ -110,16 +111,9 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return ctx.Dom(), nil
 }
 
-func (p *and) BuildFullName(b []byte) []byte {
+func (p *and) RetType() reflect.Type {
 
-	last := len(p.rs) - 1
-	for i, r := range p.rs {
-		b = r.BuildFullName(b)
-		if i != last {
-			b = append(b, ' ')
-		}
-	}
-	return b
+	return TyInterface
 }
 
 func (p *and) SizeOf() int {
@@ -160,16 +154,9 @@ func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return ret, nil
 }
 
-func (p *seq) BuildFullName(b []byte) []byte {
+func (p *seq) RetType() reflect.Type {
 
-	last := len(p.rs) - 1
-	for i, r := range p.rs {
-		b = r.BuildFullName(b)
-		if i != last {
-			b = append(b, ' ')
-		}
-	}
-	return b
+	return tyInterfaceSlice
 }
 
 func (p *seq) SizeOf() int {
@@ -199,9 +186,9 @@ func (p *act) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return ctx.Dom(), nil
 }
 
-func (p *act) BuildFullName(b []byte) []byte {
+func (p *act) RetType() reflect.Type {
 
-	return b
+	return TyInterface
 }
 
 func (p *act) SizeOf() int {
@@ -234,9 +221,9 @@ func (p *dyntype) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return
 }
 
-func (p *dyntype) BuildFullName(b []byte) []byte {
+func (p *dyntype) RetType() reflect.Type {
 
-	return append(b, "dyntype"...)
+	return TyInterface
 }
 
 func (p *dyntype) SizeOf() int {
@@ -270,11 +257,9 @@ func (p *read) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	return p.r.Match(in, ctx)
 }
 
-func (p *read) BuildFullName(b []byte) []byte {
+func (p *read) RetType() reflect.Type {
 
-	b = append(b, "read n do {"...)
-	b = p.r.BuildFullName(b)
-	return append(b, '}')
+	return p.r.RetType()
 }
 
 func (p *read) SizeOf() int {
@@ -304,11 +289,9 @@ func (p *ifType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return
 }
 
-func (p *ifType) BuildFullName(b []byte) []byte {
+func (p *ifType) RetType() reflect.Type {
 
-	b = append(b, "if cond do {"...)
-	b = p.r.BuildFullName(b)
-	return append(b, '}')
+	return TyInterface
 }
 
 func (p *ifType) SizeOf() int {
@@ -337,11 +320,9 @@ func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	return p.r.Match(in, ctx)
 }
 
-func (p *eval) BuildFullName(b []byte) []byte {
+func (p *eval) RetType() reflect.Type {
 
-	b = append(b, "eval expr do {"...)
-	b = p.r.BuildFullName(b)
-	return append(b, '}')
+	return p.r.RetType()
 }
 
 func (p *eval) SizeOf() int {
@@ -371,9 +352,9 @@ func (p *assert) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	panic(p.msg)
 }
 
-func (p *assert) BuildFullName(b []byte) []byte {
+func (p *assert) RetType() reflect.Type {
 
-	return append(b, p.msg...)
+	return TyInterface
 }
 
 func (p *assert) SizeOf() int {
@@ -419,14 +400,11 @@ func (p *TypeVar) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return r.Match(in, ctx)
 }
 
-// BuildFullName returns full name of this matching unit.
+// RetType returns matching result type.
 //
-func (p *TypeVar) BuildFullName(b []byte) []byte {
+func (p *TypeVar) RetType() reflect.Type {
 
-	if p.Elem == nil {
-		return append(b, p.Name...)
-	}
-	return p.Elem.BuildFullName(b)
+	return p.Elem.RetType()
 }
 
 // SizeOf is required by a matching unit. see Ruler interface.

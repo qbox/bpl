@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
+	"reflect"
 
 	"gopkg.in/mgo.v2/bson"
 	"qiniupkg.com/text/bpl.v1"
@@ -61,6 +62,8 @@ func (p *Document) Vars() (vars map[string]interface{}, err error) {
 
 type typeImpl int
 
+var tyDocument = reflect.TypeOf((*Document)(nil))
+
 func (p typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
 	n, err := peekInt32(in)
@@ -75,9 +78,9 @@ func (p typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err 
 	return &Document{data: data}, nil
 }
 
-func (p typeImpl) BuildFullName(b []byte) []byte {
+func (p typeImpl) RetType() reflect.Type {
 
-	return append(b, "bson"...)
+	return tyDocument
 }
 
 func (p typeImpl) SizeOf() int {

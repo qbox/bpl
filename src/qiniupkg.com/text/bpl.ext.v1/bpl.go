@@ -147,9 +147,9 @@ func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err erro
 	return
 }
 
-func (p dump) BuildFullName(b []byte) []byte {
+func (p dump) RetType() reflect.Type {
 
-	return b
+	return bpl.TyInterface
 }
 
 func (p dump) SizeOf() int {

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime/debug"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -134,8 +135,8 @@ type Ruler interface {
 	// Match matches input stream `in`, and returns matching result.
 	Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 
-	// BuildFullName returns full name of this matching unit.
-	BuildFullName(b []byte) []byte
+	// RetType returns matching result type.
+	RetType() reflect.Type
 
 	// SizeOf returns expected length of result. If length is variadic, it returns -1.
 	SizeOf() int
@@ -151,15 +152,12 @@ type fileLine struct {
 
 type errorAt struct {
 	Err error
-	At  Ruler
 	Buf []byte
 }
 
 func (p *errorAt) Error() string {
 
 	b := make([]byte, 0, 32)
-	b = append(b, "Rule "...)
-	b = append(p.At.BuildFullName(b), ':', ' ')
 	b = append(b, p.Err.Error()...)
 	b = append(b, '\n')
 
@@ -176,7 +174,7 @@ func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	if err != nil {
 		if _, ok := err.(*exec.Error); !ok {
 			err = &exec.Error{
-				Err:   &errorAt{Err: err, At: p.r, Buf: in.Buffer()},
+				Err:   &errorAt{Err: err, Buf: in.Buffer()},
 				File:  p.file,
 				Line:  p.line,
 				Stack: debug.Stack(),
@@ -186,9 +184,9 @@ func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	return
 }
 
-func (p *fileLine) BuildFullName(b []byte) []byte {
+func (p *fileLine) RetType() reflect.Type {
 
-	return p.r.BuildFullName(b)
+	return p.r.RetType()
 }
 
 func (p *fileLine) SizeOf() int {

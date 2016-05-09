@@ -23,9 +23,9 @@ func (p ret) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return
 }
 
-func (p ret) BuildFullName(b []byte) []byte {
+func (p ret) RetType() reflect.Type {
 
-	return append(b, "return"...)
+	return TyInterface
 }
 
 func (p ret) SizeOf() int {
@@ -63,16 +63,11 @@ func (p *Member) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return
 }
 
-// BuildFullName returns full name of this matching unit.
+// RetType returns matching result type.
 //
-func (p *Member) BuildFullName(b []byte) []byte {
+func (p *Member) RetType() reflect.Type {
 
-	b = append(b, '{')
-	b = append(b, p.Name...)
-	b = append(b, ' ')
-	b = p.Type.BuildFullName(b)
-	b = append(b, '}')
-	return b
+	return p.Type.RetType()
 }
 
 // SizeOf is required by a matching unit. see Ruler interface.
@@ -100,9 +95,9 @@ func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err e
 	return ctx.Dom(), nil
 }
 
-func (p *structType) BuildFullName(b []byte) []byte {
+func (p *structType) RetType() reflect.Type {
 
-	return append(b, "struct"...)
+	return TyInterface
 }
 
 func (p *structType) SizeOf() int {
