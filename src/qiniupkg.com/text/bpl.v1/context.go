@@ -3,6 +3,7 @@ package bpl
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
 	"qlang.io/exec.v2"
@@ -131,6 +132,9 @@ type Ruler interface {
 	// Match matches input stream `in`, and returns matching result.
 	Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 
+	// BuildFullName returns full name of this matching unit.
+	BuildFullName(b []byte) []byte
+
 	// SizeOf returns expected length of result. If length is variadic, it returns -1.
 	SizeOf() int
 }
@@ -143,15 +147,39 @@ type fileLine struct {
 	line int
 }
 
+type errorAt struct {
+	Err error
+	At  Ruler
+}
+
+func (p *errorAt) Error() string {
+
+	b := make([]byte, 32)
+	b = append(b, "Rule "...)
+	b = append(p.At.BuildFullName(b), ':', ' ')
+	b = append(b, p.Err.Error()...)
+	return string(b)
+}
+
 func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	v, err = doMatch(p.r, in, ctx)
 	if err != nil {
 		if _, ok := err.(*exec.Error); !ok {
-			err = &exec.Error{Err: err, File: p.file, Line: p.line}
+			err = &exec.Error{
+				Err:   &errorAt{Err: err, At: p.r},
+				File:  p.file,
+				Line:  p.line,
+				Stack: debug.Stack(),
+			}
 		}
 	}
 	return
+}
+
+func (p *fileLine) BuildFullName(b []byte) []byte {
+
+	return p.r.BuildFullName(b)
 }
 
 func (p *fileLine) SizeOf() int {

@@ -116,6 +116,11 @@ func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err erro
 	return
 }
 
+func (p dump) BuildFullName(b []byte) []byte {
+
+	return b
+}
+
 func (p dump) SizeOf() int {
 
 	return 0

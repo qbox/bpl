@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"io"
 	"reflect"
+	"strconv"
 	"unsafe"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
@@ -190,6 +191,13 @@ func (p BaseType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return
 }
 
+// BuildFullName returns full name of this matching unit.
+//
+func (p BaseType) BuildFullName(b []byte) []byte {
+
+	return append(b, reflect.Kind(p).String()...)
+}
+
 // SizeOf is required by a matching unit. see Ruler interface.
 //
 func (p BaseType) SizeOf() int {
@@ -242,6 +250,13 @@ func (p cstring) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return string(b[:len(b)-1]), nil
 }
 
+// BuildFullName returns full name of this matching unit.
+//
+func (p cstring) BuildFullName(b []byte) []byte {
+
+	return append(b, "cstring"...)
+}
+
 func (p cstring) SizeOf() int {
 
 	return -1
@@ -258,6 +273,13 @@ type charType int
 func (p charType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	return in.ReadByte()
+}
+
+// BuildFullName returns full name of this matching unit.
+//
+func (p charType) BuildFullName(b []byte) []byte {
+
+	return append(b, "char"...)
 }
 
 func (p charType) SizeOf() int {
@@ -289,6 +311,13 @@ func (p *fixedType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err er
 	return val.Interface(), nil
 }
 
+// BuildFullName returns full name of this matching unit.
+//
+func (p *fixedType) BuildFullName(b []byte) []byte {
+
+	return append(b, "fixedType"...)
+}
+
 func (p *fixedType) SizeOf() int {
 
 	return int(p.typ.Size())
@@ -317,6 +346,14 @@ func (p uintbe) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 	}
 	in.Discard(int(p))
 	return val, nil
+}
+
+// BuildFullName returns full name of this matching unit.
+//
+func (p uintbe) BuildFullName(b []byte) []byte {
+
+	b = append(b, "uintbe"...)
+	return append(b, strconv.Itoa(int(p)*8)...)
 }
 
 func (p uintbe) SizeOf() int {
@@ -351,6 +388,14 @@ func (p uintle) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 	}
 	in.Discard(int(p))
 	return val, nil
+}
+
+// BuildFullName returns full name of this matching unit.
+//
+func (p uintle) BuildFullName(b []byte) []byte {
+
+	b = append(b, "uintle"...)
+	return append(b, strconv.Itoa(int(p)*8)...)
 }
 
 func (p uintle) SizeOf() int {
@@ -389,6 +434,11 @@ func (p float32be) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	return
 }
 
+func (p float32be) BuildFullName(b []byte) []byte {
+
+	return append(b, "float32be"...)
+}
+
 func (p float32be) SizeOf() int {
 
 	return 4
@@ -413,6 +463,11 @@ func (p float64be) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	v = float64frombits(binary.BigEndian.Uint64(t))
 	in.Discard(8)
 	return
+}
+
+func (p float64be) BuildFullName(b []byte) []byte {
+
+	return append(b, "float32be"...)
 }
 
 func (p float64be) SizeOf() int {

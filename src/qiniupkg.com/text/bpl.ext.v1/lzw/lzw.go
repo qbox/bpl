@@ -17,7 +17,7 @@ type typeImpl struct {
 	litWidth int
 }
 
-func (p typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
+func (p *typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
 	f := lzw.NewReader(p.src, p.order, p.litWidth)
 	defer f.Close()
@@ -26,7 +26,14 @@ func (p typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err 
 	return p.r.Match(in, ctx)
 }
 
-func (p typeImpl) SizeOf() int {
+func (p *typeImpl) BuildFullName(b []byte) []byte {
+
+	b = append(b, "lzw .. do {"...)
+	b = p.r.BuildFullName(b)
+	return append(b, '}')
+}
+
+func (p *typeImpl) SizeOf() int {
 
 	return -1
 }

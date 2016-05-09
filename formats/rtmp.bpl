@@ -1,5 +1,5 @@
 const (
-    VERBOSE = 0
+    VERBOSE = 1
 )
 
 init = {
@@ -213,7 +213,7 @@ AMF0_TYPE = {
 AMF0_CMDDATA = {
     cmd           AMF0_TYPE
     transactionId AMF0_TYPE
-    value         AMF0_TYPE
+    value         *AMF0_TYPE
 }
 
 AMF0 = {
@@ -382,7 +382,7 @@ AMF3_TYPE = {
 AMF3_CMDDATA = {
     cmd           AMF3_TYPE
     transactionId AMF3_TYPE
-    params        AMF3_TYPE
+    value         *AMF3_TYPE
 }
 
 AMF3 = {
