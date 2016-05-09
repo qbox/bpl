@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -52,50 +53,80 @@ func writePrefix(b *bytes.Buffer, lvl int) {
 //
 func DumpDom(b *bytes.Buffer, dom interface{}, lvl int) {
 
-	if dom == nil {
-		b.WriteString("<nil>")
-		return
-	}
-	switch v := dom.(type) {
-	case []interface{}:
+	dumpDomValue(b, reflect.ValueOf(dom), lvl)
+}
+
+type stringSlice []reflect.Value
+
+func (p stringSlice) Len() int           { return len(p) }
+func (p stringSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
+func (p stringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+var typeBytes = reflect.TypeOf([]byte(nil))
+
+func dumpDomValue(b *bytes.Buffer, dom reflect.Value, lvl int) {
+
+retry:
+	switch dom.Kind() {
+	case reflect.Slice:
+		if dom.Type() == typeBytes {
+			b.WriteByte('\n')
+			d := hex.Dumper(b)
+			d.Write(dom.Bytes())
+			d.Close()
+			return
+		}
 		b.WriteByte('[')
-		for _, item := range v {
+		n := dom.Len()
+		for i := 0; i < n; i++ {
 			b.WriteByte('\n')
 			writePrefix(b, lvl+1)
-			DumpDom(b, item, lvl+1)
+			dumpDomValue(b, dom.Index(i), lvl+1)
 			b.WriteByte(',')
 		}
 		b.WriteByte('\n')
 		writePrefix(b, lvl)
 		b.WriteByte(']')
-	case map[string]interface{}:
+	case reflect.Map:
 		b.WriteByte('{')
-		keys := make([]string, 0, len(v))
-		for key := range v {
-			if strings.HasPrefix(key, "_") {
-				continue
+		keys := dom.MapKeys()
+		fstring := dom.Type().Key().Kind() == reflect.String
+		if fstring {
+			n := 0
+			for _, key := range keys {
+				if strings.HasPrefix(key.String(), "_") {
+					continue
+				}
+				keys[n] = key
+				n++
 			}
-			keys = append(keys, key)
+			keys = keys[:n]
+			sort.Sort(stringSlice(keys))
 		}
-		sort.Strings(keys)
 		for _, key := range keys {
-			item := v[key]
+			item := dom.MapIndex(key)
 			b.WriteByte('\n')
 			writePrefix(b, lvl+1)
-			b.WriteString(key)
+			if fstring {
+				b.WriteString(key.String())
+			} else {
+				dumpDomValue(b, key, lvl+1)
+			}
 			b.WriteString(": ")
-			DumpDom(b, item, lvl+1)
+			dumpDomValue(b, item, lvl+1)
 		}
 		b.WriteByte('\n')
 		writePrefix(b, lvl)
 		b.WriteByte('}')
-	case []byte:
-		b.WriteByte('\n')
-		d := hex.Dumper(b)
-		d.Write(v)
-		d.Close()
+	case reflect.Interface, reflect.Ptr:
+		if dom.IsNil() {
+			b.WriteString("<nil>")
+			return
+		}
+		dom = dom.Elem()
+		goto retry
 	default:
-		ret, _ := json.Marshal(dom)
+		ret, _ := json.Marshal(dom.Interface())
 		b.Write(ret)
 	}
 }
@@ -114,6 +145,11 @@ func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err erro
 	DumpDom(&b, ctx.Dom(), 0)
 	Dumper.Info(b.String())
 	return
+}
+
+func (p dump) BuildFullName(b []byte) []byte {
+
+	return b
 }
 
 func (p dump) SizeOf() int {

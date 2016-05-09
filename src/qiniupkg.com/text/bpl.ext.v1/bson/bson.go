@@ -75,6 +75,11 @@ func (p typeImpl) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err 
 	return &Document{data: data}, nil
 }
 
+func (p typeImpl) BuildFullName(b []byte) []byte {
+
+	return append(b, "bson"...)
+}
+
 func (p typeImpl) SizeOf() int {
 
 	return -1

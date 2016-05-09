@@ -51,6 +51,11 @@ func (p *baseArray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err er
 	return matchBaseArray(p.r, n, in, ctx)
 }
 
+func (p *baseArray) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '[', ']')
+}
+
 func (p *baseArray) SizeOf() int {
 
 	return p.r.SizeOf() * p.n
@@ -76,6 +81,11 @@ func (p *baseDynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err
 	return matchBaseArray(p.r, n, in, ctx)
 }
 
+func (p *baseDynarray) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '[', ']')
+}
+
 func (p *baseDynarray) SizeOf() int {
 
 	return -1
@@ -95,6 +105,11 @@ type charArray int
 func (p charArray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	return matchCharArray(int(p), in, ctx)
+}
+
+func (p charArray) BuildFullName(b []byte) []byte {
+
+	return append(b, "charArray"...)
 }
 
 func (p charArray) SizeOf() int {
@@ -117,6 +132,11 @@ func (p charDynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err 
 
 	n := p(ctx)
 	return matchCharArray(n, in, ctx)
+}
+
+func (p charDynarray) BuildFullName(b []byte) []byte {
+
+	return append(b, "charDynarray"...)
 }
 
 func (p charDynarray) SizeOf() int {

@@ -72,6 +72,11 @@ func (p *repeat0) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return repeat(p.r, in, ctx)
 }
 
+func (p *repeat0) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '*')
+}
+
 func (p *repeat0) SizeOf() int {
 
 	return -1
@@ -97,6 +102,11 @@ func (p *repeat1) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 		return
 	}
 	return repeat(p.r, in, ctx)
+}
+
+func (p *repeat1) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '+')
 }
 
 func (p *repeat1) SizeOf() int {
@@ -127,6 +137,11 @@ func (p *repeat01) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 		return
 	}
 	return p.r.Match(in, ctx)
+}
+
+func (p *repeat01) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '?')
 }
 
 func (p *repeat01) SizeOf() int {

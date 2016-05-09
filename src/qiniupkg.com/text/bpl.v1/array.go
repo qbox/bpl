@@ -5,12 +5,14 @@ import (
 	"reflect"
 
 	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/log.v7"
 )
 
 // -----------------------------------------------------------------------------
 
 var (
 	typeIntf = reflect.TypeOf((*interface{})(nil)).Elem()
+	valIntf  = reflect.Zero(typeIntf)
 )
 
 func typeOf(v interface{}) reflect.Type {
@@ -21,16 +23,25 @@ func typeOf(v interface{}) reflect.Type {
 	return typeIntf
 }
 
+func valueOf(v interface{}) reflect.Value {
+
+	if v != nil {
+		return reflect.ValueOf(v)
+	}
+	return valIntf
+}
+
 func matchArray1(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	v1, err := R.Match(in, ctx)
+	v1, err := R.Match(in, ctx.NewSub())
 	if err != nil {
+		log.Error("matchArray failed:", err)
 		return
 	}
 
 	t := typeOf(v1)
 	ret := reflect.MakeSlice(reflect.SliceOf(t), 0, 4)
-	ret = reflect.Append(ret, reflect.ValueOf(v1))
+	ret = reflect.Append(ret, valueOf(v1))
 	for {
 		_, err = in.Peek(1)
 		if err != nil {
@@ -39,11 +50,12 @@ func matchArray1(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err er
 			}
 			return
 		}
-		v1, err = R.Match(in, ctx)
+		v1, err = R.Match(in, ctx.NewSub())
 		if err != nil {
+			log.Error("matchArray failed:", err)
 			return
 		}
-		ret = reflect.Append(ret, reflect.ValueOf(v1))
+		ret = reflect.Append(ret, valueOf(v1))
 	}
 }
 
@@ -53,20 +65,22 @@ func matchArray(R Ruler, n int, in *bufio.Reader, ctx *Context) (v interface{}, 
 		return
 	}
 
-	v1, err := R.Match(in, ctx)
+	v1, err := R.Match(in, ctx.NewSub())
 	if err != nil {
+		log.Error("matchArray failed:", err)
 		return
 	}
 
 	t := typeOf(v1)
 	ret := reflect.MakeSlice(reflect.SliceOf(t), 0, n)
-	ret = reflect.Append(ret, reflect.ValueOf(v1))
+	ret = reflect.Append(ret, valueOf(v1))
 	for i := 1; i < n; i++ {
-		v1, err = R.Match(in, ctx)
+		v1, err = R.Match(in, ctx.NewSub())
 		if err != nil {
+			log.Error("matchArray failed:", err)
 			return
 		}
-		ret = reflect.Append(ret, reflect.ValueOf(v1))
+		ret = reflect.Append(ret, valueOf(v1))
 	}
 	return ret.Interface(), nil
 }
@@ -84,6 +98,11 @@ func (p *array1) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 		return
 	}
 	return matchArray1(p.r, in, ctx)
+}
+
+func (p *array1) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '+')
 }
 
 func (p *array1) SizeOf() int {
@@ -116,6 +135,11 @@ func (p *array0) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return matchArray1(p.r, in, ctx)
 }
 
+func (p *array0) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '*')
+}
+
 func (p *array0) SizeOf() int {
 
 	return -1
@@ -146,6 +170,11 @@ func (p *array) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 
 	n := p.n
 	return matchArray(p.r, n, in, ctx)
+}
+
+func (p *array) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '[', ']')
 }
 
 func (p *array) SizeOf() int {
@@ -182,6 +211,11 @@ func (p *dynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 
 	n := p.n(ctx)
 	return matchArray(p.r, n, in, ctx)
+}
+
+func (p *dynarray) BuildFullName(b []byte) []byte {
+
+	return append(p.r.BuildFullName(b), '[', ']')
 }
 
 func (p *dynarray) SizeOf() int {

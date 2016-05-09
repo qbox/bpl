@@ -28,6 +28,11 @@ func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return nil, nil
 }
 
+func (p nilType) BuildFullName(b []byte) []byte {
+
+	return append(b, "nil"...)
+}
+
 func (p nilType) SizeOf() int {
 
 	return 0
@@ -50,6 +55,11 @@ func (p eof) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return nil, ErrNotEOF
 }
 
+func (p eof) BuildFullName(b []byte) []byte {
+
+	return append(b, "eof"...)
+}
+
 func (p eof) SizeOf() int {
 
 	return 0
@@ -67,6 +77,11 @@ func (p done) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	_, err = in.WriteTo(ioutil.Discard)
 	return
+}
+
+func (p done) BuildFullName(b []byte) []byte {
+
+	return append(b, "done"...)
 }
 
 func (p done) SizeOf() int {
@@ -93,6 +108,18 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 		}
 	}
 	return ctx.Dom(), nil
+}
+
+func (p *and) BuildFullName(b []byte) []byte {
+
+	last := len(p.rs) - 1
+	for i, r := range p.rs {
+		b = r.BuildFullName(b)
+		if i != last {
+			b = append(b, ' ')
+		}
+	}
+	return b
 }
 
 func (p *and) SizeOf() int {
@@ -133,6 +160,18 @@ func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return ret, nil
 }
 
+func (p *seq) BuildFullName(b []byte) []byte {
+
+	last := len(p.rs) - 1
+	for i, r := range p.rs {
+		b = r.BuildFullName(b)
+		if i != last {
+			b = append(b, ' ')
+		}
+	}
+	return b
+}
+
 func (p *seq) SizeOf() int {
 
 	return -1
@@ -158,6 +197,11 @@ func (p *act) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 		return
 	}
 	return ctx.Dom(), nil
+}
+
+func (p *act) BuildFullName(b []byte) []byte {
+
+	return b
 }
 
 func (p *act) SizeOf() int {
@@ -188,6 +232,11 @@ func (p *dyntype) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 		return r.Match(in, ctx)
 	}
 	return
+}
+
+func (p *dyntype) BuildFullName(b []byte) []byte {
+
+	return append(b, "dyntype"...)
 }
 
 func (p *dyntype) SizeOf() int {
@@ -221,6 +270,13 @@ func (p *read) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	return p.r.Match(in, ctx)
 }
 
+func (p *read) BuildFullName(b []byte) []byte {
+
+	b = append(b, "read n do {"...)
+	b = p.r.BuildFullName(b)
+	return append(b, '}')
+}
+
 func (p *read) SizeOf() int {
 
 	return -1
@@ -246,6 +302,13 @@ func (p *ifType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 		return p.r.Match(in, ctx)
 	}
 	return
+}
+
+func (p *ifType) BuildFullName(b []byte) []byte {
+
+	b = append(b, "if cond do {"...)
+	b = p.r.BuildFullName(b)
+	return append(b, '}')
 }
 
 func (p *ifType) SizeOf() int {
@@ -274,6 +337,13 @@ func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	return p.r.Match(in, ctx)
 }
 
+func (p *eval) BuildFullName(b []byte) []byte {
+
+	b = append(b, "eval expr do {"...)
+	b = p.r.BuildFullName(b)
+	return append(b, '}')
+}
+
 func (p *eval) SizeOf() int {
 
 	return -1
@@ -299,6 +369,11 @@ func (p *assert) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 		return
 	}
 	panic(p.msg)
+}
+
+func (p *assert) BuildFullName(b []byte) []byte {
+
+	return append(b, p.msg...)
 }
 
 func (p *assert) SizeOf() int {
@@ -342,6 +417,16 @@ func (p *TypeVar) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 		return 0, ErrVarNotAssigned
 	}
 	return r.Match(in, ctx)
+}
+
+// BuildFullName returns full name of this matching unit.
+//
+func (p *TypeVar) BuildFullName(b []byte) []byte {
+
+	if p.Elem == nil {
+		return append(b, p.Name...)
+	}
+	return p.Elem.BuildFullName(b)
 }
 
 // SizeOf is required by a matching unit. see Ruler interface.
