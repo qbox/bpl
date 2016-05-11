@@ -25,9 +25,9 @@ init = {
 		0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE,
 	])
     if BPL_DIRECTION == "REQ" {
-        global handshakeKey = fpKey
+        global handshakeKey = fpKey[:30]
     } else {
-        global handshakeKey = fmsKey
+        global handshakeKey = fmsKey[:36]
     }
 
     global msgs = mkmap("int:var")
@@ -504,28 +504,37 @@ Handshake0 = {
     assert h0 == 3
 }
 
+Handshake1Verify = {
+    let i = _diggestOffset
+    let off = (_h[i] + _h[i+1] + _h[i+2] + _h[i+3]) % (764 - 32 - 4) + i + 4
+    let data1 = _h[:off]
+    let data2 = _h[off+32:]
+    let digest = _h[off:off+32]
+    let h = hmac.new(sha256.new, handshakeKey)
+    do h.write(data1)
+    do h.write(data2)
+    let ok = bytes.equal(h.sum(nil), digest)
+}
+
 Handshake1 = {
     _h1 [1536]byte
+
     eval _h1 do {
         time    uint32be
         version uint32be
-        let _data1 = _h1[:772]
-        let digest = _h1[772:772+32]
-        let _data2 = _h1[772+32:]
-        let _h = hmac.new(sha256.new, handshakeKey)
-        do _h.write(_data1)
-        do _h.write(_data2)
-        if bytes.equal(_h.sum(nil), digest) {
-            let msg = "Flash >= 10.0.32.18"
+        assert version != 0
+        global _h = _h1
+        global _diggestOffset = 772
+        _verify1 Handshake1Verify
+        if _verify1.ok {
+            let digest = _verify1.digest
+            let msg = "Flash after 10.0.32.18"
         } else {
-            let _data1 = _h1[:8]
-            let digest = _h1[8:40]
-            let _data2 = _h1[40:]
-            do _h.reset()
-            do _h.write(_data1)
-            do _h.write(_data2)
-            if bytes.equal(_h.sum(nil), digest) {
-                let msg = "Flash < 10.0.32.18"
+            global _diggestOffset = 8
+            _verify2 Handshake1Verify
+            if _verify2.ok {
+                let digest = _verify2.digest
+                let msg = "Flash before 10.0.32.18"
             }
         }
     }
