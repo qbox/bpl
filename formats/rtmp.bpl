@@ -607,12 +607,12 @@ Chunk = {
 	}
 
 	let _header = {
-		"ts":	   header.ts,
+		"ts":	    header.ts,
 		"length":   header.length,
 		"typeid":   header.typeid,
 		"streamid": header.streamid,
 		"remain":   header.remain - _length,
-		"body":	 header._body,
+		"body":	    header._body,
 	}
 	do set(msgs, header.csid, _header)
 
