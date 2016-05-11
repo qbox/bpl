@@ -3,6 +3,33 @@ const (
 )
 
 init = {
+	global fmsKey = bytes.from([
+		0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20,
+		0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c,
+		0x61, 0x73, 0x68, 0x20, 0x4d, 0x65, 0x64, 0x69,
+		0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
+		0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Media Server 001
+		0xf0, 0xee, 0xc2, 0x4a, 0x80, 0x68, 0xbe, 0xe8,
+		0x2e, 0x00, 0xd0, 0xd1, 0x02, 0x9e, 0x7e, 0x57,
+		0x6e, 0xec, 0x5d, 0x2d, 0x29, 0x80, 0x6f, 0xab,
+		0x93, 0xb8, 0xe6, 0x36, 0xcf, 0xeb, 0x31, 0xae,
+	])
+	global fpKey = bytes.from([
+		0x47, 0x65, 0x6E, 0x75, 0x69, 0x6E, 0x65, 0x20,
+		0x41, 0x64, 0x6F, 0x62, 0x65, 0x20, 0x46, 0x6C,
+		0x61, 0x73, 0x68, 0x20, 0x50, 0x6C, 0x61, 0x79,
+		0x65, 0x72, 0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Player 001
+		0xF0, 0xEE, 0xC2, 0x4A, 0x80, 0x68, 0xBE, 0xE8,
+		0x2E, 0x00, 0xD0, 0xD1, 0x02, 0x9E, 0x7E, 0x57,
+		0x6E, 0xEC, 0x5D, 0x2D, 0x29, 0x80, 0x6F, 0xAB,
+		0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE,
+	])
+    if BPL_DIRECTION == "REQ" {
+        global handshakeKey = fpKey
+    } else {
+        global handshakeKey = fmsKey
+    }
+
     global msgs = mkmap("int:var")
     global chunksize = 128
     global objectend = errors.new("object end")
@@ -265,7 +292,7 @@ AMF3_INT = {
             return (b1 << 7) | b2
         }
     } else {
-        return b1
+        return int(b1)
     }
 }
 
@@ -474,14 +501,38 @@ SetPeerBandwidth = {
 
 Handshake0 = {
     h0 byte
+    assert h0 == 3
 }
 
 Handshake1 = {
-    h1 [1536]byte
+    _h1 [1536]byte
+    eval _h1 do {
+        time    uint32be
+        version uint32be
+        let _data1 = _h1[:772]
+        let digest = _h1[772:772+32]
+        let _data2 = _h1[772+32:]
+        let _h = hmac.new(sha256.new, handshakeKey)
+        do _h.write(_data1)
+        do _h.write(_data2)
+        if bytes.equal(_h.sum(nil), digest) {
+            let msg = "Flash >= 10.0.32.18"
+        } else {
+            let _data1 = _h1[:8]
+            let digest = _h1[8:40]
+            let _data2 = _h1[40:]
+            do _h.reset()
+            do _h.write(_data1)
+            do _h.write(_data2)
+            if bytes.equal(_h.sum(nil), digest) {
+                let msg = "Flash < 10.0.32.18"
+            }
+        }
+    }
 }
 
 Handshake2 = {
-    h2 [1536]byte
+    _h2 [1536]byte
 }
 
 // --------------------------------------------------------------
@@ -587,6 +638,6 @@ Chunk = {
     }
 }
 
-doc = init Handshake0 Handshake1 Handshake2 *(Chunk dump)
+doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dump)
 
 // --------------------------------------------------------------
