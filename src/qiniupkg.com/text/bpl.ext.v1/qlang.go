@@ -7,12 +7,18 @@ import (
 	"qlang.io/exec.v2"
 	"qlang.io/qlang.spec.v1"
 	"qlang.io/qlang/bytes"
+	"qlang.io/qlang/crypto/hmac"
+	"qlang.io/qlang/crypto/md5"
+	"qlang.io/qlang/crypto/sha1"
+	"qlang.io/qlang/crypto/sha256"
 	"qlang.io/qlang/encoding/hex"
 	"qlang.io/qlang/encoding/json"
 	"qlang.io/qlang/errors"
+	"qlang.io/qlang/strings"
 
 	// import qlang builtin
 	_ "qlang.io/qlang/builtin"
+	qstrconv "qlang.io/qlang/strconv"
 )
 
 // -----------------------------------------------------------------------------
@@ -21,9 +27,15 @@ func init() {
 
 	qlang.Import("", exports)
 	qlang.Import("bytes", bytes.Exports)
+	qlang.Import("md5", md5.Exports)
+	qlang.Import("sha1", sha1.Exports)
+	qlang.Import("sha256", sha256.Exports)
+	qlang.Import("hmac", hmac.Exports)
 	qlang.Import("errors", errors.Exports)
 	qlang.Import("json", json.Exports)
 	qlang.Import("hex", hex.Exports)
+	qlang.Import("strconv", qstrconv.Exports)
+	qlang.Import("strings", strings.Exports)
 }
 
 // Fntable returns the qlang compiler's function table. It is required by tpl.Interpreter engine.
