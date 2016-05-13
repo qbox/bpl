@@ -121,7 +121,7 @@ qbplproxy -f 'flashVer=LNX 9,0,124,2' -h localhost:1935 -b localhost:1936 -p for
 2) 启动 qbplproxy：
 
 ```
-qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongodb.bpl | tee <output>.log
+qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongo.bpl | tee <output>.log
 ```
 
 3) 使用 MongoDB，比如通过 mongo shell 操作：
@@ -132,7 +132,15 @@ qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongodb.bpl | tee <ou
 
 ## 文件格式研究
 
-### GIF
+### MongoDB binlog 格式
+
+TODO
+
+### MySQL binlog 格式
+
+TODO
+
+### GIF 格式
 
 格式描述：
 
