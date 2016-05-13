@@ -6,14 +6,16 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 
 	"qlang.io/qlang.spec.v1"
 
 	"qiniupkg.com/text/bpl.ext.v1"
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -25,6 +27,7 @@ type Env struct {
 	Src       *net.TCPConn
 	Dest      *net.TCPConn
 	Direction string
+	Conn      string
 }
 
 // A ReverseProxier is a reverse proxier server.
@@ -44,7 +47,7 @@ func (p *ReverseProxier) ListenAndServe() (err error) {
 	addr := p.Addr
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("ListenAndServe(tcprproxyd) %s failed: %v\n", addr, err)
+		log.Fatalf("ListenAndServe(qbplproxy) %s failed: %v\n", addr, err)
 		return
 	}
 	if p.Listened != nil {
@@ -52,7 +55,7 @@ func (p *ReverseProxier) ListenAndServe() (err error) {
 	}
 	err = p.Serve(l)
 	if err != nil {
-		log.Fatalf("ListenAndServe(tcprproxyd) %s failed: %v\n", addr, err)
+		log.Fatalf("ListenAndServe(qbplproxy) %s failed: %v\n", addr, err)
 	}
 	return
 }
@@ -93,22 +96,23 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 		go func() {
 			c2, err2 := net.DialTCP("tcp", nil, backend)
 			if err2 != nil {
-				log.Error("tcprproxy: dial backend failed -", p.Backend, "error:", err2)
+				log.Error("qbplproxy: dial backend failed -", p.Backend, "error:", err2)
 				c.Close()
 				return
 			}
 
+			conn := c.RemoteAddr().String()
 			go func() {
 				r2 := io.TeeReader(c2, c)
-				onResponse(r2, &Env{Src: c2, Dest: c, Direction: "RESP"})
+				onResponse(r2, &Env{Src: c2, Dest: c, Direction: "RESP", Conn: conn})
 				c.CloseWrite()
 				c2.CloseRead()
 			}()
 
 			r := io.TeeReader(c, c2)
-			err2 = onRequest(r, &Env{Src: c, Dest: c2, Direction: "REQ"})
+			err2 = onRequest(r, &Env{Src: c, Dest: c2, Direction: "REQ", Conn: conn})
 			if err2 != nil {
-				log.Info("tcprproxy (request):", err2)
+				log.Info("qbplproxy (request):", err2, "type:", reflect.TypeOf(err2))
 			}
 			c.CloseRead()
 			c2.CloseWrite()
@@ -121,6 +125,7 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 var (
 	host     = flag.String("h", "", "listen host (listenIp:port).")
 	backend  = flag.String("b", "", "backend host (backendIp:port).")
+	filter   = flag.String("f", "", "filter condition. eg. -f 'flashVer=LNX 9,0,124,2'")
 	protocol = flag.String("p", "", "protocol file in BPL syntax, default is guessed by <port>.")
 	output   = flag.String("o", "", "output log file, default is stderr.")
 )
@@ -147,18 +152,18 @@ func guessProtocol(host string) string {
 	return ""
 }
 
-// qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.log]
+// qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log]
 //
 func main() {
 
 	flag.Parse()
 	if *host == "" || *backend == "" {
-		fmt.Fprintln(os.Stderr, "Usage: qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.log]")
+		fmt.Fprintln(os.Stderr, "Usage: qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log]")
 		flag.PrintDefaults()
 		return
 	}
 	bpl.SetDumpCode(os.Getenv("BPL_DUMPCODE"))
-	qlang.DumpStack = true
+	qlang.DumpStack = false
 
 	baseDir = os.Getenv("HOME") + "/.qbpl/formats/"
 	if *protocol == "" {
@@ -172,6 +177,17 @@ func main() {
 	} else {
 		if path.Ext(*protocol) == "" {
 			*protocol = baseDir + *protocol + ".bpl"
+		}
+	}
+
+	filterCond := make(map[string]interface{})
+	if *filter != "" {
+		m, err := url.ParseQuery(*filter)
+		if err != nil {
+			log.Fatalln("Error: invalid -f <filter> argument -", err)
+		}
+		for k, v := range m {
+			filterCond[k] = v[0]
 		}
 	}
 
@@ -192,8 +208,9 @@ func main() {
 		onBpl = func(r io.Reader, env *Env) (err error) {
 			in := bufio.NewReader(r)
 			ctx := bpl.NewContext()
+			ctx.Globals["BPL_FILTER"] = filterCond
 			ctx.Globals["BPL_DIRECTION"] = env.Direction
-			ctx.Globals["BPL_DUMP_PREFIX"] = "[" + env.Direction + "]"
+			ctx.Globals["BPL_DUMP_PREFIX"] = "[CONN:" + env.Conn + "][" + env.Direction + "]"
 			_, err = ruler.SafeMatch(in, ctx)
 			if err != nil {
 				log.Error("Match failed:", err)

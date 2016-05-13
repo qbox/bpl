@@ -50,11 +50,9 @@ assertexpr = ("assert"/istart! iexpr /iend) /assert
 
 gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
-lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
-
 retexpr = "return"/istart! iexpr /iend /return
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | lzwexpr
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr
 
 type =
 	IDENT/ident |
@@ -207,7 +205,6 @@ var exports = map[string]interface{}{
 	"$if":     (*Compiler).fnIf,
 	"$read":   (*Compiler).fnRead,
 	"$return": (*Compiler).fnReturn,
-	"$lzw":    (*Compiler).fnLzw,
 	"$case":   (*Compiler).fnCase,
 	"$assert": (*Compiler).fnAssert,
 	"$const":  (*Compiler).fnConst,
