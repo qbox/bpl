@@ -30,6 +30,9 @@ init = {
 		global handshakeKey = fmsKey[:36]
 	}
 
+	global filterFlashVer = BPL_FILTER["flashVer"]
+	global canDump = true
+
 	global msgs = mkmap("int:var")
 	global chunksize = 128
 	global objectend = errors.new("object end")
@@ -136,9 +139,8 @@ AMF0_OBJECT_VERBOSE = {
 AMF0_OBJECT = if VERBOSE do AMF0_OBJECT_VERBOSE else AMF0_OBJECT_NORMAL
 
 AMF0_STRICT_ARRAY = {
-	len uint32be
-	body *byte
-	assert false
+	len  uint32be
+	objs [len]AMF0_TYPE
 }
 
 AMF0_MOVIECLIP = {
@@ -241,6 +243,9 @@ AMF0_CMDDATA = {
 	cmd           AMF0_TYPE
 	transactionId AMF0_TYPE
 	value         *AMF0_TYPE
+	if filterFlashVer != undefined && cmd == "connect" {
+		global canDump = (value[0].flashVer == filterFlashVer)
+	}
 }
 
 AMF0 = {
@@ -647,6 +652,8 @@ Chunk = {
 	}
 }
 
-doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dump)
+dumpIf = if canDump do dump else nil
+
+doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dumpIf)
 
 // --------------------------------------------------------------
