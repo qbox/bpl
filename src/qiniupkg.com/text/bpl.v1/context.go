@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"runtime/debug"
 
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufio.v7"
 	"qlang.io/exec.v2"
 )
 

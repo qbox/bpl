@@ -9,12 +9,13 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 
 	"qlang.io/qlang.spec.v1"
 
 	"qiniupkg.com/text/bpl.ext.v1"
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -46,7 +47,7 @@ func (p *ReverseProxier) ListenAndServe() (err error) {
 	addr := p.Addr
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("ListenAndServe(tcprproxyd) %s failed: %v\n", addr, err)
+		log.Fatalf("ListenAndServe(qbplproxy) %s failed: %v\n", addr, err)
 		return
 	}
 	if p.Listened != nil {
@@ -54,7 +55,7 @@ func (p *ReverseProxier) ListenAndServe() (err error) {
 	}
 	err = p.Serve(l)
 	if err != nil {
-		log.Fatalf("ListenAndServe(tcprproxyd) %s failed: %v\n", addr, err)
+		log.Fatalf("ListenAndServe(qbplproxy) %s failed: %v\n", addr, err)
 	}
 	return
 }
@@ -95,7 +96,7 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 		go func() {
 			c2, err2 := net.DialTCP("tcp", nil, backend)
 			if err2 != nil {
-				log.Error("tcprproxy: dial backend failed -", p.Backend, "error:", err2)
+				log.Error("qbplproxy: dial backend failed -", p.Backend, "error:", err2)
 				c.Close()
 				return
 			}
@@ -111,7 +112,7 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 			r := io.TeeReader(c, c2)
 			err2 = onRequest(r, &Env{Src: c, Dest: c2, Direction: "REQ", Conn: conn})
 			if err2 != nil {
-				log.Info("tcprproxy (request):", err2)
+				log.Info("qbplproxy (request):", err2, "type:", reflect.TypeOf(err2))
 			}
 			c.CloseRead()
 			c2.CloseWrite()

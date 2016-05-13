@@ -141,6 +141,9 @@ AMF0_OBJECT = if VERBOSE do AMF0_OBJECT_VERBOSE else AMF0_OBJECT_NORMAL
 AMF0_STRICT_ARRAY = {
 	len  uint32be
 	objs [len]AMF0_TYPE
+	if VERBOSE == 0 {
+		return objs
+	}
 }
 
 AMF0_MOVIECLIP = {
@@ -427,6 +430,19 @@ AMF3_CMD = {
 
 // --------------------------------------------------------------
 
+ChunkDump = Chunk dump
+
+AggregateChunk = {
+	val  ChunkDump
+	back uint32be
+}
+
+AggregateMsg = {
+	chunks *AggregateChunk
+}
+
+// --------------------------------------------------------------
+
 AudioData = {
 	tag byte
 	let format = tag >> 4
@@ -644,6 +660,7 @@ Chunk = {
 				20: AMF0_CMD
 				15: AMF3
 				17: AMF3_CMD
+				22: AggregateMsg
 				8:  Audio
 				9:  Video
 				default: let body = _body

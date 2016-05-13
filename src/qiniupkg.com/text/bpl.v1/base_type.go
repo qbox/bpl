@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
