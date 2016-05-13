@@ -99,13 +99,16 @@ qbplproxy -f 'flashVer=LNX 9,0,124,2' -h localhost:1935 -b localhost:1936 -p for
 
 ### WebRTC 协议
 
-TODO
+格式描述：
+
+* [webrtc.bpl](https://github.com/qbox/bpl/blob/develop/formats/webrtc.bpl)
+
 
 ### MongoDB 协议
 
 格式描述：
 
-* [rtmp.bpl](https://github.com/qbox/bpl/blob/develop/formats/mongo.bpl)
+* [mongo.bpl](https://github.com/qbox/bpl/blob/develop/formats/mongo.bpl)
 
 测试：
 
@@ -125,4 +128,18 @@ qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongodb.bpl | tee <ou
 
 ```
 ./mongo
+```
+
+## 文件格式研究
+
+### GIF
+
+格式描述：
+
+* [gif.bpl](https://github.com/qbox/bpl/blob/develop/formats/gif.bpl)
+
+测试：
+
+```
+qbpl -p formats/gif.bpl formats/1.gif
 ```
