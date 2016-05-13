@@ -60,7 +60,7 @@ qbplproxy -h localhost:27017 -b localhost:37017
 
 测试：
 
-1. 启动一个 rtmp server，让其监听 1936 端口（而不是默认的 1935 端口）。比如我们可以用 [node-rtsp-rtmp-server](https://github.com/iizukanao/node-rtsp-rtmp-server)：
+1) 启动一个 rtmp server，让其监听 1936 端口（而不是默认的 1935 端口）。比如我们可以用 [node-rtsp-rtmp-server](https://github.com/iizukanao/node-rtsp-rtmp-server)：
 
 ```
 git clone git@github.com:iizukanao/node-rtsp-rtmp-server.git
@@ -71,23 +71,23 @@ cd node-rtsp-rtmp-server
 coffee server.coffee
 ```
 
-2. 启动 qbplproxy：
+2) 启动 qbplproxy：
 
 ```
 qbplproxy -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee <output>.log
 ```
 
-3. 推流：
+3) 推流：
 
 ```
 ffmpeg -re -i test.m4v -c:v copy -c:a copy -f flv rtmp://localhost/live/123
 ```
 
-4. 播流：
+4) 播流：
 
 在 Mac 下可以考虑用 VLC Player，打开网址 rtmp://localhost/live/123 进行播放即可。
 
-5. 选择性查看
+5) 选择性查看
 
 有时候我们并不希望看到所有的信息，rtmp.bpl 支持以 flashVer 作为过滤条件。如：
 
@@ -112,19 +112,19 @@ qbplproxy -f 'flashVer=LNX 9,0,124,2' -h localhost:1935 -b localhost:1936 -p for
 
 测试：
 
-1. 启动 MongoDB，让其监听 37017 端口（而不是默认的 27017 端口）：
+1) 启动 MongoDB，让其监听 37017 端口（而不是默认的 27017 端口）：
 
 ```
 ./mongod --port 37017
 ```
 
-2. 启动 qbplproxy：
+2) 启动 qbplproxy：
 
 ```
 qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongodb.bpl | tee <output>.log
 ```
 
-3. 使用 MongoDB，比如通过 mongo shell 操作：
+3) 使用 MongoDB，比如通过 mongo shell 操作：
 
 ```
 ./mongo
