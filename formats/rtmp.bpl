@@ -180,7 +180,7 @@ AMF0_OBJECT_END = if VERBOSE do nil else {
 
 AMF0_DATE = {
 	timestamp float64be
-	tz		uint16be
+	tz        uint16be
 }
 
 AMF0_LONG_STRING = {
@@ -238,9 +238,9 @@ AMF0_TYPE = {
 }
 
 AMF0_CMDDATA = {
-	cmd		   AMF0_TYPE
+	cmd           AMF0_TYPE
 	transactionId AMF0_TYPE
-	value		 *AMF0_TYPE
+	value         *AMF0_TYPE
 }
 
 AMF0 = {
@@ -407,9 +407,9 @@ AMF3_TYPE = {
 }
 
 AMF3_CMDDATA = {
-	cmd		   AMF3_TYPE
+	cmd           AMF3_TYPE
 	transactionId AMF3_TYPE
-	value		 *AMF3_TYPE
+	value         *AMF3_TYPE
 }
 
 AMF3 = {
