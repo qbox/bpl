@@ -81,11 +81,11 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
-member = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do"
+imember = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do"
 
 atom =
 	'(' qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
-	'.' member/mref |
+	'.' imember/mref |
 	'[' ?qexpr/ARITY ?':'/ARITY ?qexpr/ARITY ']'/index
 
 ifactor =
