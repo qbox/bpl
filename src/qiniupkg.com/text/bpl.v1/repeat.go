@@ -1,10 +1,9 @@
 package bpl
 
 import (
+	"bufio"
 	"io"
 	"reflect"
-
-	"qiniupkg.com/x/bufio.v7"
 )
 
 // -----------------------------------------------------------------------------

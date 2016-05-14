@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -15,7 +16,6 @@ import (
 	"qlang.io/qlang.spec.v1"
 
 	"qiniupkg.com/text/bpl.ext.v1"
-	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -163,7 +163,7 @@ func main() {
 		return
 	}
 	bpl.SetDumpCode(os.Getenv("BPL_DUMPCODE"))
-	qlang.DumpStack = false
+	qlang.DumpStack = true
 
 	baseDir = os.Getenv("HOME") + "/.qbpl/formats/"
 	if *protocol == "" {
@@ -208,6 +208,8 @@ func main() {
 		onBpl = func(r io.Reader, env *Env) (err error) {
 			in := bufio.NewReader(r)
 			ctx := bpl.NewContext()
+			ctx.Globals["BPL_IN"] = in
+			ctx.Globals["BPL_CTX"] = ctx
 			ctx.Globals["BPL_FILTER"] = filterCond
 			ctx.Globals["BPL_DIRECTION"] = env.Direction
 			ctx.Globals["BPL_DUMP_PREFIX"] = "[CONN:" + env.Conn + "][" + env.Direction + "]"

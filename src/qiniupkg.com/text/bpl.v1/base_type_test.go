@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"qiniupkg.com/text/bpl.v1"
-	"qiniupkg.com/x/bufio.v7"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 func TestBaseType(t *testing.T) {
 
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, 123)
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 
 	ctx := bpl.NewContext()
 	named := &bpl.Member{Name: "foo", Type: bpl.Int64}
@@ -34,7 +34,7 @@ func TestCString(t *testing.T) {
 
 	b := []byte("Hello, world!")
 	b = append(b, 0)
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 
 	v, err := bpl.CString.Match(in, nil)
 	if err != nil {
@@ -56,7 +56,7 @@ func TestCString(t *testing.T) {
 func TestUintbe(t *testing.T) {
 
 	b := []byte{1, 2, 3, 4}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	v, err := bpl.Uintbe(3).Match(in, nil)
 	if err != nil {
 		t.Fatal("Uintbe.Match failed:", err)
@@ -69,7 +69,7 @@ func TestUintbe(t *testing.T) {
 func TestUintle(t *testing.T) {
 
 	b := []byte{1, 2, 3, 4}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	v, err := bpl.Uintle(3).Match(in, nil)
 	if err != nil {
 		t.Fatal("Uintbe.Match failed:", err)

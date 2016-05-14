@@ -1,12 +1,12 @@
 package bpl
 
 import (
+	"bufio"
 	"encoding/binary"
 	"io"
 	"reflect"
 	"unsafe"
 
-	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 

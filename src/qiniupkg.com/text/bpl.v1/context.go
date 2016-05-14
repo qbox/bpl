@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/hex"
 	"errors"
@@ -8,7 +9,7 @@ import (
 	"reflect"
 	"runtime/debug"
 
-	"qiniupkg.com/x/bufio.v7"
+	"qiniupkg.com/x/bufiox.v7"
 	"qlang.io/exec.v2"
 )
 
@@ -174,7 +175,7 @@ func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	if err != nil {
 		if _, ok := err.(*exec.Error); !ok {
 			err = &exec.Error{
-				Err:   &errorAt{Err: err, Buf: in.Buffer()},
+				Err:   &errorAt{Err: err, Buf: bufiox.Buffer(in)},
 				File:  p.file,
 				Line:  p.line,
 				Stack: debug.Stack(),

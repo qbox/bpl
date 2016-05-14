@@ -12,8 +12,17 @@ import (
 func clone(rs []interface{}) []bpl.Ruler {
 
 	dest := make([]bpl.Ruler, len(rs))
-	for i, r := range rs {
-		dest[i] = r.(bpl.Ruler)
+	for i, v := range rs {
+		dest[i] = v.(bpl.Ruler)
+	}
+	return dest
+}
+
+func cloneNames(names []interface{}) []string {
+
+	dest := make([]string, len(names))
+	for i, v := range names {
+		dest[i] = v.(string)
 	}
 	return dest
 }

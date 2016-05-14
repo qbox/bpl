@@ -1,6 +1,8 @@
 package bpl
 
 import (
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strconv"
 
@@ -24,10 +26,26 @@ import (
 // -----------------------------------------------------------------------------
 
 func exit(code int) {
+
 	panic(code)
 }
 
 func init() {
+
+	osExports := map[string]interface{}{
+		"exit": exit,
+	}
+
+	httpExports := map[string]interface{}{
+		"readRequest":  http.ReadRequest,
+		"readResponse": http.ReadResponse,
+	}
+
+	var ioutilExports = map[string]interface{}{
+		"nopCloser": ioutil.NopCloser,
+		"readAll":   ioutil.ReadAll,
+		"discard":   ioutil.Discard,
+	}
 
 	qlang.Import("", exports)
 	qlang.Import("bytes", bytes.Exports)
@@ -38,6 +56,9 @@ func init() {
 	qlang.Import("errors", errors.Exports)
 	qlang.Import("json", json.Exports)
 	qlang.Import("hex", hex.Exports)
+	qlang.Import("ioutil", ioutilExports)
+	qlang.Import("os", osExports)
+	qlang.Import("http", httpExports)
 	qlang.Import("strconv", qstrconv.Exports)
 	qlang.Import("strings", strings.Exports)
 }
@@ -205,6 +226,18 @@ func (p *Compiler) pushs(lit string) {
 		panic("invalid string `" + lit + "`: " + err.Error())
 	}
 	p.code.Block(exec.Push(v))
+}
+
+func (p *Compiler) pushc(lit string) {
+
+	v, multibyte, tail, err := strconv.UnquoteChar(lit[1:len(lit)-1], '\'')
+	if err != nil {
+		panic("invalid char `" + lit + "`: " + err.Error())
+	}
+	if tail != "" || multibyte {
+		panic("invalid char: " + lit)
+	}
+	p.code.Block(exec.Push(byte(v)))
 }
 
 func (p *Compiler) cpushi(v int) {

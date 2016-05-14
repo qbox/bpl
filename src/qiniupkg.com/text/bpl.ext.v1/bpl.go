@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -14,7 +15,7 @@ import (
 
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter"
-	"qiniupkg.com/x/bufio.v7"
+	"qiniupkg.com/x/bufiox.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -200,7 +201,7 @@ func (p Ruler) MatchStream(r io.Reader) (v interface{}, err error) {
 //
 func (p Ruler) MatchBuffer(b []byte) (v interface{}, err error) {
 
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	ctx := bpl.NewContext()
 	return p.SafeMatch(in, ctx)
 }
