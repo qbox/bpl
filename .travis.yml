@@ -9,7 +9,7 @@ script:
   - cd $QBOXROOT
   - git clone git@github.com:qbox/base.git
   - cd $QBOXROOT/base
-  - git checkout $TRAVIS_BRANCH; source env-ci.sh
+  - git checkout $TRAVIS_BRANCH; source env.sh
   - echo "==== qbox/qlang ===="
   - cd $QBOXROOT
   - git clone git@github.com:qbox/qlang.git
