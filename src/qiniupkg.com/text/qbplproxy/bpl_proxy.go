@@ -163,7 +163,7 @@ func main() {
 		return
 	}
 	bpl.SetDumpCode(os.Getenv("BPL_DUMPCODE"))
-	qlang.DumpStack = false
+	qlang.DumpStack = true
 
 	baseDir = os.Getenv("HOME") + "/.qbpl/formats/"
 	if *protocol == "" {
