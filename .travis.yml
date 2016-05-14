@@ -3,7 +3,7 @@ go:
   - 1.6
 sudo: false
 before_script:
-  - export QBOXROOT=(cd $TRAVIS_BUILD_DIR/..; `pwd`)
+  - export QBOXROOT=$(cd $TRAVIS_BUILD_DIR/..; pwd)
 script:
   - echo "==== qbox/base ===="
   - cd $QBOXROOT
