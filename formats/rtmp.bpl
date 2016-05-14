@@ -559,7 +559,7 @@ Handshake2 = {
 AggregateItemHeader = {
 	typeid    byte
 	length    uint24be
-	timestamp uint24be
+	ts        uint24be
 	streamid  uint32be
 }
 
