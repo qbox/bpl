@@ -48,11 +48,13 @@ letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 
+fatalexpr = ("fatal"/istart! iexpr /iend) /fatal
+
 gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
 retexpr = "return"/istart! iexpr /iend /return
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr
 
 type =
 	IDENT/ident |
@@ -79,9 +81,11 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
+imember = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do"
+
 atom =
 	'(' qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
-	'.' IDENT/mref |
+	'.' imember/mref |
 	'[' ?qexpr/ARITY ?':'/ARITY ?qexpr/ARITY ']'/index
 
 ifactor =
@@ -207,6 +211,7 @@ var exports = map[string]interface{}{
 	"$return": (*Compiler).fnReturn,
 	"$case":   (*Compiler).fnCase,
 	"$assert": (*Compiler).fnAssert,
+	"$fatal":  (*Compiler).fnFatal,
 	"$const":  (*Compiler).fnConst,
 	"$casei":  (*Compiler).casei,
 	"$source": (*Compiler).source,
@@ -214,6 +219,8 @@ var exports = map[string]interface{}{
 	"$struct": (*Compiler).gostruct,
 	"$qline":  (*Compiler).codeLine,
 	"$xline":  (*Compiler).xline,
+
+	"exit": exit,
 }
 
 var builtins = map[string]bpl.Ruler{

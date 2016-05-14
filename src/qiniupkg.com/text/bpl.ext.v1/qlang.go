@@ -23,6 +23,10 @@ import (
 
 // -----------------------------------------------------------------------------
 
+func exit(code int) {
+	panic(code)
+}
+
 func init() {
 
 	qlang.Import("", exports)

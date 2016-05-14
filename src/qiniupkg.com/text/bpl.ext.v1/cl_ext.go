@@ -224,9 +224,8 @@ func (p *Compiler) fnEval() {
 	e := p.popExpr()
 	stk := p.stk
 	i := len(stk) - 1
-	expr := func(ctx *bpl.Context) []byte {
-		v := p.eval(ctx, e.start, e.end)
-		return v.([]byte)
+	expr := func(ctx *bpl.Context) interface{} {
+		return p.eval(ctx, e.start, e.end)
 	}
 	stk[i] = bpl.Eval(expr, stk[i].(bpl.Ruler))
 }
@@ -286,6 +285,19 @@ func (p *Compiler) fnAssert(src interface{}) {
 	}
 	msg := sourceOf(p.ipt, src)
 	p.stk = append(p.stk, bpl.Assert(expr, msg))
+}
+
+func (p *Compiler) fnFatal(src interface{}) {
+
+	e := p.popExpr()
+	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		val := p.eval(ctx, e.start, e.end)
+		if v, ok := val.(string); ok {
+			panic("fatal: " + v)
+		}
+		panic("fatal <expr> must return a string")
+	}
+	p.stk = append(p.stk, bpl.Dyntype(r))
 }
 
 // -----------------------------------------------------------------------------

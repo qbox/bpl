@@ -24,6 +24,7 @@ init = {
 		0x6E, 0xEC, 0x5D, 0x2D, 0x29, 0x80, 0x6F, 0xAB,
 		0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE,
 	])
+
 	if BPL_DIRECTION == "REQ" {
 		global handshakeKey = fpKey[:30]
 	} else {
@@ -31,9 +32,8 @@ init = {
 	}
 
 	global filterFlashVer = BPL_FILTER["flashVer"]
-	global canDump = true
 
-	global msgs = mkmap("int:var")
+	global lastMsgs = mkmap("int:var")
 	global chunksize = 128
 	global objectend = errors.new("object end")
 	global limitTypes = {
@@ -148,7 +148,7 @@ AMF0_STRICT_ARRAY = {
 
 AMF0_MOVIECLIP = {
 	body *byte
-	assert false
+	fatal "todo - AMF0_MOVIECLIP"
 }
 
 AMF0_NULL = {
@@ -198,12 +198,12 @@ AMF0_LONG_STRING = {
 
 AMF0_UNSUPPORTED = {
 	body *byte
-	assert false
+	fatal "todo - AMF0_UNSUPPORTED"
 }
 
 AMF0_RECORDSET = {
 	body *byte
-	assert false
+	fatal "todo - AMF0_RECORDSET"
 }
 
 AMF0_XML_DOCUMENT = AMF0_LONG_STRING
@@ -215,7 +215,7 @@ AMF0_TYPED_OBJECT = {
 
 AMF0_ACMPLUS_OBJECT = { // Switch to AMF3
 	body *byte
-	assert false
+	fatal "todo - AMF0_ACMPLUS_OBJECT"
 }
 
 AMF0_TYPE = {
@@ -247,7 +247,9 @@ AMF0_CMDDATA = {
 	transactionId AMF0_TYPE
 	value         *AMF0_TYPE
 	if filterFlashVer != undefined && cmd == "connect" {
-		global canDump = (value[0].flashVer == filterFlashVer)
+		if value[0].flashVer != filterFlashVer {
+			do exit(0)
+		}
 	}
 }
 
@@ -347,47 +349,47 @@ AMF3_ARRAY = {
 	assert (tag & 1) != 0 // reference unsupported
 	let len = tag >> 1
 	body *byte
-	assert false
+	fatal "todo - AMF3_ARRAY"
 }
 
 AMF3_OBJECT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_OBJECT"
 }
 
 AMF3_XML = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_XML"
 }
 
 AMF3_BYTE_ARRAY = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_BYTE_ARRAY"
 }
 
 AMF3_VECTOR_INT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_INT"
 }
 
 AMF3_VECTOR_UINT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_UINT"
 }
 
 AMF3_VECTOR_DOUBLE = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_DOUBLE"
 }
 
 AMF3_VECTOR_OBJECT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_OBJECT"
 }
 
 AMF3_DICTIONARY = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_DICTIONARY"
 }
 
 AMF3_TYPE = {
@@ -426,19 +428,6 @@ AMF3 = {
 
 AMF3_CMD = {
 	msg AMF3_CMDDATA
-}
-
-// --------------------------------------------------------------
-
-ChunkDump = Chunk dump
-
-AggregateChunk = {
-	val  ChunkDump
-	back uint32be
-}
-
-AggregateMsg = {
-	chunks *AggregateChunk
 }
 
 // --------------------------------------------------------------
@@ -499,7 +488,7 @@ SetChunkSize = {
 
 Abort = {
 	csid uint32be
-	let _last = msgs[csid]
+	let _last = lastMsgs[csid]
 	do set(_last, "remain", 0)
 }
 
@@ -567,6 +556,35 @@ Handshake2 = {
 
 // --------------------------------------------------------------
 
+AggregateItemHeader = {
+	typeid    byte
+	length    uint24be
+	ts        uint24be
+	streamid  uint32be
+}
+
+AggregateItem = {
+	header AggregateItemHeader
+	_body  [header.length]byte
+	back   uint32be
+	assert back == header.length + 11
+	eval _body do case header.typeid {
+		18: AMF0
+		20: AMF0_CMD
+		15: AMF3
+		17: AMF3_CMD
+		8:  Audio
+		9:  Video
+		default: let body = _body
+	}
+}
+
+AggregateMsg = {
+	msgs *AggregateItem
+}
+
+// --------------------------------------------------------------
+
 ChunkHeader = {
 	_tag byte
 
@@ -582,7 +600,7 @@ ChunkHeader = {
 		let csid = _v + 0x40
 	}
 
-	let _last = msgs[csid]
+	let _last = lastMsgs[csid]
 
 	if format < 3 {
 		ts uint24be
@@ -635,7 +653,7 @@ Chunk = {
 		"remain":   header.remain - _length,
 		"body":	    header._body,
 	}
-	do set(msgs, header.csid, _header)
+	do set(lastMsgs, header.csid, _header)
 
 	data [_length]byte
 	do header._body.write(data)
@@ -669,8 +687,6 @@ Chunk = {
 	}
 }
 
-dumpIf = if canDump do dump else nil
-
-doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dumpIf)
+doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dump)
 
 // --------------------------------------------------------------

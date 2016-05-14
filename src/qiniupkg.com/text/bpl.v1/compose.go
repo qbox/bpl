@@ -309,15 +309,30 @@ func If(cond func(ctx *Context) bool, r Ruler) Ruler {
 // -----------------------------------------------------------------------------
 
 type eval struct {
-	expr func(ctx *Context) []byte
+	expr func(ctx *Context) interface{}
 	r    Ruler
 }
 
 func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	b := p.expr(ctx)
-	in = bufio.NewReaderBuffer(b)
-	return p.r.Match(in, ctx)
+	fclose := false
+	val := p.expr(ctx)
+	switch v := val.(type) {
+	case []byte:
+		in = bufio.NewReaderBuffer(v)
+	case io.Reader:
+		in = bufio.NewReader(v)
+		fclose = true
+	default:
+		panic("eval <expr> must return []byte or io.Reader")
+	}
+	v, err = p.r.Match(in, ctx)
+	if fclose {
+		if v, ok := val.(io.Closer); ok {
+			v.Close()
+		}
+	}
+	return
 }
 
 func (p *eval) RetType() reflect.Type {
@@ -332,7 +347,7 @@ func (p *eval) SizeOf() int {
 
 // Eval returns a matching unit that eval expr(ctx) and matches it with R.
 //
-func Eval(expr func(ctx *Context) []byte, r Ruler) Ruler {
+func Eval(expr func(ctx *Context) interface{}, r Ruler) Ruler {
 
 	return &eval{r: r, expr: expr}
 }
