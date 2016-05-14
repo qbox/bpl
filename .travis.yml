@@ -18,7 +18,6 @@ script:
   - echo "====================="
   - cd $TRAVIS_BUILD_DIR
   - source env.sh
-  - echo $GOPATH
   - make
   - make test
 
