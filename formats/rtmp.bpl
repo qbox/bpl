@@ -148,7 +148,7 @@ AMF0_STRICT_ARRAY = {
 
 AMF0_MOVIECLIP = {
 	body *byte
-	assert false
+	fatal "todo - AMF0_MOVIECLIP"
 }
 
 AMF0_NULL = {
@@ -198,12 +198,12 @@ AMF0_LONG_STRING = {
 
 AMF0_UNSUPPORTED = {
 	body *byte
-	assert false
+	fatal "todo - AMF0_UNSUPPORTED"
 }
 
 AMF0_RECORDSET = {
 	body *byte
-	assert false
+	fatal "todo - AMF0_RECORDSET"
 }
 
 AMF0_XML_DOCUMENT = AMF0_LONG_STRING
@@ -215,7 +215,7 @@ AMF0_TYPED_OBJECT = {
 
 AMF0_ACMPLUS_OBJECT = { // Switch to AMF3
 	body *byte
-	assert false
+	fatal "todo - AMF0_ACMPLUS_OBJECT"
 }
 
 AMF0_TYPE = {
@@ -349,47 +349,47 @@ AMF3_ARRAY = {
 	assert (tag & 1) != 0 // reference unsupported
 	let len = tag >> 1
 	body *byte
-	assert false
+	fatal "todo - AMF3_ARRAY"
 }
 
 AMF3_OBJECT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_OBJECT"
 }
 
 AMF3_XML = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_XML"
 }
 
 AMF3_BYTE_ARRAY = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_BYTE_ARRAY"
 }
 
 AMF3_VECTOR_INT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_INT"
 }
 
 AMF3_VECTOR_UINT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_UINT"
 }
 
 AMF3_VECTOR_DOUBLE = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_DOUBLE"
 }
 
 AMF3_VECTOR_OBJECT = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_VECTOR_OBJECT"
 }
 
 AMF3_DICTIONARY = {
 	body *byte
-	assert false
+	fatal "todo - AMF3_DICTIONARY"
 }
 
 AMF3_TYPE = {

@@ -214,6 +214,14 @@ assert <condition>
 
 对 `<condition>` 进行求值，如果结果为 true 或非零整数表示成功，其他情况均失败。
 
+## fatal
+
+```
+fatal <expr>
+```
+
+对 `<expr>` 进行求值，要求返回 string 类型，并以此结果作为错误提示匹配失败。
+
 ## read..do
 
 ```
