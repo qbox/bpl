@@ -3,7 +3,6 @@ go:
   - 1.6
 sudo: false
 before_script:
-  - export TRAVIS_BUILD_DIR=`pwd`
   - export QBOXROOT=$TRAVIS_BUILD_DIR/..
 script:
   - echo "==== qbox/base ===="
@@ -19,6 +18,7 @@ script:
   - echo "====================="
   - cd $TRAVIS_BUILD_DIR
   - source env.sh
+  - echo $GOPATH
   - make
   - make test
 
