@@ -171,11 +171,13 @@ func (p Ruler) SafeMatch(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err
 
 	defer func() {
 		if e := recover(); e != nil {
-			switch v := e.(type) {
+			switch val := e.(type) {
 			case string:
-				err = errors.New(v)
+				err = errors.New(val)
 			case error:
-				err = v
+				err = val
+			case int:
+				v = val
 			default:
 				panic(e)
 			}

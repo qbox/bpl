@@ -24,6 +24,7 @@ init = {
 		0x6E, 0xEC, 0x5D, 0x2D, 0x29, 0x80, 0x6F, 0xAB,
 		0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE,
 	])
+
 	if BPL_DIRECTION == "REQ" {
 		global handshakeKey = fpKey[:30]
 	} else {
@@ -31,7 +32,6 @@ init = {
 	}
 
 	global filterFlashVer = BPL_FILTER["flashVer"]
-	global canDump = true
 
 	global lastMsgs = mkmap("int:var")
 	global chunksize = 128
@@ -247,7 +247,9 @@ AMF0_CMDDATA = {
 	transactionId AMF0_TYPE
 	value         *AMF0_TYPE
 	if filterFlashVer != undefined && cmd == "connect" {
-		global canDump = (value[0].flashVer == filterFlashVer)
+		if value[0].flashVer != filterFlashVer {
+			do exit(0)
+		}
 	}
 }
 
@@ -685,8 +687,6 @@ Chunk = {
 	}
 }
 
-dumpIf = if canDump do dump else nil
-
-doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dumpIf)
+doc = init Handshake0 Handshake1 Handshake2 dump *(Chunk dump)
 
 // --------------------------------------------------------------

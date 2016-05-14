@@ -214,6 +214,8 @@ var exports = map[string]interface{}{
 	"$struct": (*Compiler).gostruct,
 	"$qline":  (*Compiler).codeLine,
 	"$xline":  (*Compiler).xline,
+
+	"exit": exit,
 }
 
 var builtins = map[string]bpl.Ruler{
