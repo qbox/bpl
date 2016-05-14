@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"qiniupkg.com/text/bpl.v1/binary"
-	"qiniupkg.com/x/bufio.v7"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 // -----------------------------------------------------------------------------
@@ -464,7 +464,7 @@ const codeLet = `
 
 doc = {
 	let a = 1
-	let a = 3
+	let a, b = [2, 3]
 }
 `
 
@@ -482,7 +482,7 @@ func TestLet(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if string(ret) != `{"a":3}` {
+	if string(ret) != `{"a":2,"b":3}` {
 		t.Fatal("ret:", string(ret))
 	}
 }
@@ -620,7 +620,7 @@ func TestGlobal2(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	ctx := NewContext()
 	v, err := r.SafeMatch(in, ctx)
 	if err != nil {

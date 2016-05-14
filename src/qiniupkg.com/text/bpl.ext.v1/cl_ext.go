@@ -2,6 +2,7 @@ package bpl
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"qiniupkg.com/text/bpl.v1"
@@ -247,15 +248,45 @@ func (p *Compiler) fnDo() {
 func (p *Compiler) fnLet() {
 
 	e := p.popExpr()
+	arity := p.popArity()
 	stk := p.stk
-	i := len(stk) - 1
-	name := stk[i].(string)
-	fn := func(ctx *bpl.Context) error {
-		v := p.eval(ctx, e.start, e.end)
-		ctx.LetVar(name, v)
-		return nil
+	n := len(stk) - arity
+	if arity == 1 {
+		name := stk[n].(string)
+		fn := func(ctx *bpl.Context) error {
+			v := p.eval(ctx, e.start, e.end)
+			ctx.LetVar(name, v)
+			return nil
+		}
+		stk[n] = bpl.Do(fn)
+	} else {
+		names := cloneNames(stk[n:])
+		fn := func(ctx *bpl.Context) error {
+			v := p.eval(ctx, e.start, e.end)
+			multiAssignFromSlice(names, v, ctx)
+			return nil
+		}
+		stk[n] = bpl.Do(fn)
+		p.stk = stk[:n+1]
 	}
-	stk[i] = bpl.Do(fn)
+}
+
+func multiAssignFromSlice(names []string, val interface{}, ctx *bpl.Context) {
+
+	v := reflect.ValueOf(val)
+	if v.Kind() != reflect.Slice {
+		panic("expression of multi assignment must be a slice")
+	}
+
+	n := v.Len()
+	arity := len(names)
+	if arity != n {
+		panic(fmt.Errorf("multi assignment error: require %d variables, but we got %d", n, arity))
+	}
+
+	for i, name := range names {
+		ctx.LetVar(name, v.Index(i).Interface())
+	}
 }
 
 // -----------------------------------------------------------------------------

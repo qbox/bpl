@@ -1,11 +1,10 @@
 package bpl
 
 import (
+	"bufio"
 	"io"
 	"reflect"
 	"unsafe"
-
-	"qiniupkg.com/x/bufio.v7"
 )
 
 // -----------------------------------------------------------------------------

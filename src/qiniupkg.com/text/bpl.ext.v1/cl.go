@@ -44,7 +44,7 @@ evalexpr = "eval" exprblock /eval
 
 doexpr = "do"/istart! iexpr /iend /do
 
-letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
+letexpr = "let"! IDENT/var % ','/ARITY '='/istart! iexpr /iend /let
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 
@@ -84,13 +84,14 @@ factor =
 imember = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do"
 
 atom =
-	'(' qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
-	'.' imember/mref |
-	'[' ?qexpr/ARITY ?':'/ARITY ?qexpr/ARITY ']'/index
+	'('! qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
+	'.'! imember/mref |
+	'['! ?qexpr/ARITY ?':'/ARITY ?qexpr/ARITY ']'/index
 
 ifactor =
 	INT/pushi |
 	STRING/pushs |
+	CHAR/pushc |
 	(IDENT/ref | '('! qexpr ')' | '[' qexpr %= ','/ARITY ?',' ']'/slice) *atom |
 	"sizeof"! '(' IDENT/sizeof ')' |
 	'{'! (qexpr ':' qexpr) %= ','/ARITY ?',' '}'/map |
@@ -201,6 +202,7 @@ var exports = map[string]interface{}{
 	"$mref":   (*Compiler).mref,
 	"$pushi":  (*Compiler).pushi,
 	"$pushs":  (*Compiler).pushs,
+	"$pushc":  (*Compiler).pushc,
 	"$cpushi": (*Compiler).cpushi,
 	"$let":    (*Compiler).fnLet,
 	"$global": (*Compiler).fnGlobal,

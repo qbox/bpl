@@ -1,6 +1,7 @@
 package bson
 
 import (
+	"bufio"
 	"encoding/binary"
 	"encoding/json"
 	"io"
@@ -8,7 +9,6 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 	"qiniupkg.com/text/bpl.v1"
-	"qiniupkg.com/x/bufio.v7"
 )
 
 // -----------------------------------------------------------------------------

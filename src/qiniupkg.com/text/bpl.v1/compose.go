@@ -1,12 +1,13 @@
 package bpl
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"io/ioutil"
 	"reflect"
 
-	"qiniupkg.com/x/bufio.v7"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 var (
@@ -253,7 +254,7 @@ func (p *read) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	if err != nil {
 		return
 	}
-	in = bufio.NewReaderBuffer(b)
+	in = bufiox.NewReaderBuffer(b)
 	return p.r.Match(in, ctx)
 }
 
@@ -319,7 +320,7 @@ func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	val := p.expr(ctx)
 	switch v := val.(type) {
 	case []byte:
-		in = bufio.NewReaderBuffer(v)
+		in = bufiox.NewReaderBuffer(v)
 	case io.Reader:
 		in = bufio.NewReader(v)
 		fclose = true

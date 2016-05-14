@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"gopkg.in/mgo.v2/bson"
-	"qiniupkg.com/x/bufio.v7"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 // -----------------------------------------------------------------------------
@@ -20,7 +20,7 @@ func TestBson(t *testing.T) {
 		t.Fatal("bson.Marshal failed:", err)
 	}
 
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	v, err := Type.Match(in, nil)
 	if err != nil {
 		t.Fatal("Match failed:", err)

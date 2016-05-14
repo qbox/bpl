@@ -1,11 +1,11 @@
 package bpl
 
 import (
+	"bufio"
 	"fmt"
 	"reflect"
 	"strings"
 
-	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 

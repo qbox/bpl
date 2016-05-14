@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"qiniupkg.com/text/bpl.ext.v1"
-	"qiniupkg.com/x/bufio.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -65,6 +65,8 @@ func main() {
 	}
 
 	ctx := bpl.NewContext()
+	ctx.Globals["BPL_IN"] = in
+	ctx.Globals["BPL_CTX"] = ctx
 	_, err = ruler.SafeMatch(in, ctx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Match failed:", err)
