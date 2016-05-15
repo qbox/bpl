@@ -145,7 +145,7 @@ func (p *Compiler) Ret() (r Ruler, err error) {
 		if v, ok := p.vars["doc"]; ok {
 			root = v.Elem
 		} else {
-			return Ruler{Ruler: nil}, ErrNoDoc
+			return Ruler{}, ErrNoDoc
 		}
 	}
 	for name, v := range p.vars {
@@ -154,7 +154,7 @@ func (p *Compiler) Ret() (r Ruler, err error) {
 			return
 		}
 	}
-	return Ruler{Ruler: root}, nil
+	return Ruler{Impl: root}, nil
 }
 
 // Grammar returns the qlang compiler's grammar. It is required by tpl.Interpreter engine.

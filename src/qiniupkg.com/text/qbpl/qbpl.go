@@ -65,8 +65,6 @@ func main() {
 	}
 
 	ctx := bpl.NewContext()
-	ctx.Globals["BPL_IN"] = in
-	ctx.Globals["BPL_CTX"] = ctx
 	_, err = ruler.SafeMatch(in, ctx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Match failed:", err)

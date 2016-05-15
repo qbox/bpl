@@ -208,11 +208,9 @@ func main() {
 		onBpl = func(r io.Reader, env *Env) (err error) {
 			in := bufio.NewReader(r)
 			ctx := bpl.NewContext()
-			ctx.Globals["BPL_IN"] = in
-			ctx.Globals["BPL_CTX"] = ctx
-			ctx.Globals["BPL_FILTER"] = filterCond
-			ctx.Globals["BPL_DIRECTION"] = env.Direction
-			ctx.Globals["BPL_DUMP_PREFIX"] = "[CONN:" + env.Conn + "][" + env.Direction + "]"
+			ctx.Globals.SetVar("BPL_FILTER", filterCond)
+			ctx.Globals.SetVar("BPL_DIRECTION", env.Direction)
+			ctx.Globals.SetVar("BPL_DUMP_PREFIX", "[CONN:"+env.Conn+"]["+env.Direction+"]")
 			_, err = ruler.SafeMatch(in, ctx)
 			if err != nil {
 				log.Error("Match failed:", err)

@@ -20,10 +20,7 @@ func (p *Compiler) eval(ctx *bpl.Context, start, end int) interface{} {
 	}
 	code := &p.code
 	stk := ctx.Stack
-	var parent *exec.Context
-	if len(ctx.Globals) > 0 {
-		parent = exec.NewSimpleContext(ctx.Globals, nil, nil, nil)
-	}
+	parent := exec.NewSimpleContext(ctx.Globals.Impl, nil, nil, nil)
 	ectx := exec.NewSimpleContext(vars, stk, code, parent)
 	code.Exec(start, end, stk, ectx)
 	if !hasDom && len(vars) > 0 { // update dom
@@ -299,7 +296,7 @@ func (p *Compiler) fnGlobal() {
 	name := stk[i].(string)
 	fn := func(ctx *bpl.Context) error {
 		v := p.eval(ctx, e.start, e.end)
-		ctx.Globals[name] = v
+		ctx.Globals.SetVar(name, v)
 		return nil
 	}
 	stk[i] = bpl.Do(fn)

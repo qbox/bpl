@@ -265,6 +265,7 @@ record = {
 
 ```
 let <var> = <expr>
+let <var1>, <var2>, ..., <varN> = <expr>
 ```
 
 如果 `<var>` 是全局变量（见后面 `global` 一节），则修改该全局变量的值为 `<expr>` 。
