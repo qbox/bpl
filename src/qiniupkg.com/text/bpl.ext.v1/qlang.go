@@ -16,6 +16,7 @@ import (
 	"qlang.io/qlang/encoding/hex"
 	"qlang.io/qlang/encoding/json"
 	"qlang.io/qlang/errors"
+	"qlang.io/qlang/io"
 	"qlang.io/qlang/strings"
 
 	// import qlang builtin
@@ -56,6 +57,7 @@ func init() {
 	qlang.Import("errors", errors.Exports)
 	qlang.Import("json", json.Exports)
 	qlang.Import("hex", hex.Exports)
+	qlang.Import("io", io.Exports)
 	qlang.Import("ioutil", ioutilExports)
 	qlang.Import("os", osExports)
 	qlang.Import("http", httpExports)

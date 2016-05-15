@@ -18,6 +18,8 @@ message = {
 		let _resp, _err = http.readResponse(BPL_IN, nil)
 		assert _err == nil
 
+		let status = _resp.status
+		let statusCode = _resp.statusCode
 		let header = _resp.header
 
 		let _b, _err = ioutil.readAll(_resp.body)
