@@ -139,7 +139,7 @@ type dump int
 func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
 	var b bytes.Buffer
-	if prefix, ok := ctx.Globals["BPL_DUMP_PREFIX"]; ok {
+	if prefix, ok := ctx.Globals.Var("BPL_DUMP_PREFIX"); ok {
 		b.WriteString(prefix.(string))
 	}
 	b.WriteByte('\n')
@@ -163,7 +163,14 @@ func (p dump) SizeOf() int {
 // A Ruler is a matching unit.
 //
 type Ruler struct {
-	bpl.Ruler
+	Impl bpl.Ruler
+}
+
+// Match matches input stream `in`, and returns matching result.
+//
+func (p Ruler) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
+
+	return bpl.MatchStream(p.Impl, in, ctx)
 }
 
 // SafeMatch matches input stream `in`, and returns matching result.
@@ -185,7 +192,7 @@ func (p Ruler) SafeMatch(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err
 		}
 	}()
 
-	return p.Ruler.Match(in, ctx)
+	return bpl.MatchStream(p.Impl, in, ctx)
 }
 
 // MatchStream matches input stream `r`, and returns matching result.

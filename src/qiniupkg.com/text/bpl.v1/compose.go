@@ -255,7 +255,7 @@ func (p *read) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 		return
 	}
 	in = bufiox.NewReaderBuffer(b)
-	return p.r.Match(in, ctx)
+	return MatchStream(p.r, in, ctx)
 }
 
 func (p *read) RetType() reflect.Type {
@@ -327,7 +327,7 @@ func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	default:
 		panic("eval <expr> must return []byte or io.Reader")
 	}
-	v, err = p.r.Match(in, ctx)
+	v, err = MatchStream(p.r, in, ctx)
 	if fclose {
 		if v, ok := val.(io.Closer); ok {
 			v.Close()

@@ -630,7 +630,7 @@ func TestGlobal2(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if v, ok := ctx.Globals["a"]; !ok || v != 3 {
+	if v, ok := ctx.Globals.Var("a"); !ok || v != 3 {
 		t.Fatal("v != 3: v =", v, ok)
 	}
 	if string(ret) != `{"b":4}` {

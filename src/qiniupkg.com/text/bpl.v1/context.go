@@ -15,20 +15,52 @@ import (
 
 // -----------------------------------------------------------------------------
 
+// A Globals represents global variables.
+//
+type Globals struct {
+	Impl map[string]interface{}
+}
+
+// NewGlobals returns a `Globals` instance.
+//
+func NewGlobals() Globals {
+
+	return Globals{
+		Impl: make(map[string]interface{}),
+	}
+}
+
+// SetVar sets a global variable to new value.
+//
+func (p Globals) SetVar(name string, v interface{}) {
+
+	p.Impl[name] = v
+}
+
+// Var returns value of a global variable.
+//
+func (p Globals) Var(name string) (v interface{}, ok bool) {
+
+	v, ok = p.Impl[name]
+	return
+}
+
+// -----------------------------------------------------------------------------
+
 // A Context represents the matching context of bpl.
 //
 type Context struct {
 	dom     interface{}
 	Stack   *exec.Stack
 	Parent  *Context
-	Globals map[string]interface{}
+	Globals Globals
 }
 
 // NewContext returns a new matching Context.
 //
 func NewContext() *Context {
 
-	gbl := make(map[string]interface{})
+	gbl := NewGlobals()
 	stk := exec.NewStack()
 	return &Context{Globals: gbl, Stack: stk}
 }
@@ -57,7 +89,7 @@ func (p *Context) requireVarSlice() []interface{} {
 //
 func (p *Context) SetVar(name string, v interface{}) {
 
-	if _, ok := p.Globals[name]; ok {
+	if _, ok := p.Globals.Var(name); ok {
 		panic(fmt.Errorf("variable `%s` exists globally", name))
 	}
 
@@ -80,8 +112,8 @@ func (p *Context) SetVar(name string, v interface{}) {
 //
 func (p *Context) LetVar(name string, v interface{}) {
 
-	if _, ok := p.Globals[name]; ok {
-		p.Globals[name] = v
+	if _, ok := p.Globals.Var(name); ok {
+		p.Globals.SetVar(name, v)
 		return
 	}
 
@@ -141,6 +173,14 @@ type Ruler interface {
 
 	// SizeOf returns expected length of result. If length is variadic, it returns -1.
 	SizeOf() int
+}
+
+// MatchStream matches a stream.
+//
+func MatchStream(r Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	ctx.Globals.SetVar("BPL_IN", in)
+	return r.Match(in, ctx)
 }
 
 // -----------------------------------------------------------------------------
