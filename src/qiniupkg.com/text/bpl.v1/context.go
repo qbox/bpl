@@ -30,6 +30,15 @@ func NewGlobals() Globals {
 	}
 }
 
+// GetAndSetVar gets old value of a global variable and sets new value to it.
+//
+func (p Globals) GetAndSetVar(name string, v interface{}) (old interface{}, ok bool) {
+
+	old, ok = p.Impl[name]
+	p.Impl[name] = v
+	return
+}
+
 // SetVar sets a global variable to new value.
 //
 func (p Globals) SetVar(name string, v interface{}) {
@@ -179,8 +188,13 @@ type Ruler interface {
 //
 func MatchStream(r Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	ctx.Globals.SetVar("BPL_IN", in)
-	return r.Match(in, ctx)
+	glbs := ctx.Globals
+	old, ok := glbs.GetAndSetVar("BPL_IN", in)
+	v, err = r.Match(in, ctx)
+	if ok {
+		glbs.SetVar("BPL_IN", old)
+	}
+	return
 }
 
 // -----------------------------------------------------------------------------
