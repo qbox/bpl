@@ -140,6 +140,22 @@ TODO
 
 TODO
 
+### HLS TS 格式
+
+格式描述：
+
+* [ts.bpl](https://github.com/qbox/bpl/blob/develop/formats/ts.bpl)
+
+测试：TODO
+
+### FLV 格式
+
+格式描述：
+
+* [flv.bpl](https://github.com/qbox/bpl/blob/develop/formats/flv.bpl)
+
+测试：TODO
+
 ### GIF 格式
 
 格式描述：
