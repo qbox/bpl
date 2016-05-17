@@ -19,16 +19,19 @@ func doTestBytesFrom(t *testing.T, name string, b []byte, expected string) {
 }
 
 const expected0 = `var foo = []byte{
-}`
+}
+`
 
 const expected1 = `var foo = []byte{
 	0x02, 0x03, 0x03, 0x09, 0x00,
-}`
+}
+`
 
 const expected2 = `var foo = []byte{
 	0x02, 0x03, 0x03, 0x09, 0x00, 0x02, 0xe8, 0x60,
 	0xf8,
-}`
+}
+`
 
 func TestBytesFrom(t *testing.T) {
 
