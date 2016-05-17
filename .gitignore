@@ -10,6 +10,10 @@ _test
 pkg/
 bin/
 
+qmongoproxy/
+qrtmpproxy/
+qgif/
+
 # Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out
