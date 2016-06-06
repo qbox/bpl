@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"qlang.io/qlang.spec.v1"
+
 	"qiniupkg.com/text/bpl.v1/binary"
 )
 
@@ -193,6 +195,35 @@ func TestDump(t *testing.T) {
 	var b bytes.Buffer
 	DumpDom(&b, v, 0)
 	if b.String() != "{\n  a: 1\n}" {
+		t.Fatal("dump:", b.String())
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeDump2 = `
+
+doc = {
+	return undefined
+}
+`
+
+func TestDump2(t *testing.T) {
+
+	r, err := NewFromString(codeDump2, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(nil)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	if v != qlang.Undefined {
+		t.Fatal("v:", v)
+	}
+	var b bytes.Buffer
+	DumpDom(&b, v, 0)
+	if b.String() != "\"```undefined```\"" {
 		t.Fatal("dump:", b.String())
 	}
 }

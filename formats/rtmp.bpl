@@ -1,5 +1,6 @@
 const (
 	VERBOSE = 0
+	RAWDATA = 0
 )
 
 init = {
@@ -32,6 +33,8 @@ init = {
 	}
 
 	global filterFlashVer = BPL_FILTER["flashVer"]
+	global filterReqMode = BPL_FILTER["reqMode"]
+	global filterPlay = (filterReqMode == "play")
 
 	global lastMsgs = mkmap("int:var")
 	global chunksize = 128
@@ -246,8 +249,15 @@ AMF0_CMDDATA = {
 	cmd           AMF0_TYPE
 	transactionId AMF0_TYPE
 	value         *AMF0_TYPE
-	if filterFlashVer != undefined && cmd == "connect" {
-		if value[0].flashVer != filterFlashVer {
+	if filterFlashVer != undefined {
+		if cmd == "connect" {
+			if value[0].flashVer != filterFlashVer {
+				do exit(0)
+			}
+		}
+	}
+	if filterPlay {
+		if cmd == "FCPublish" {
 			do exit(0)
 		}
 	}
@@ -451,7 +461,9 @@ AudioData = {
 			let aacPacketTypeKind = "raw data"
 		}
 	}
-	raw *byte
+	if RAWDATA != 0 {
+		raw *byte
+	}
 }
 
 Audio = {
@@ -472,7 +484,9 @@ VideoData = {
 		compositionTime uint24be
 		let avctypeKind = avcTypes[int(avctype)]
 	}
-	raw *byte
+	if RAWDATA != 0 {
+		raw *byte
+	}
 }
 
 Video = {
@@ -557,10 +571,10 @@ Handshake2 = {
 // --------------------------------------------------------------
 
 AggregateItemHeader = {
-	typeid    byte
-	length    uint24be
-	ts        uint24be
-	streamid  uint32be
+	typeid   byte
+	length   uint24be
+	ts       uint24be
+	streamid uint32be
 }
 
 AggregateItem = {
@@ -684,6 +698,8 @@ Chunk = {
 				default: let body = _body
 			}
 		}
+	} elif RAWDATA == 0 {
+		return undefined
 	}
 }
 

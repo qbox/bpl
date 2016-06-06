@@ -54,7 +54,9 @@ gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
 retexpr = "return"/istart! iexpr /iend /return
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr
+dumpexpr = "dump"/dump
+
+dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr | dumpexpr
 
 type =
 	IDENT/ident |
@@ -81,7 +83,7 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
-imember = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do"
+imember = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do" | "dump"
 
 atom =
 	'('! qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
@@ -214,6 +216,7 @@ var exports = map[string]interface{}{
 	"$case":   (*Compiler).fnCase,
 	"$assert": (*Compiler).fnAssert,
 	"$fatal":  (*Compiler).fnFatal,
+	"$dump":   (*Compiler).fnDump,
 	"$const":  (*Compiler).fnConst,
 	"$casei":  (*Compiler).casei,
 	"$source": (*Compiler).source,

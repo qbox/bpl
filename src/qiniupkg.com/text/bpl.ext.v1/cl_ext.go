@@ -328,6 +328,11 @@ func (p *Compiler) fnFatal(src interface{}) {
 	p.stk = append(p.stk, bpl.Dyntype(r))
 }
 
+func (p *Compiler) fnDump() {
+
+	p.stk = append(p.stk, bpl.Ruler(dump(0)))
+}
+
 // -----------------------------------------------------------------------------
 
 func (p *Compiler) fnRead() {
