@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strings"
 
+	"qlang.io/qlang.spec.v1"
+
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter"
 	"qiniupkg.com/x/bufiox.v7"
@@ -138,12 +140,17 @@ type dump int
 
 func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
+	dom := ctx.Dom()
+	if dom == qlang.Undefined {
+		return
+	}
+
 	var b bytes.Buffer
 	if prefix, ok := ctx.Globals.Var("BPL_DUMP_PREFIX"); ok {
 		b.WriteString(prefix.(string))
 	}
 	b.WriteByte('\n')
-	DumpDom(&b, ctx.Dom(), 0)
+	DumpDom(&b, dom, 0)
 	Dumper.Info(b.String())
 	return
 }
