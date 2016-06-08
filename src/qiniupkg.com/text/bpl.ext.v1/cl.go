@@ -30,7 +30,9 @@ iexpr = qexpr/qline
 
 index = '['/istart iexpr ']'/iend
 
-casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
+casecond = INT/casei | STRING/cases
+
+casebody = (casecond ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
 caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
@@ -58,12 +60,15 @@ dumpexpr = "dump"/dump
 
 dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr | dumpexpr
 
-type =
+basetype =
 	IDENT/ident |
-	(index IDENT/ident)/array |
-	('*'! IDENT/ident)/array0 |
-	('?'! IDENT/ident)/array01 |
-	('+'! IDENT/ident)/array1
+	(index IDENT/ident)/array
+
+type =
+	basetype |
+	('*'! basetype)/array0 |
+	('?'! basetype)/array01 |
+	('+'! basetype)/array1
 
 member = ((IDENT type)/member | dynexpr)/xline
 
@@ -219,6 +224,7 @@ var exports = map[string]interface{}{
 	"$dump":   (*Compiler).fnDump,
 	"$const":  (*Compiler).fnConst,
 	"$casei":  (*Compiler).casei,
+	"$cases":  (*Compiler).cases,
 	"$source": (*Compiler).source,
 	"$member": (*Compiler).member,
 	"$struct": (*Compiler).gostruct,

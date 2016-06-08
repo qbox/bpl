@@ -135,6 +135,12 @@ func eq(a, b interface{}) bool {
 			return a1 == b1
 		}
 	}
+	if a1, ok := a.(string); ok {
+		switch b1 := b.(type) {
+		case string:
+			return a1 == b1
+		}
+	}
 	panicUnsupportedOp2("==", a, b)
 	return false
 }

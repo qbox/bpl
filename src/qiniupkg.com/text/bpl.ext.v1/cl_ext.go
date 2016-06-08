@@ -3,6 +3,7 @@ package bpl
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"qiniupkg.com/text/bpl.v1"
@@ -88,6 +89,15 @@ func (p *Compiler) array1() {
 
 func (p *Compiler) casei(v int) {
 
+	p.gstk.Push(v)
+}
+
+func (p *Compiler) cases(lit string) {
+
+	v, err := strconv.Unquote(lit)
+	if err != nil {
+		panic("invalid string `" + lit + "`: " + err.Error())
+	}
 	p.gstk.Push(v)
 }
 
