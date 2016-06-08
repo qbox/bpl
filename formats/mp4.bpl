@@ -25,6 +25,81 @@ fixed32be = {
 
 // --------------------------------------------------------------
 
+stsd = {
+	body *byte
+}
+
+stts = {
+	body *byte
+}
+
+stsz = {
+	let class = "Sample Size Box"
+	let bodyLength = len(_body)
+}
+
+stz2 = {
+	body *byte
+}
+
+stsc = {
+	// “stss”确定media中的关键帧。对于压缩媒体数据，关键帧是一系列压缩序列的开始帧，其解压缩时不依赖以前的帧，而后续帧的解压缩将依赖于这个关键帧。
+	// “stss”可以非常紧凑的标记媒体内的随机存取点，它包含一个sample序号表，表内的每一项严格按照sample的序号排列，说明了媒体中的哪一个sample是关键帧。
+	// 如果此表不存在，说明每一个sample都是一个关键帧，是一个随机存取点。
+	//
+	let class = "Sample To Chunk Box"
+	let bodyLength = len(_body)
+}
+
+stco = {
+	// ”stco”定义了每个thunk在媒体流中的位置。位置有两种可能，32位的和64位的，后者对非常大的电影很有用。
+	// 在一个表中只会有一种可能，这个位置是在整个文件中的，而不是在任何box中的，这样做就可以直接在文件中找到媒体数据，而不用解释box。
+	// 需要注意的是一旦前面的box有了任何改变，这张表都要重新建立，因为位置信息已经改变了。
+	//
+	let class = "Chunk Offset Box"
+	let bodyLength = len(_body)
+}
+
+co64 = {
+	body *byte
+}
+
+ctts = {
+	body *byte
+}
+
+stss = {
+	// “stss”确定media中的关键帧。对于压缩媒体数据，关键帧是一系列压缩序列的开始帧，其解压缩时不依赖以前的帧，而后续帧的解压缩将依赖于这个关键帧。
+	// “stss”可以非常紧凑的标记媒体内的随机存取点，它包含一个sample序号表，表内的每一项严格按照sample的序号排列，说明了媒体中的哪一个sample是关键帧。
+	// 如果此表不存在，说明每一个sample都是一个关键帧，是一个随机存取点。
+	//
+	let class = "Sync Sample Box"
+	let bodyLength = len(_body)
+}
+
+stbbox = box {
+	eval _body do case typ {
+		"stsd": stsd
+		"stts": stts
+		"stsz": stsz
+		"stz2": stz2
+		"stsc": stsc
+		"stco": stco
+		"co64": co64
+		"ctts": ctts
+		"stss": stss
+		default: boxtr
+	}
+}
+
+// Sample Table Box
+//
+stbl = {
+	vals *stbbox
+}
+
+// --------------------------------------------------------------
+
 vmhd = {
 	body *byte
 }
@@ -45,10 +120,6 @@ dinf = {
 	body *byte
 }
 
-stbl = {
-	body *byte
-}
-
 mibox = box {
 	eval _body do case typ {
 		"vmhd": vmhd
@@ -64,7 +135,7 @@ mibox = box {
 // Media Information Box
 //
 minf = {
-	items *mibox
+	vals *mibox
 }
 
 // --------------------------------------------------------------
@@ -114,7 +185,7 @@ mdbox = box {
 // Media Box
 //
 mdia = {
-	items *mdbox
+	vals *mdbox
 }
 
 // --------------------------------------------------------------
@@ -168,7 +239,7 @@ trkbox = box {
 // Track Box
 //
 trak = {
-	items *trkbox
+	vals *trkbox
 }
 
 // --------------------------------------------------------------
