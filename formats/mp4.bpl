@@ -1,6 +1,7 @@
 //
 // http://blog.sina.com.cn/s/blog_48f93b530100jz4b.html
 // http://www.52rd.com/Blog/wqyuwss/559/
+// http://blog.csdn.net/wutong_login/article/category/567011
 
 box = {
 	size  uint32be
@@ -43,7 +44,7 @@ stts = {
 }
 
 stsz = {
-	let class = "Sample Size Box"
+	let class = "Sample Size"
 	let bodyLength = len(_body)
 }
 
@@ -65,17 +66,17 @@ stco = {
 	// 在一个表中只会有一种可能，这个位置是在整个文件中的，而不是在任何box中的，这样做就可以直接在文件中找到媒体数据，而不用解释box。
 	// 需要注意的是一旦前面的box有了任何改变，这张表都要重新建立，因为位置信息已经改变了。
 	//
-	let class = "Chunk Offset Box"
+	let class = "Chunk Offset"
 	let bodyLength = len(_body)
 }
 
 co64 = {
-	let class = "Chunk Offset64 Box"
+	let class = "Chunk Offset64"
 	let bodyLength = len(_body)
 }
 
 ctts = {
-	let class = "Composition Time To Sample Box"
+	let class = "Composition Time To Sample"
 	let bodyLength = len(_body)
 }
 
@@ -84,7 +85,7 @@ stss = {
 	// “stss”可以非常紧凑的标记媒体内的随机存取点，它包含一个sample序号表，表内的每一项严格按照sample的序号排列，说明了媒体中的哪一个sample是关键帧。
 	// 如果此表不存在，说明每一个sample都是一个关键帧，是一个随机存取点。
 	//
-	let class = "Sync Sample Box"
+	let class = "Sync Sample"
 	let bodyLength = len(_body)
 }
 
@@ -275,9 +276,17 @@ mvhd = {
 	next_track_id uint32be
 }
 
+iods = {
+	let class = "Initial Object Descriptor"
+	version byte
+	flags   uint24be
+	unknown *byte
+}
+
 movbox = box {
 	eval _body do case typ {
 		"mvhd": mvhd
+		"iods": iods
 		"trak": trak
 		default: boxtr
 	}
