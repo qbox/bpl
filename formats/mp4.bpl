@@ -7,7 +7,7 @@ box = {
 	typ   [4]char
 	if size == 1 {
 		_largesize uint64be
-		let size = _largesize
+		let size = _largesize - 8
 	}
 
 	if typ == "mdat" {
