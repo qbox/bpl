@@ -95,7 +95,15 @@ ffmpeg -re -i test.m4v -c:v copy -c:a copy -f flv rtmp://localhost/live/123
 qbplproxy -f 'flashVer=LNX 9,0,124,2' -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee <output>.log
 ```
 
+或者我们直接用 reqMode(用来区分是推流publish还是播流play) 来过滤。如：
+
+```
+qbplproxy -f 'reqMode=play' -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee <output>.log
+```
+
 这样就可以只捕获 VLC Player 的播流过程了。
+
+当然，其实还有一个不用过滤条件的办法：就是让推流直接推到 rtmp server，但是播流请求发到 qbplproxy。
 
 
 ### FLV 协议
