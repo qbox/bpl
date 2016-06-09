@@ -97,6 +97,41 @@ qbplproxy -f 'flashVer=LNX 9,0,124,2' -h localhost:1935 -b localhost:1936 -p for
 
 这样就可以只捕获 VLC Player 的播流过程了。
 
+
+### FLV 协议
+
+格式描述：
+
+* [flv.bpl](https://github.com/qbox/bpl/blob/develop/formats/flv.bpl)
+
+测试：
+
+1) 启动一个 rtmp/flv server，让其监听 1935/8135 端口。这里我们用 [streamgate-example](https://github.com/qbox/pili-streamgate/tree/develop/src/pili.qiniu.com/app/streamgate-example)：
+
+```
+git clone git@github.com:qbox/pili-streamgate.git
+cd pili-streamgate
+make
+./go.sh  #用 ./stop.sh 来停止服务
+```
+
+2) 启动 qbplproxy：
+
+```
+qbplproxy -h localhost:8888 -b localhost:8135 -p formats/flv.bpl | tee <output>.log
+```
+
+3) 推流：
+
+```
+ffmpeg -re -i test.m4v -c:v copy -c:a copy -f flv rtmp://localhost/live/123
+```
+
+4) 播流：
+
+在 Mac 下可以考虑用 VLC Player，打开网址 http://localhost:8888/live/123.flv 进行播放即可。
+
+
 ### WebRTC 协议
 
 格式描述：
@@ -155,6 +190,18 @@ TODO
 * [flv.bpl](https://github.com/qbox/bpl/blob/develop/formats/flv.bpl)
 
 测试：TODO
+
+### MP4 格式
+
+格式描述：
+
+* [mp4.bpl](https://github.com/qbox/bpl/blob/develop/formats/mp4.bpl)
+
+测试：
+
+```
+qbpl -p formats/mp4.bpl <example>.mp4
+```
 
 ### GIF 格式
 
