@@ -5,6 +5,8 @@ import (
 	"io"
 	"reflect"
 	"unsafe"
+
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 // -----------------------------------------------------------------------------
@@ -21,6 +23,20 @@ func matchCharArray(n int, in *bufio.Reader, ctx *Context) (v interface{}, err e
 		return
 	}
 	return string(b), nil
+}
+
+func matchByteArray(n int, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	if n == 0 {
+		return []byte(nil), nil
+	}
+
+	b := make([]byte, n)
+	_, err = io.ReadFull(in, b)
+	if err != nil {
+		return
+	}
+	return b, nil
 }
 
 func matchBaseArray(R BaseType, n int, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -99,6 +115,86 @@ func BaseDynarray(r BaseType, n func(ctx *Context) int) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type byteArray0 int
+
+func (p byteArray0) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	v, err = bufiox.ReadAll(in)
+	return
+}
+
+func (p byteArray0) RetType() reflect.Type {
+
+	return tyByteSlice
+}
+
+func (p byteArray0) SizeOf() int {
+
+	return -1
+}
+
+// ByteArray0 is a matching unit that matches `*byte`.
+//
+var ByteArray0 Ruler = byteArray0(0)
+
+// -----------------------------------------------------------------------------
+
+type byteArray1 int
+
+func (p byteArray1) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	ret, err := bufiox.ReadAll(in)
+	if err != nil {
+		return
+	}
+	if len(ret) == 0 {
+		panic("match +byte failed: EOF encountered")
+	}
+	return ret, nil
+}
+
+func (p byteArray1) RetType() reflect.Type {
+
+	return tyByteSlice
+}
+
+func (p byteArray1) SizeOf() int {
+
+	return -1
+}
+
+// ByteArray1 is a matching unit that matches `+byte`.
+//
+var ByteArray1 Ruler = byteArray1(0)
+
+// -----------------------------------------------------------------------------
+
+type byteArray int
+
+func (p byteArray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	return matchByteArray(int(p), in, ctx)
+}
+
+func (p byteArray) RetType() reflect.Type {
+
+	return tyByteSlice
+}
+
+func (p byteArray) SizeOf() int {
+
+	return int(p)
+}
+
+// ByteArray returns a matching unit that matches `[n]byte`.
+//
+func ByteArray(n int) Ruler {
+
+	return byteArray(n)
+}
+
+// -----------------------------------------------------------------------------
+
 type charArray int
 
 func (p charArray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
@@ -121,6 +217,33 @@ func (p charArray) SizeOf() int {
 func CharArray(n int) Ruler {
 
 	return charArray(n)
+}
+
+// -----------------------------------------------------------------------------
+
+type byteDynarray func(ctx *Context) int
+
+func (p byteDynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := p(ctx)
+	return matchByteArray(n, in, ctx)
+}
+
+func (p byteDynarray) RetType() reflect.Type {
+
+	return tyByteSlice
+}
+
+func (p byteDynarray) SizeOf() int {
+
+	return -1
+}
+
+// ByteDynarray returns a matching unit that matches `[n(ctx)]byte`.
+//
+func ByteDynarray(n func(ctx *Context) int) Ruler {
+
+	return byteDynarray(n)
 }
 
 // -----------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import (
 // -----------------------------------------------------------------------------
 
 var (
+	tyInt            = reflect.TypeOf(int(0))
 	tyInt8           = reflect.TypeOf(int8(0))
 	tyInt16          = reflect.TypeOf(int16(0))
 	tyInt32          = reflect.TypeOf(int32(0))
@@ -25,6 +26,7 @@ var (
 	tyFloat32        = reflect.TypeOf(float32(0))
 	tyFloat64        = reflect.TypeOf(float64(0))
 	tyString         = reflect.TypeOf(string(""))
+	tyByteSlice      = reflect.TypeOf([]byte(nil))
 	TyInterface      = reflect.TypeOf((*interface{})(nil)).Elem()
 	tyInterfaceSlice = reflect.SliceOf(TyInterface)
 )

@@ -87,6 +87,9 @@ func (p *array1) SizeOf() int {
 //
 func Array1(R Ruler) Ruler {
 
+	if R == Uint8 {
+		return ByteArray1
+	}
 	return &array1{r: R}
 }
 
@@ -115,6 +118,9 @@ func (p *array0) SizeOf() int {
 //
 func Array0(R Ruler) Ruler {
 
+	if R == Uint8 {
+		return ByteArray0
+	}
 	return &array0{r: R}
 }
 
@@ -162,6 +168,8 @@ func Array(r Ruler, n int) Ruler {
 	//}
 	if r == Char {
 		return charArray(n)
+	} else if r == Uint8 {
+		return byteArray(n)
 	}
 	return &array{r: r, n: n}
 }
@@ -199,6 +207,8 @@ func Dynarray(r Ruler, n func(ctx *Context) int) Ruler {
 	//}
 	if r == Char {
 		return charDynarray(n)
+	} else if r == Uint8 {
+		return byteDynarray(n)
 	}
 	return &dynarray{r: r, n: n}
 }

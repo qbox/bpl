@@ -222,6 +222,23 @@ fatal <expr>
 
 对 `<expr>` 进行求值，要求返回 string 类型，并以此结果作为错误提示匹配失败。
 
+## skip
+
+```
+skip <nbytes>
+```
+
+这里 `<nbytes>` 是一个 qlang 表达式。对 `<nbytes>` 求值，然后跳过相应字节数的内容。
+
+```
+record = {
+	h header
+	skip h.len - sizeof(header)
+}
+```
+
+这通常发生在这个要读取的记录太大，但是内容又不感兴趣。
+
 ## read..do
 
 ```

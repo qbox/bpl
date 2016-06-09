@@ -357,6 +357,16 @@ func (p *Compiler) fnRead() {
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
 }
 
+func (p *Compiler) fnSkip() {
+
+	e := p.popExpr()
+	n := func(ctx *bpl.Context) int {
+		v := p.eval(ctx, e.start, e.end)
+		return toInt(v, "skip bytes isn't an integer expression")
+	}
+	p.stk = append(p.stk, bpl.Skip(n))
+}
+
 // -----------------------------------------------------------------------------
 
 func (p *Compiler) fnReturn() {

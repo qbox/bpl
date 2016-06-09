@@ -1,12 +1,18 @@
 //
 // http://blog.sina.com.cn/s/blog_48f93b530100jz4b.html
+// http://www.52rd.com/Blog/wqyuwss/559/
 
 box = {
 	size  uint32be
+	typ   [4]char
 	assert size != 1 // largesize: not impl
 
-	typ   [4]char
-	_body [size - 8]byte
+	if typ == "mdat" {
+		skip size - 8
+		let _body = mkslice("byte", 0)
+	} else {
+		_body [size - 8]byte
+	}
 }
 
 boxtr = {
@@ -285,14 +291,16 @@ ftyp = {
 	major_brand       [4]char
 	minor_version     uint32be
 	compatible_brands *[4]char
+	dump
 }
 
 free = {
-	body *byte
+	let bodyLength = len(_body)
+	dump
 }
 
 mdat = {
-	body *byte
+	dump
 }
 
 gblbox = box {
@@ -300,9 +308,10 @@ gblbox = box {
 	// 注意：moov 可能太大了，如果等解析完再 dump 不太友好
 	//
 	eval _body do case typ {
-		"ftyp": ftyp dump
+		"ftyp": ftyp
 		"moov": moov
-		"mdat": mdat dump
+		"free": free
+		"mdat": mdat
 		default: boxtr dump
 	}
 }
