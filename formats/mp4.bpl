@@ -5,7 +5,10 @@
 box = {
 	size  uint32be
 	typ   [4]char
-	assert size != 1 // largesize: not impl
+	if size == 1 {
+		_largesize uint64be
+		let size = _largesize
+	}
 
 	if typ == "mdat" {
 		skip size - 8
@@ -67,11 +70,13 @@ stco = {
 }
 
 co64 = {
-	body *byte
+	let class = "Chunk Offset64 Box"
+	let bodyLength = len(_body)
 }
 
 ctts = {
-	body *byte
+	let class = "Composition Time To Sample Box"
+	let bodyLength = len(_body)
 }
 
 stss = {
