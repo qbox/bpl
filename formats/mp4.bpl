@@ -11,7 +11,9 @@ box = {
 		let size = _largesize - 8
 	}
 
-	if typ == "mdat" {
+	if size == 0 {
+		let _body = mkslice("byte", 0)
+	} elif typ == "mdat" {
 		skip size - 8
 		let _body = mkslice("byte", 0)
 	} else {
@@ -35,9 +37,28 @@ fixed32be = {
 
 // --------------------------------------------------------------
 
-stsd = {
+avc1 = {
 	body *byte
 }
+
+mp4a = {
+	body *byte
+}
+
+stsdbox = box {
+	eval _body do case typ {
+		"\x00\x00\x00\x01": nil
+		"avc1": avc1
+		"mp4a": mp4a
+		default: boxtr
+	}
+}
+
+stsd = {
+	vals *stsdbox
+}
+
+// --------------------------------------------------------------
 
 stts = {
 	body *byte
@@ -112,6 +133,23 @@ stbl = {
 
 // --------------------------------------------------------------
 
+dref = {
+	body *byte
+}
+
+dibox = box {
+	eval _body do case typ {
+		"dref": dref
+		default: boxtr
+	}
+}
+
+dinf = {
+	vals *dibox
+}
+
+// --------------------------------------------------------------
+
 vmhd = {
 	body *byte
 }
@@ -125,10 +163,6 @@ hmhd = {
 }
 
 nmhd = {
-	body *byte
-}
-
-dinf = {
 	body *byte
 }
 
@@ -202,6 +236,23 @@ mdia = {
 
 // --------------------------------------------------------------
 
+elst = {
+	body *byte
+}
+
+edtsbox = box {
+	eval _body do case typ {
+		"elst": elst
+		default: boxtr
+	}
+}
+
+edts = {
+	vals *edtsbox
+}
+
+// --------------------------------------------------------------
+
 // Track Header Box
 //
 tkhd = {
@@ -233,10 +284,6 @@ tkhd = {
 	matrix [36]byte  // 视频变换矩阵
 	width  fixed32be // 宽
 	height fixed32be // 高，均为 [16.16] 格式值，与sample描述中的实际画面大小比值，用于播放时的展示宽高
-}
-
-edts = {
-	body *byte
 }
 
 trkbox = box {
