@@ -277,6 +277,36 @@ func Read(n func(ctx *Context) int, r Ruler) Ruler {
 
 // -----------------------------------------------------------------------------
 
+type skip struct {
+	n func(ctx *Context) int
+}
+
+func (p *skip) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := p.n(ctx)
+	v, err = in.Discard(n)
+	return
+}
+
+func (p *skip) RetType() reflect.Type {
+
+	return tyInt
+}
+
+func (p *skip) SizeOf() int {
+
+	return -1
+}
+
+// Skip returns a matching unit that skips n(ctx) bytes.
+//
+func Skip(n func(ctx *Context) int) Ruler {
+
+	return &skip{n: n}
+}
+
+// -----------------------------------------------------------------------------
+
 type ifType struct {
 	cond func(ctx *Context) bool
 	r    Ruler

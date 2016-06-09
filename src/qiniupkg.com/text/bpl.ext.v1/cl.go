@@ -40,6 +40,8 @@ exprblock = true/istart! iexpr (@'{' | "do")/iend expr
 
 ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else"! expr)/ARITY /if
 
+skipexpr = "skip"/istart! iexpr /iend /skip
+
 readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
@@ -58,7 +60,7 @@ retexpr = "return"/istart! iexpr /iend /return
 
 dumpexpr = "dump"/dump
 
-dynexpr = caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr | dumpexpr
+dynexpr = caseexpr | readexpr | skipexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr | dumpexpr
 
 basetype =
 	IDENT/ident |
@@ -88,7 +90,7 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
-imember = IDENT | "assert" | "fatal" | "read" | "eval" | "let" | "sizeof" | "C" | "global" | "do" | "dump"
+imember = IDENT | "assert" | "fatal" | "read" | "skip" | "eval" | "let" | "sizeof" | "C" | "global" | "do" | "dump"
 
 atom =
 	'('! qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
@@ -217,6 +219,7 @@ var exports = map[string]interface{}{
 	"$do":     (*Compiler).fnDo,
 	"$if":     (*Compiler).fnIf,
 	"$read":   (*Compiler).fnRead,
+	"$skip":   (*Compiler).fnSkip,
 	"$return": (*Compiler).fnReturn,
 	"$case":   (*Compiler).fnCase,
 	"$assert": (*Compiler).fnAssert,
