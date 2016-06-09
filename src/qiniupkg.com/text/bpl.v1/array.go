@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"io"
 	"reflect"
-
-	"qiniupkg.com/x/log.v7"
 )
 
 // -----------------------------------------------------------------------------
@@ -35,7 +33,6 @@ func matchArray1(R Ruler, in *bufio.Reader, ctx *Context, fCheckNil bool) (v int
 		}
 		v, err = R.Match(in, ctx.NewSub())
 		if err != nil {
-			log.Error("matchArray failed:", err)
 			return
 		}
 		ret = reflect.Append(ret, valueOf(v, t))
@@ -54,7 +51,6 @@ func matchArray(R Ruler, n int, in *bufio.Reader, ctx *Context) (v interface{}, 
 	for i := 0; i < n; i++ {
 		v, err = R.Match(in, ctx.NewSub())
 		if err != nil {
-			log.Error("matchArray failed:", err)
 			return
 		}
 		ret = reflect.Append(ret, valueOf(v, t))
