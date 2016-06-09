@@ -147,6 +147,18 @@ doc = *(record dump)
 
 这样每个 record 匹配成功后会 dump 匹配结果。如果希望某个变量不进行 dump，则该变量需要以 _ 开头。
 
+另外，dump 也可以用于结构体中。如：
+
+```
+{
+	Var1 R1
+	Var2 R2
+	...
+	Varn Rn
+	dump
+}
+```
+
 ## case
 
 ```
@@ -264,7 +276,7 @@ record = {
 eval <expr> do R
 ```
 
-对 `<expr>` 进行求值（要求求值结果为[]byte类型）后，再用 R 匹配它。如：
+对 `<expr>` 进行求值（要求求值结果为[]byte类型或者io.Reader类型）后，再用 R 匹配它。如：
 
 ```
 record = {
