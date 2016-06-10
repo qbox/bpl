@@ -45,17 +45,23 @@ mp4a = {
 	body *byte
 }
 
+uuid = {
+	body *byte
+}
+
 stsdbox = box {
 	eval _body do case typ {
-		"\x00\x00\x00\x01": nil
 		"avc1": avc1
-		"mp4a": mp4a
 		default: boxtr
 	}
 }
 
 stsd = {
-	vals *stsdbox
+	let class = "Sample Description"
+	version byte
+	flags   uint24be
+	nvals   uint32be
+	vals    [nvals]stsdbox
 }
 
 // --------------------------------------------------------------
