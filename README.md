@@ -74,7 +74,7 @@ coffee server.coffee
 2) 启动 qbplproxy：
 
 ```
-qbplproxy -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee <output>.log
+qbplproxy -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee rtmp.log
 ```
 
 3) 推流：
@@ -126,7 +126,7 @@ make
 2) 启动 qbplproxy：
 
 ```
-qbplproxy -h localhost:8888 -b localhost:8135 -p formats/flv.bpl | tee <output>.log
+qbplproxy -h localhost:8888 -b localhost:8135 -p formats/flv.bpl | tee flv.log
 ```
 
 3) 推流：
@@ -158,13 +158,13 @@ ffmpeg -re -i test.m4v -c:v copy -c:a copy -f flv rtmp://localhost/live/123
 1) 启动 MongoDB，让其监听 37017 端口（而不是默认的 27017 端口）：
 
 ```
-./mongod --port 37017
+./mongod --port 37017 --dbpath ~/data/db
 ```
 
 2) 启动 qbplproxy：
 
 ```
-qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongo.bpl | tee <output>.log
+qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongo.bpl | tee mongo.log
 ```
 
 3) 使用 MongoDB，比如通过 mongo shell 操作：
