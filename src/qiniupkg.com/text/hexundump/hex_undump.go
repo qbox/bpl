@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 	w := bytes.NewBuffer(nil)
-	hex.Undump(w, string(b))
+	hex.UndumpText(w, string(b))
 	err = ioutil.WriteFile(os.Args[2], w.Bytes(), 0666)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
