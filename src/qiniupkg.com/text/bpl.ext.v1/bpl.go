@@ -25,7 +25,10 @@ import (
 
 var (
 	// Ldefault is default flag for `Dumper`.
-	Ldefault = log.Llevel | log.LstdFlags
+	Ldefault = log.Llevel
+
+	// Llong is long log mode for `Dumper`.
+	Llong = log.Llevel | log.LstdFlags
 
 	// Dumper is used for dumping log informations.
 	Dumper = log.New(os.Stdout, "", Ldefault)
