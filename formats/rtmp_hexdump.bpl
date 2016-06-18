@@ -1,4 +1,12 @@
 init = {
+	global filterDir = BPL_FILTER["dir"]
+
+	if filterDir != undefined {
+		if filterDir != BPL_DIRECTION {
+			do exit(0)
+		}
+	}
+
 	global msgs = mkmap("int:var")
 	global chunksize = 128
 	global typeidKinds = {
@@ -28,7 +36,7 @@ Abort = {
 }
 
 Handshake0 = {
-	h0 byte
+	h0 [1]byte
 }
 
 Handshake1 = {

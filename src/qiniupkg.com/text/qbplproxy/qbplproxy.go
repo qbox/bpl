@@ -125,7 +125,7 @@ func (p *ReverseProxier) Serve(l net.Listener) (err error) {
 var (
 	host     = flag.String("h", "", "listen host (listenIp:port).")
 	backend  = flag.String("b", "", "backend host (backendIp:port).")
-	filter   = flag.String("f", "", "filter condition. eg. -f 'flashVer=LNX 9,0,124,2'")
+	filter   = flag.String("f", "", "filter condition. eg. -f 'flashVer=LNX 9,0,124,2' or -f 'reqMode=play' or -f 'dir=REQ|RESP'")
 	protocol = flag.String("p", "", "protocol file in BPL syntax, default is guessed by <port>.")
 	output   = flag.String("o", "", "output log file, default is stderr.")
 	logmode  = flag.String("l", "", "log mode: short (default) or long.")

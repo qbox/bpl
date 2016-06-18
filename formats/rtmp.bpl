@@ -4,6 +4,17 @@ const (
 )
 
 init = {
+	global filterFlashVer = BPL_FILTER["flashVer"]
+	global filterReqMode = BPL_FILTER["reqMode"]
+	global filterPlay = (filterReqMode == "play")
+	global filterDir = BPL_FILTER["dir"]
+
+	if filterDir != undefined {
+		if filterDir != BPL_DIRECTION {
+			do exit(0)
+		}
+	}
+
 	global fmsKey = bytes.from([
 		0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20,
 		0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c,
@@ -31,10 +42,6 @@ init = {
 	} else {
 		global handshakeKey = fmsKey[:36]
 	}
-
-	global filterFlashVer = BPL_FILTER["flashVer"]
-	global filterReqMode = BPL_FILTER["reqMode"]
-	global filterPlay = (filterReqMode == "play")
 
 	global lastMsgs = mkmap("int:var")
 	global chunksize = 128
