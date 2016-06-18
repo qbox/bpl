@@ -128,6 +128,7 @@ var (
 	filter   = flag.String("f", "", "filter condition. eg. -f 'flashVer=LNX 9,0,124,2'")
 	protocol = flag.String("p", "", "protocol file in BPL syntax, default is guessed by <port>.")
 	output   = flag.String("o", "", "output log file, default is stderr.")
+	logmode  = flag.String("l", "", "log mode: short (default) or long.")
 )
 
 var (
@@ -152,13 +153,15 @@ func guessProtocol(host string) string {
 	return ""
 }
 
-// qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log]
+// qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log -l <logmode>]
 //
 func main() {
 
 	flag.Parse()
 	if *host == "" || *backend == "" {
-		fmt.Fprintln(os.Stderr, "Usage: qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log]")
+		fmt.Fprintln(
+			os.Stderr,
+			"Usage: qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log -l <logmode>]")
 		flag.PrintDefaults()
 		return
 	}
@@ -191,6 +194,12 @@ func main() {
 		}
 	}
 
+	logflags := bpl.Ldefault
+	flong := (*logmode == "long")
+	if flong {
+		logflags = bpl.Llong
+	}
+
 	onBpl := onNil
 	if *protocol != "nil" {
 		if *output != "" {
@@ -199,7 +208,7 @@ func main() {
 				log.Fatalln("Create log file failed:", err)
 			}
 			defer f.Close()
-			bpl.SetDumper(f)
+			bpl.SetDumper(f, logflags)
 		}
 		ruler, err := bpl.NewFromFile(*protocol)
 		if err != nil {
@@ -210,7 +219,11 @@ func main() {
 			ctx := bpl.NewContext()
 			ctx.Globals.SetVar("BPL_FILTER", filterCond)
 			ctx.Globals.SetVar("BPL_DIRECTION", env.Direction)
-			ctx.Globals.SetVar("BPL_DUMP_PREFIX", "[CONN:"+env.Conn+"]["+env.Direction+"]")
+			if flong {
+				ctx.Globals.SetVar("BPL_DUMP_PREFIX", "[CONN:"+env.Conn+"]["+env.Direction+"]")
+			} else {
+				ctx.Globals.SetVar("BPL_DUMP_PREFIX", "["+env.Direction+"]")
+			}
 			_, err = ruler.SafeMatch(in, ctx)
 			if err != nil {
 				log.Error("Match failed:", err)

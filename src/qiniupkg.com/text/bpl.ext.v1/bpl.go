@@ -23,9 +23,30 @@ import (
 
 // -----------------------------------------------------------------------------
 
+type filterWriter bytes.Buffer
+
+func (p *filterWriter) Write(b []byte) (n int, err error) {
+
+	p1 := (*bytes.Buffer)(p)
+	n, err = p1.Write(b)
+	b = p1.Bytes()
+	b = b[len(b)-n:]
+	for i, c := range b {
+		if c == '`' {
+			b[i] = '.'
+		}
+	}
+	return
+}
+
+// -----------------------------------------------------------------------------
+
 var (
 	// Ldefault is default flag for `Dumper`.
-	Ldefault = log.Llevel | log.LstdFlags
+	Ldefault = log.Llevel
+
+	// Llong is long log mode for `Dumper`.
+	Llong = log.Llevel | log.LstdFlags
 
 	// Dumper is used for dumping log informations.
 	Dumper = log.New(os.Stdout, "", Ldefault)
@@ -74,7 +95,7 @@ retry:
 	case reflect.Slice:
 		if dom.Type() == typeBytes {
 			b.WriteByte('\n')
-			d := hex.Dumper(b)
+			d := hex.Dumper((*filterWriter)(b))
 			d.Write(dom.Bytes())
 			d.Close()
 			return

@@ -2,6 +2,7 @@ package bpl
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"testing"
 
@@ -9,6 +10,24 @@ import (
 
 	"qiniupkg.com/text/bpl.v1/binary"
 )
+
+// -----------------------------------------------------------------------------
+
+func TestHexdump(t *testing.T) {
+
+	b := bytes.NewBuffer(nil)
+	d := hex.Dumper((*filterWriter)(b))
+	d.Write([]byte{
+		0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+		0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+	})
+	d.Close()
+	if string(b.Bytes()) != `00000000  60 60 60 60 60 60 60 60  60 60 60 60 60 60 60 60  |................|
+00000010  60 60 60 60 60 60 60 60  60 60 60 60 60           |.............|
+` {
+		t.Fatal("Hexdump failed")
+	}
+}
 
 // -----------------------------------------------------------------------------
 
