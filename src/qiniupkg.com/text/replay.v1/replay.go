@@ -12,7 +12,7 @@ import (
 
 // Request replays sequent requests.
 //
-func Request(host string, body io.Reader) (err error) {
+func Request(host string, w io.Writer, body io.Reader) (err error) {
 
 	c1, err := net.Dial("tcp", host)
 	if err != nil {
@@ -21,7 +21,10 @@ func Request(host string, body io.Reader) (err error) {
 	c := c1.(*net.TCPConn)
 
 	go func() {
-		io.Copy(ioutil.Discard, c)
+		if w == nil {
+			w = ioutil.Discard
+		}
+		io.Copy(w, c)
 		c.CloseRead()
 	}()
 
@@ -32,7 +35,7 @@ func Request(host string, body io.Reader) (err error) {
 
 // HexRequest replays sequent requests from a hexdump file.
 //
-func HexRequest(host string, in io.Reader, filter string) (err error) {
+func HexRequest(host string, w io.Writer, in io.Reader, filter string) (err error) {
 
 	f, err := hex.Reader(in, filter)
 	if err != nil {
@@ -40,7 +43,7 @@ func HexRequest(host string, in io.Reader, filter string) (err error) {
 	}
 	defer f.Close()
 
-	return Request(host, f)
+	return Request(host, w, f)
 }
 
 // -----------------------------------------------------------------------------

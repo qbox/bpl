@@ -39,7 +39,7 @@ func main() {
 		in = os.Stdin
 	}
 
-	err := replay.HexRequest(*host, in, *filter)
+	err := replay.HexRequest(*host, nil, in, *filter)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "replay.HexRequest:", err)
 		os.Exit(1)

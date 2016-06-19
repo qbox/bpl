@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -92,6 +93,26 @@ func Reader(f io.Reader, filter string) (ret io.ReadCloser, err error) {
 		in := bufio.NewReader(f)
 		Undump(pw, in, filter)
 		pw.Close()
+	}()
+
+	return pr, nil
+}
+
+// Open returns a reader that reverts `hexdump -C binary` result back to a binary data.
+//
+func Open(fname string, filter string) (ret io.ReadCloser, err error) {
+
+	f, err := os.Open(fname)
+	if err != nil {
+		return
+	}
+
+	pr, pw := io.Pipe()
+	go func() {
+		in := bufio.NewReader(f)
+		Undump(pw, in, filter)
+		pw.Close()
+		f.Close()
 	}()
 
 	return pr, nil
