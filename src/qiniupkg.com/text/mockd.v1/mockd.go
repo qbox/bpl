@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"qiniupkg.com/text/hex.v1"
-	"qiniupkg.com/text/mockd.v1"
 	"qiniupkg.com/x/log.v7"
 )
 
@@ -91,8 +90,8 @@ func ListenAndServe(addr string, file string) (err error) {
 		return
 	}
 
-	server := &mockd.Server{
-		Addr:  *host,
+	server := &Server{
+		Addr:  addr,
 		Data:  f,
 		Fsize: fi.Size(),
 	}
