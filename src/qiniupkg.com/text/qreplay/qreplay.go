@@ -9,18 +9,17 @@ import (
 )
 
 var (
-	filter = flag.String("f", "", "filter condition. eg. -f [REQ]")
-	host   = flag.String("s", "", "remote address to dial.")
+	host = flag.String("s", "", "remote address to dial.")
 )
 
-// qreplay -s <host:port> -f <filter> <replay.log>
+// qreplay -s <host:port> <replay.log>
 //
 func main() {
 
 	flag.Parse()
 
 	if *host == "" {
-		fmt.Fprintln(os.Stderr, "Usage: qreplay -s <host:port> -f <filter> <replay.log>")
+		fmt.Fprintln(os.Stderr, "Usage: qreplay -s <host:port> <replay.log>")
 		flag.PrintDefaults()
 		return
 	}
@@ -31,7 +30,8 @@ func main() {
 		file := args[0]
 		f, err := os.Open(file)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Open failed:", file)
+			fmt.Fprintln(os.Stderr, "Open failed:", err)
+			os.Exit(1)
 		}
 		defer f.Close()
 		in = f
@@ -39,9 +39,9 @@ func main() {
 		in = os.Stdin
 	}
 
-	err := replay.HexRequest(*host, nil, in, *filter)
+	err := replay.HexRequest(*host, nil, in, "[REQ]")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "replay.HexRequest:", err)
-		os.Exit(1)
+		os.Exit(2)
 	}
 }
