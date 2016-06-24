@@ -336,6 +336,7 @@ func (p *Compiler) fnFatal(src interface{}) {
 		panic("fatal <expr> must return a string")
 	}
 	p.stk = append(p.stk, bpl.Dyntype(r))
+	//p.stk = append(p.stk, bpl.And(dump(0), bpl.Dyntype(r)))
 }
 
 func (p *Compiler) fnDump() {

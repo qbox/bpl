@@ -381,6 +381,7 @@ AMF3_XML = {
 
 AMF3_BYTE_ARRAY = {
 	body *byte
+	do println(hex.dump(body))
 	fatal "todo - AMF3_BYTE_ARRAY"
 }
 
@@ -490,6 +491,23 @@ VideoData = {
 		avctype		 byte
 		compositionTime uint24be
 		let avctypeKind = avcTypes[int(avctype)]
+		if avctype == 0 { // sequence header
+			configurationVersion byte
+			avcProfileIndication byte
+			profileCompatibility byte
+			avcLevelIndication   byte
+			lengthSizeMinusOne   byte
+			numOfSPS             byte // SPS = SequenceParameterSets
+			bytesOfSPS           uint16be
+			dataOfSPS            [bytesOfSPS]byte // SPS包含视频长、宽的信息
+			numOfPPS             byte // PPS = PictureParameterSets
+			bytesOfPPS           uint16be
+			dataOfPPS            [bytesOfPPS]byte
+			let lengthSizeMinusOne = (lengthSizeMinusOne & 3) + 1
+			let numOfSPS = numOfSPS & 0x1F
+			let numOfPPS = numOfPPS & 0x1F
+			unknown *byte
+		}
 	}
 	if RAWDATA != 0 {
 		raw *byte
