@@ -571,7 +571,6 @@ Handshake1 = {
 	eval _h1 do {
 		time	uint32be
 		version uint32be
-		assert version != 0
 		global _h = _h1
 		global _diggestOffset = 772
 		_verify1 Handshake1Verify
@@ -660,12 +659,18 @@ ChunkHeader = {
 			let streamid = _last["streamid"]
 			let remain = _last["remain"]
 		}
+		if ts == 0xffffff {
+			tsext uint32be
+		}
 	} else {
 		let ts = _last["ts"]
 		let length = _last["length"]
 		let typeid = _last["typeid"]
 		let streamid = _last["streamid"]
 		let remain = _last["remain"]
+		if ts == 0xffffff {
+			tsext uint32be
+		}
 	}
 
 	if remain == 0 {
