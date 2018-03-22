@@ -1,23 +1,68 @@
 package bpl
 
 import (
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strconv"
 
 	"qlang.io/exec.v2"
 	"qlang.io/qlang.spec.v1"
 	"qlang.io/qlang/bytes"
+	"qlang.io/qlang/crypto/hmac"
+	"qlang.io/qlang/crypto/md5"
+	"qlang.io/qlang/crypto/sha1"
+	"qlang.io/qlang/crypto/sha256"
+	"qlang.io/qlang/encoding/hex"
+	"qlang.io/qlang/encoding/json"
+	"qlang.io/qlang/errors"
+	"qlang.io/qlang/io"
+	"qlang.io/qlang/strings"
 
 	// import qlang builtin
 	_ "qlang.io/qlang/builtin"
+	qstrconv "qlang.io/qlang/strconv"
 )
 
 // -----------------------------------------------------------------------------
 
+func exit(code int) {
+
+	panic(code)
+}
+
 func init() {
+
+	osExports := map[string]interface{}{
+		"exit": exit,
+	}
+
+	httpExports := map[string]interface{}{
+		"readRequest":  http.ReadRequest,
+		"readResponse": http.ReadResponse,
+	}
+
+	var ioutilExports = map[string]interface{}{
+		"nopCloser": ioutil.NopCloser,
+		"readAll":   ioutil.ReadAll,
+		"discard":   ioutil.Discard,
+	}
 
 	qlang.Import("", exports)
 	qlang.Import("bytes", bytes.Exports)
+	qlang.Import("md5", md5.Exports)
+	qlang.Import("sha1", sha1.Exports)
+	qlang.Import("sha256", sha256.Exports)
+	qlang.Import("hmac", hmac.Exports)
+	qlang.Import("errors", errors.Exports)
+	qlang.Import("json", json.Exports)
+	qlang.Import("hex", hex.Exports)
+	qlang.Import("io", io.Exports)
+	qlang.Import("ioutil", ioutilExports)
+	qlang.Import("os", osExports)
+	qlang.Import("http", httpExports)
+	qlang.Import("strconv", qstrconv.Exports)
+	qlang.Import("strings", strings.Exports)
 }
 
 // Fntable returns the qlang compiler's function table. It is required by tpl.Interpreter engine.
@@ -90,6 +135,12 @@ func eq(a, b interface{}) bool {
 			return a1 == b1
 		}
 	}
+	if a1, ok := a.(string); ok {
+		switch b1 := b.(type) {
+		case string:
+			return a1 == b1
+		}
+	}
 	panicUnsupportedOp2("==", a, b)
 	return false
 }
@@ -143,8 +194,16 @@ func (p *Compiler) arity(arity int) {
 
 func (p *Compiler) call() {
 
+	variadic := p.popArity()
 	arity := p.popArity()
-	p.code.Block(exec.CallFn(arity))
+	if variadic != 0 {
+		if arity == 0 {
+			panic("what do you mean of `...`?")
+		}
+		p.code.Block(exec.CallFnv(arity))
+	} else {
+		p.code.Block(exec.CallFn(arity))
+	}
 }
 
 func (p *Compiler) ref(name string) {
@@ -175,6 +234,18 @@ func (p *Compiler) pushs(lit string) {
 		panic("invalid string `" + lit + "`: " + err.Error())
 	}
 	p.code.Block(exec.Push(v))
+}
+
+func (p *Compiler) pushc(lit string) {
+
+	v, multibyte, tail, err := strconv.UnquoteChar(lit[1:len(lit)-1], '\'')
+	if err != nil {
+		panic("invalid char `" + lit + "`: " + err.Error())
+	}
+	if tail != "" || multibyte {
+		panic("invalid char: " + lit)
+	}
+	p.code.Block(exec.Push(byte(v)))
 }
 
 func (p *Compiler) cpushi(v int) {
@@ -214,6 +285,28 @@ func (p *Compiler) index() {
 		p.code.Block(exec.Get)
 	} else {
 		p.code.Block(exec.Op3(qlang.SubSlice, arity1 != 0, arity2 != 0))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+// DumpCode is mode how to dump code.
+// 1 means to dump code with `rem` instruction; 2 means to dump clean code; 0 means don't dump code.
+//
+var DumpCode int
+
+func (p *Compiler) codeLine(src interface{}) {
+
+	ipt := p.ipt
+	if ipt == nil {
+		return
+	}
+
+	f := ipt.FileLine(src)
+	p.code.CodeLine(f.File, f.Line)
+	if DumpCode == 1 {
+		text := string(ipt.Source(src))
+		p.code.Block(exec.Rem(f.File, f.Line, text))
 	}
 }
 

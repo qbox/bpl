@@ -30,10 +30,10 @@ make install # 这将将所有的bpl文件拷贝到 ~/.qbpl/formats/
 qbplproxy 可用来分析服务器和客户端之间的网络包。它通过代理要分析的服务，让客户端请求自己来分析请求包和返回包。使用方式如下：
 
 ```
-qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -o <output>.log]
+qbplproxy -h <listenIp:port> -b <backendIp:port> [-p <protocol>.bpl -f <filter> -o <output>.log]
 ```
 
-其中，`<listenIp:port>` 是 qbplproxy 自身监听的IP和端口，`<backendIp:port>` 是原始的服务。
+其中，`<listenIp:port>` 是 qbplproxy 自身监听的IP和端口，`<backendIp:port>` 是原始的服务。`-p <filter>` 是过滤条件，这个条件通过 BPL_FILTER 全局变量传递到 bpl 中。
 
 多数情况下，你不需要指定 `-p <protocol>.bpl` 参数，qbplproxy 程序可以根据你监听的端口来猜测网络协议。例如：
 
@@ -45,459 +45,180 @@ qbplproxy -h localhost:27017 -b localhost:37017
 我们会依据端口 27017 知道你要分析的是 mongodb 的网络协议。
 
 
-## 基础规则
+## BPL 文法
 
-其实也就是内建类型 (builtin types)，如下：
+请参见 [BPL 文法](README_BPL.md)。
 
-* int8, char, uint8(byte), int16, uint16
-* uint24, int32, uint32, int64, uint64
-* uint16be, uint24be, uint32be, uint64be
-* uint16le, uint24le, uint32le, uint64le (实际上就是 uint16, uint24, uint32, uint64，这里只是强调下 LittleEndian)
-* float32, float64
-* cstring, [n]char
-* bson
-* nil
 
+## 网络协议研究
 
-## 复合规则
+### RTMP 协议
 
-* `*R`: 反复匹配规则 R，直到无法成功匹配为止。
-* `+R`: 反复匹配规则 R，直到无法成功匹配为止。要求至少匹配成功1次。
-* `?R`: 匹配规则 R 1次或0次。
-* `R1 R2 ... Rn`: 要求要匹配的文本满足规则序列 R1 R2 ... Rn。
+格式描述：
 
+* [rtmp.bpl](https://github.com/qbox/bpl/blob/develop/formats/rtmp.bpl)
 
-## 别名
+测试：
 
-如果规则太复杂并且要出现在多个地方，那么我们就可以定义下别名。例如：
+1) 启动一个 rtmp server，让其监听 1936 端口（而不是默认的 1935 端口）。比如我们可以用 [node-rtsp-rtmp-server](https://github.com/iizukanao/node-rtsp-rtmp-server)：
 
 ```
-R = R1 R2 ... Rn
+git clone git@github.com:iizukanao/node-rtsp-rtmp-server.git
+cd node-rtsp-rtmp-server
+修改 config.coffee，将：
+  * rtmpServerPort: 1935 改为 rtmpServerPort: 1936；
+  * serverPort: 80 改为 serverPort: 8080（这样就不用 sudo 来运行了）
+coffee server.coffee
 ```
 
-这里 R 就是规则序列 `R1 R2 ... Rn` 的别名。
+2) 启动 qbplproxy：
 
-
-## 结构体
-
-结构体本质上和 `R1 R2 ... Rn` 有些类似，属于规则序列，但是它给每个子规则都有命名，如下：
-
-```
-{
-	Var1 R1
-	Var2 R2
-	...
-	Varn Rn
-}
-```
-
-以上是 Go 风格的结构体。我们也可以改成 C 风格的：
-
-```
-{/C
-	R1 Var1
-	R2 Var2
-	...
-	Rn Varn
-}
-```
-
-在结构体里面出现的规则 R，有一些特殊性，如下：
-
-1) 规则不能太复杂，如果复杂应该定义别名。例如以下是非法的：
-
-```
-{
-	Var (R1 R2 ... Rn)
-}
-```
-
-我们不建议写这样不清晰的东西，而是先给 `R1 R2 ... Rn` 定义别名：
-
-```
-R = R1 R2 ... Rn
-```
-
-然后再引用 R：
-
-```
-{
-	Var R
-}
 ```
-
-2) 以尽可能符合常理为原则，我们设置了规则可以是 `R`, `?R`, `*R`, `+R`, `[len]R` 这样一些情况。当然在 C 风格中应该是 `R`, `R?`, `R*`, `R+`, `R[len]` 这种结构。
-
-3) 需要注意的一个细节是，`[len]R` 这样的规则当前只能在结构体里面出现。
-
-
-## 捕获
-
-如果我们希望生成 DOM，那么我们就需要去捕获感兴趣的数据。例如：
-
-```
-doc = R1 R2 R3 ... Rn
-```
-
-对于这样一段数据，如果我们感兴趣 R2，那么可以：
-
-```
-doc = R1 $R2 R3 ... Rn
+qbplproxy -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee rtmp.log
 ```
 
-但是如果你感兴趣多个元素，你不能多处使用 `$` 来捕获。下面样例不能正常工作：
+3) 推流：
 
 ```
-doc = R1 $R2 R3 ... $Rn
+ffmpeg -re -i test.m4v -c:v copy -c:a copy -f flv rtmp://localhost/live/123
 ```
 
-因为这段规则的匹配过程是这样的：
+4) 播流：
 
-* 在匹配 `$R2` 成功后，我们把 ctx.dom = `<R2的匹配结果>`。
-* 在匹配 `$Rn` 成功后，我们试图把 ctx.dom 修改为 `<Rn的匹配结果>` 但是失败，因为 ctx.dom 已经赋值。
+在 Mac 下可以考虑用 VLC Player，打开网址 rtmp://localhost/live/123 进行播放即可。
 
-如果我们对多个匹配的结果感兴趣，那么我们需要写成：
+5) 选择性查看
 
-```
-doc = R1 [R2] R3 ... [Rn]
-```
+有时候我们并不希望看到所有的信息，rtmp.bpl 支持以 flashVer 作为过滤条件。如：
 
-得到的结果是 `[<R2的匹配结果>, <Rn的匹配结果>]`。
-
-如果我们希望结果不是数组而是对象(object)。那么应该用结构体。例如：
-
 ```
-doc = R1 {var2 R2; var3 R3} ... {varn Rn}
+qbplproxy -f 'flashVer=LNX 9,0,124,2' -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee <output>.log
 ```
-
-那么结果就是 `{"var2": <R2的匹配结果>, "var3": <R3的匹配结果>, "varn": <Rn的匹配结果>}`。
 
-如果我们这样去捕获：
+或者我们直接用 reqMode(用来区分是推流publish还是播流play) 来过滤。如：
 
 ```
-Rx = [R2 R3]
-
-doc = R1 {varx Rx} ... {varn Rn}
+qbplproxy -f 'reqMode=play' -h localhost:1935 -b localhost:1936 -p formats/rtmp.bpl | tee <output>.log
 ```
-
-那么结果就是 `{"varx": [<R2的匹配结果>, <R3的匹配结果>], "varn": <Rn的匹配结果>}`。
-
-
-## dump
-
-dump 规则不匹配任何内容，但是会打印当前 Context 中已经捕获的所有变量值。如：
-
-doc = *(record dump)
 
-这样每个 record 匹配成功后会 dump 匹配结果。如果希望某个变量不进行 dump，则该变量需要以 _ 开头。
+这样就可以只捕获 VLC Player 的播流过程了。
 
-## case
+当然，其实还有一个不用过滤条件的办法：就是让推流直接推到 rtmp server，但是播流请求发到 qbplproxy。
 
-```
-case <expr> {
-	<val1>: R1
-	<val2>: R2
-	...
-	<valn>: Rn
-	default: Rdefault // 如果没有 default 并且前面各个分支都没有匹配成功，那么整个规则匹配会失败
-}
-```
-
-典型例子：
-
-```
-header = {type uint32; ...}
 
-body1 = {...}
+### FLV 协议
 
-body2 = {...}
+格式描述：
 
-// 每个记录有个 header，header里面有个记录type，不同记录有不同的body
-//
-record = {h header} case h.type {type1: body1; type2: body2; ...}
+* [flv.bpl](https://github.com/qbox/bpl/blob/develop/formats/flv.bpl)
 
-doc = *record
-```
+测试：
 
-另外条件规则也可以出现在结构体中（下文大部分规则除非特殊说明，一般都可以同时出现在规则列表和结构体）。如：
+1) 启动一个 rtmp/flv server，让其监听 1935/8135 端口。这里我们用 [streamgate-example](https://github.com/qbox/pili-streamgate/tree/develop/src/pili.qiniu.com/app/streamgate-example)：
 
 ```
-record = {
-	h header
-	case h.type {
-		type1: body1
-		type2: body2
-		...
-	}
-}
+git clone git@github.com:qbox/pili-streamgate.git
+cd pili-streamgate
+make
+./go.sh  #用 ./stop.sh 来停止服务
 ```
 
-## if..elif..else
+2) 启动 qbplproxy：
 
 ```
-if <condition1> do R1 elif <condition2> do R2 ... else Rn
+qbplproxy -h localhost:8888 -b localhost:8135 -p formats/flv.bpl | tee flv.log
 ```
 
-对 `<condition1>` 进行求值，如果结果为 true 或非零整数则执行 R1 规则，以此类推。如果 R1 是结构体 { ... }，则 do 可以忽略。例如：
+3) 推流：
 
 ```
-record = {
-	len uint32
-	if len {
-		data [len]byte
-		next record
-	}
-}
+ffmpeg -re -i test.m4v -c:v copy -c:a copy -f flv rtmp://localhost/live/123
 ```
 
-## assert
+4) 播流：
 
-```
-assert <condition>
-```
+在 Mac 下可以考虑用 VLC Player，打开网址 http://localhost:8888/live/123.flv 进行播放即可。
 
-对 `<condition>` 进行求值，如果结果为 true 或非零整数表示成功，其他情况均失败。
 
-## read..do
+### WebRTC 协议
 
-```
-read <nbytes> do R
-```
+格式描述：
 
-这里 `<nbytes>` 是一个 qlang 表达式。对 `<nbytes>` 求值，读如相应字节数的内容后，再用 R 匹配这段内容。如：
+* [webrtc.bpl](https://github.com/qbox/bpl/blob/develop/formats/webrtc.bpl)
 
-```
-record = {
-	h header
-	read h.len - sizeof(header) do case h.type {
-		type1: body1
-		type2: body2
-		...
-	}
-}
-```
 
-## eval..do
+### MongoDB 协议
 
-```
-eval <expr> do R
-```
+格式描述：
 
-对 `<expr>` 进行求值（要求求值结果为[]byte类型）后，再用 R 匹配它。如：
+* [mongo.bpl](https://github.com/qbox/bpl/blob/develop/formats/mongo.bpl)
 
-```
-record = {
-	h    header
-	body [h.len - sizeof(header)]byte
-	eval body do case h.type {
-		type1: body1
-		type2: body2
-		...
-	}
-}
-```
+测试：
 
-## let
+1) 启动 MongoDB，让其监听 37017 端口（而不是默认的 27017 端口）：
 
 ```
-let <var> = <expr>
+./mongod --port 37017 --dbpath ~/data/db
 ```
 
-如果 `<var>` 是全局变量（见后面 `global` 一节），则修改该全局变量的值为 `<expr>` 。
-如果当前 Context 已经存在名为 `<var>` 的变量，则修改其只为 `<expr>`；否则新增名为 `<var>` 的变量。
+2) 启动 qbplproxy：
 
 ```
-record = {
-	let a = 1
-	let _b = 2  // 变量 _b 不会被 dump
-}
+qbplproxy -h localhost:27017 -b localhost:37017 -p formats/mongo.bpl | tee mongo.log
 ```
 
-## return
+3) 使用 MongoDB，比如通过 mongo shell 操作：
 
-return 语句只能出现在结构体中，用来改写结构体的匹配结果。如：
-
 ```
-uint24be = {
-    b3 uint8
-    b2 uint8
-    b1 uint8
-    return (b3 << 16) | (b2 << 8) | b1
-}
+./mongo
 ```
 
-在正常情况下，以上 uint24be 的匹配结果应该是 `{"b1": <val1>, "b2": <val2>, "b3": <val3>}`，但是由于 return 语句的存在，其匹配结果变成返回一个整数。类似地我们可以有：
+## 文件格式研究
 
-```
-uint32be = {
-    b4 uint8
-    b3 uint8
-    b2 uint8
-    b1 uint8
-    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
-}
-```
+### MongoDB binlog 格式
 
-当然，在 bpl 里面已经内置了 uint24be 和 uint32be。这里仅仅只是演示如何基于 bpl 本身来自己实现这样的内置规则。
+TODO
 
-## global
+### MySQL binlog 格式
 
-```
-global <var> = <expr>
-```
+TODO
 
-global 语句用于定义全局变量，这些变量并不出现在 Context 的捕获结果中。如：
+### HLS TS 格式
 
-```
-init = {
-	global msgs = mkmap("int:var")
-}
-```
+格式描述：
 
-## do
+* [ts.bpl](https://github.com/qbox/bpl/blob/develop/formats/ts.bpl)
 
-```
-do <expr>
-do {
-   ... // 详细见上面关于“结构体”一节
-}
-```
+测试：TODO
 
-do 语句可用来执行一个表达式，也可以用来匹配一个结构体。如：
+### FLV 格式
 
-```
-init = {
-	global msgs = {"a": 12, "b": 32}
-}
+格式描述：
 
-record = {
-	do set(msgs, "c", 56, "d", 78) // 现在 msgs = {"a": 12, "b": 32, "c": 56, "d": 78}
-	let a = msgs["a"]
-}
+* [flv.bpl](https://github.com/qbox/bpl/blob/develop/formats/flv.bpl)
 
-doc = init record
-```
+测试：TODO
 
+### MP4 格式
 
-## 常量
+格式描述：
 
-```
-const (
-	<ident> = <constvalue>
-	...
-)
-```
+* [mp4.bpl](https://github.com/qbox/bpl/blob/develop/formats/mp4.bpl)
 
-语法和 Go 语言类似。例如：
+测试：
 
 ```
-const (
-	N = 6
-)
-
-record = {
-	tag [N]char
-    assert tag == "GIF87a" || tag == "GIF89a"
-}
+qbpl -p formats/mp4.bpl <example>.mp4
 ```
-
-## qlang 表达式
-
-bpl 集成了 qlang 表达式（不包含赋值）。以上所有 `<expr>`、`<condition>`、`<nbytes>` 这些地方，都是 bpl 引用 qlang 表达式的地方。
 
-bpl 中的 qlang 表达式支持如下这些特性：
+### GIF 格式
 
-* 所有 qlang 操作符；
-* string、slice、map 等内置类型；
-* 变量、成员变量引用；
-* 函数、成员函数调用；
-* 模块（但是我们很克制地支持了非常有限的几个模块，如：builtin、bytes 等）；
+格式描述：
 
+* [gif.bpl](https://github.com/qbox/bpl/blob/develop/formats/gif.bpl)
 
-## 样例：MongoDB 网络协议
+测试：
 
 ```
-document = bson
-
-MsgHeader = {/C
-    int32   messageLength; // total message size, including this
-    int32   requestID;     // identifier for this message
-    int32   responseTo;    // requestID from the original request (used in responses from db)
-    int32   opCode;        // request type - see table below
-}
-
-OP_UPDATE = {/C
-	int32     ZERO;               // 0 - reserved for future use
-	cstring   fullCollectionName; // "dbname.collectionname"
-	int32     flags;              // bit vector. see below
-	document  selector;           // the query to select the document
-	document  update;             // specification of the update to perform
-}
-
-OP_INSERT = {/C
-	int32      flags;              // bit vector - see below
-	cstring    fullCollectionName; // "dbname.collectionname"
-	document*  documents;          // one or more documents to insert into the collection
-}
-
-OP_QUERY = {/C
-	int32     flags;                  // bit vector of query options.  See below for details.
-	cstring   fullCollectionName;     // "dbname.collectionname"
-	int32     numberToSkip;           // number of documents to skip
-	int32     numberToReturn;         // number of documents to return
-		                              //  in the first OP_REPLY batch
-	document  query;                  // query object.  See below for details.
-	document? returnFieldsSelector;   // Optional. Selector indicating the fields
-		                              //  to return.  See below for details.
-}
-
-OP_GET_MORE = {/C
-	int32     ZERO;               // 0 - reserved for future use
-	cstring   fullCollectionName; // "dbname.collectionname"
-	int32     numberToReturn;     // number of documents to return
-	int64     cursorID;           // cursorID from the OP_REPLY
-}
-
-OP_DELETE = {/C
-	int32     ZERO;               // 0 - reserved for future use
-	cstring   fullCollectionName; // "dbname.collectionname"
-	int32     flags;              // bit vector - see below for details.
-	document  selector;           // query object.  See below for details.
-}
-
-OP_KILL_CURSORS = {/C
-	int32     ZERO;              // 0 - reserved for future use
-	int32     numberOfCursorIDs; // number of cursorIDs in message
-	int64*    cursorIDs;         // sequence of cursorIDs to close
-}
-
-OP_MSG = {/C
-	cstring   message; // message for the database
-}
-
-OP_REPLY = {/C
-	int32     responseFlags;  // bit vector - see details below
-	int64     cursorID;       // cursor id if client needs to do get more's
-	int32     startingFrom;   // where in the cursor this reply is starting
-	int32     numberReturned; // number of documents in the reply
-	document* documents;      // documents
-}
-
-Message = {
-	header MsgHeader   // standard message header
-	body   [header.messageLength - sizeof(MsgHeader)]byte
-	eval body do case header.opCode {
-		1:    OP_REPLY    // Reply to a client request. responseTo is set.
-		1000: OP_MSG      // Generic msg command followed by a string.
-		2001: OP_UPDATE
-		2002: OP_INSERT
-		2004: OP_QUERY
-		2005: OP_GET_MORE // Get more data from a query. See Cursors.
-		2006: OP_DELETE
-		2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
-		default: nil
-	}
-}
-
-doc = *Message
+qbpl -p formats/gif.bpl formats/1.gif
 ```

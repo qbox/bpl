@@ -1,49 +1,42 @@
 package bpl
 
 import (
+	"bufio"
 	"io"
 	"reflect"
-
-	"qiniupkg.com/text/bpl.v1/bufio"
 )
 
 // -----------------------------------------------------------------------------
 
-var (
-	typeIntf = reflect.TypeOf((*interface{})(nil)).Elem()
-)
-
-func typeOf(v interface{}) reflect.Type {
+func valueOf(v interface{}, t reflect.Type) reflect.Value {
 
 	if v != nil {
-		return reflect.TypeOf(v)
+		return reflect.ValueOf(v)
 	}
-	return typeIntf
+	return reflect.Zero(t)
 }
 
-func matchArray1(R Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+func matchArray1(R Ruler, in *bufio.Reader, ctx *Context, fCheckNil bool) (v interface{}, err error) {
 
-	v1, err := R.Match(in, ctx)
-	if err != nil {
-		return
-	}
-
-	t := typeOf(v1)
+	t := R.RetType()
 	ret := reflect.MakeSlice(reflect.SliceOf(t), 0, 4)
-	ret = reflect.Append(ret, reflect.ValueOf(v1))
 	for {
 		_, err = in.Peek(1)
 		if err != nil {
 			if err == io.EOF {
+				if fCheckNil {
+					return
+				}
 				return ret.Interface(), nil
 			}
 			return
 		}
-		v1, err = R.Match(in, ctx)
+		v, err = R.Match(in, ctx.NewSub())
 		if err != nil {
 			return
 		}
-		ret = reflect.Append(ret, reflect.ValueOf(v1))
+		ret = reflect.Append(ret, valueOf(v, t))
+		fCheckNil = false
 	}
 }
 
@@ -53,20 +46,14 @@ func matchArray(R Ruler, n int, in *bufio.Reader, ctx *Context) (v interface{}, 
 		return
 	}
 
-	v1, err := R.Match(in, ctx)
-	if err != nil {
-		return
-	}
-
-	t := typeOf(v1)
+	t := R.RetType()
 	ret := reflect.MakeSlice(reflect.SliceOf(t), 0, n)
-	ret = reflect.Append(ret, reflect.ValueOf(v1))
-	for i := 1; i < n; i++ {
-		v1, err = R.Match(in, ctx)
+	for i := 0; i < n; i++ {
+		v, err = R.Match(in, ctx.NewSub())
 		if err != nil {
 			return
 		}
-		ret = reflect.Append(ret, reflect.ValueOf(v1))
+		ret = reflect.Append(ret, valueOf(v, t))
 	}
 	return ret.Interface(), nil
 }
@@ -79,11 +66,12 @@ type array1 struct {
 
 func (p *array1) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	_, err = in.Peek(1)
-	if err != nil {
-		return
-	}
-	return matchArray1(p.r, in, ctx)
+	return matchArray1(p.r, in, ctx, true)
+}
+
+func (p *array1) RetType() reflect.Type {
+
+	return reflect.SliceOf(p.r.RetType())
 }
 
 func (p *array1) SizeOf() int {
@@ -95,6 +83,9 @@ func (p *array1) SizeOf() int {
 //
 func Array1(R Ruler) Ruler {
 
+	if R == Uint8 {
+		return ByteArray1
+	}
 	return &array1{r: R}
 }
 
@@ -106,14 +97,12 @@ type array0 struct {
 
 func (p *array0) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	_, err = in.Peek(1)
-	if err != nil {
-		if err == io.EOF {
-			return nil, nil
-		}
-		return
-	}
-	return matchArray1(p.r, in, ctx)
+	return matchArray1(p.r, in, ctx, false)
+}
+
+func (p *array0) RetType() reflect.Type {
+
+	return reflect.SliceOf(p.r.RetType())
 }
 
 func (p *array0) SizeOf() int {
@@ -125,6 +114,9 @@ func (p *array0) SizeOf() int {
 //
 func Array0(R Ruler) Ruler {
 
+	if R == Uint8 {
+		return ByteArray0
+	}
 	return &array0{r: R}
 }
 
@@ -148,6 +140,11 @@ func (p *array) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 	return matchArray(p.r, n, in, ctx)
 }
 
+func (p *array) RetType() reflect.Type {
+
+	return reflect.SliceOf(p.r.RetType())
+}
+
 func (p *array) SizeOf() int {
 
 	size := p.r.SizeOf()
@@ -167,6 +164,8 @@ func Array(r Ruler, n int) Ruler {
 	//}
 	if r == Char {
 		return charArray(n)
+	} else if r == Uint8 {
+		return byteArray(n)
 	}
 	return &array{r: r, n: n}
 }
@@ -184,6 +183,11 @@ func (p *dynarray) Match(in *bufio.Reader, ctx *Context) (v interface{}, err err
 	return matchArray(p.r, n, in, ctx)
 }
 
+func (p *dynarray) RetType() reflect.Type {
+
+	return reflect.SliceOf(p.r.RetType())
+}
+
 func (p *dynarray) SizeOf() int {
 
 	return -1
@@ -199,6 +203,8 @@ func Dynarray(r Ruler, n func(ctx *Context) int) Ruler {
 	//}
 	if r == Char {
 		return charDynarray(n)
+	} else if r == Uint8 {
+		return byteDynarray(n)
 	}
 	return &dynarray{r: r, n: n}
 }

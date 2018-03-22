@@ -9,7 +9,7 @@ import (
 
 	"qiniupkg.com/text/bpl.v1"
 	bin "qiniupkg.com/text/bpl.v1/binary"
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 type fixedType struct {
@@ -36,18 +36,18 @@ func TestFixedStruct(t *testing.T) {
 		t.Fatal("len != 11")
 	}
 
-	members := []bpl.Member{
-		{Name: "a", Type: bpl.Int8},
-		{Name: "b", Type: bpl.Uint16},
-		{Name: "c", Type: bpl.Uint32},
-		{Name: "d", Type: bpl.Float32},
+	members := []bpl.Ruler{
+		&bpl.Member{Name: "a", Type: bpl.Int8},
+		&bpl.Member{Name: "b", Type: bpl.Uint16},
+		&bpl.Member{Name: "c", Type: bpl.Uint32},
+		&bpl.Member{Name: "d", Type: bpl.Float32},
 	}
 	struc := bpl.Struct(members)
 	if struc.SizeOf() != 11 {
-		t.Fatal("struct.size != 11")
+		t.Fatal("struct.size != 11 - ", struc.SizeOf())
 	}
 
-	in := bufio.NewReaderBuffer(b.Bytes())
+	in := bufiox.NewReaderBuffer(b.Bytes())
 	if in.Buffered() != 11 {
 		t.Fatal("len != 11")
 	}
@@ -105,7 +105,7 @@ func TestStruct(t *testing.T) {
 	if err != nil {
 		t.Fatal("bpl.TypeFrom failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	ctx := bpl.NewContext()
 	v, err := r.Match(in, ctx)
 	if err != nil {
@@ -130,7 +130,7 @@ func TestSeq(t *testing.T) {
 	if err != nil {
 		t.Fatal("binary.Marshal failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	v, err := rFooType.Match(in, bpl.NewContext())
 	if err != nil {
 		t.Fatal("Match failed:", err, "len:", len(b))
@@ -154,7 +154,7 @@ func TestSeq2(t *testing.T) {
 	if err != nil {
 		t.Fatal("binary.Marshal failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	ctx := bpl.NewContext()
 	_, err = rFooType2.Match(in, ctx)
 	if err != nil {

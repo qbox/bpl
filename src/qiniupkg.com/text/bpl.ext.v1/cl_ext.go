@@ -1,11 +1,11 @@
 package bpl
 
 import (
-	"bytes"
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 
-	"qiniupkg.com/text/bpl.ext.v1/lzw"
 	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
@@ -13,29 +13,15 @@ import (
 
 // -----------------------------------------------------------------------------
 
-type executor struct {
-	code exec.Code
-	estk *exec.Stack
-}
-
-func newExecutor() *executor {
-	return &executor{
-		estk: exec.NewStack(),
-	}
-}
-
-func (p *executor) Eval(ctx *bpl.Context, start, end int) interface{} {
+func (p *Compiler) eval(ctx *bpl.Context, start, end int) interface{} {
 
 	vars, hasDom := ctx.Dom().(map[string]interface{})
 	if vars == nil {
 		vars = make(map[string]interface{})
 	}
 	code := &p.code
-	stk := p.estk
-	var parent *exec.Context
-	if len(ctx.Globals) > 0 {
-		parent = exec.NewSimpleContext(ctx.Globals, nil, nil, nil)
-	}
+	stk := ctx.Stack
+	parent := exec.NewSimpleContext(ctx.Globals.Impl, nil, nil, nil)
 	ectx := exec.NewSimpleContext(vars, stk, code, parent)
 	code.Exec(start, end, stk, ectx)
 	if !hasDom && len(vars) > 0 { // update dom
@@ -79,7 +65,7 @@ func (p *Compiler) array() {
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
-		v := p.Eval(ctx.Parent, e.start, e.end)
+		v := p.eval(ctx.Parent, e.start, e.end)
 		return toInt(v, "index isn't an integer expression")
 	}
 	stk[i] = bpl.Dynarray(stk[i].(bpl.Ruler), n)
@@ -106,6 +92,15 @@ func (p *Compiler) casei(v int) {
 	p.gstk.Push(v)
 }
 
+func (p *Compiler) cases(lit string) {
+
+	v, err := strconv.Unquote(lit)
+	if err != nil {
+		panic("invalid string `" + lit + "`: " + err.Error())
+	}
+	p.gstk.Push(v)
+}
+
 func (p *Compiler) source(v interface{}) {
 
 	p.gstk.Push(v)
@@ -119,13 +114,16 @@ func (p *Compiler) popRule() bpl.Ruler {
 	return r
 }
 
-func (p *Compiler) popRules(m int) bpl.Ruler {
+func (p *Compiler) popRules(m int) []bpl.Ruler {
 
 	if m == 0 {
 		return nil
 	}
-	p.and(m)
-	return p.popRule()
+	stk := p.stk
+	n := len(stk)
+	rulers := clone(stk[n-m:])
+	p.stk = stk[:n-m]
+	return rulers
 }
 
 func sourceOf(engine interpreter.Engine, src interface{}) string {
@@ -150,7 +148,7 @@ func (p *Compiler) fnCase(engine interpreter.Engine) {
 	e := p.popExpr()
 	srcSw, _ := p.gstk.Pop()
 	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		for i := 0; i < len(caseExprAndSources); i += 2 {
 			expr := caseExprAndSources[i]
 			if eq(v, expr) {
@@ -188,17 +186,42 @@ func (p *Compiler) fnIf() {
 	n := len(stk)
 	bodyRs := clone(stk[n-arity:])
 	condExprs := p.gstk.PopNArgs(arity)
-	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		for i := 0; i < arity; i++ {
-			e := condExprs[i].(*exprBlock)
-			v := p.Eval(ctx, e.start, e.end)
-			if toBool(v, "condition isn't a boolean expression") {
-				return bodyRs[i], nil
+
+	arityOptimized := 0
+	for i := 0; i < arity; i++ {
+		e := condExprs[i].(*exprBlock)
+		if e.end-e.start == 1 {
+			if v, ok := p.code.CheckConst(e.start); ok {
+				if toBool(v, "condition isn't a boolean expression") { // true
+					arityOptimized = i
+					elseR = bodyRs[i]
+					break
+				}
+				continue // false
 			}
 		}
-		return elseR, nil
+		if arityOptimized != i {
+			bodyRs[arityOptimized] = bodyRs[i]
+			condExprs[arityOptimized] = condExprs[i]
+		}
+		arityOptimized++
 	}
-	stk[n-arity] = bpl.Dyntype(r)
+
+	dynR := elseR
+	if arityOptimized > 0 {
+		r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+			for i := 0; i < arityOptimized; i++ {
+				e := condExprs[i].(*exprBlock)
+				v := p.eval(ctx, e.start, e.end)
+				if toBool(v, "condition isn't a boolean expression") {
+					return bodyRs[i], nil
+				}
+			}
+			return elseR, nil
+		}
+		dynR = bpl.Dyntype(r)
+	}
+	stk[n-arity] = dynR
 	p.stk = stk[:n-arity+1]
 }
 
@@ -209,9 +232,8 @@ func (p *Compiler) fnEval() {
 	e := p.popExpr()
 	stk := p.stk
 	i := len(stk) - 1
-	expr := func(ctx *bpl.Context) []byte {
-		v := p.Eval(ctx, e.start, e.end)
-		return v.([]byte)
+	expr := func(ctx *bpl.Context) interface{} {
+		return p.eval(ctx, e.start, e.end)
 	}
 	stk[i] = bpl.Eval(expr, stk[i].(bpl.Ruler))
 }
@@ -222,7 +244,7 @@ func (p *Compiler) fnDo() {
 
 	e := p.popExpr()
 	fn := func(ctx *bpl.Context) error {
-		p.Eval(ctx, e.start, e.end)
+		p.eval(ctx, e.start, e.end)
 		return nil
 	}
 	p.stk = append(p.stk, bpl.Do(fn))
@@ -233,15 +255,45 @@ func (p *Compiler) fnDo() {
 func (p *Compiler) fnLet() {
 
 	e := p.popExpr()
+	arity := p.popArity()
 	stk := p.stk
-	i := len(stk) - 1
-	name := stk[i].(string)
-	fn := func(ctx *bpl.Context) error {
-		v := p.Eval(ctx, e.start, e.end)
-		ctx.LetVar(name, v)
-		return nil
+	n := len(stk) - arity
+	if arity == 1 {
+		name := stk[n].(string)
+		fn := func(ctx *bpl.Context) error {
+			v := p.eval(ctx, e.start, e.end)
+			ctx.LetVar(name, v)
+			return nil
+		}
+		stk[n] = bpl.Do(fn)
+	} else {
+		names := cloneNames(stk[n:])
+		fn := func(ctx *bpl.Context) error {
+			v := p.eval(ctx, e.start, e.end)
+			multiAssignFromSlice(names, v, ctx)
+			return nil
+		}
+		stk[n] = bpl.Do(fn)
+		p.stk = stk[:n+1]
 	}
-	stk[i] = bpl.Do(fn)
+}
+
+func multiAssignFromSlice(names []string, val interface{}, ctx *bpl.Context) {
+
+	v := reflect.ValueOf(val)
+	if v.Kind() != reflect.Slice {
+		panic("expression of multi assignment must be a slice")
+	}
+
+	n := v.Len()
+	arity := len(names)
+	if arity != n {
+		panic(fmt.Errorf("multi assignment error: require %d variables, but we got %d", n, arity))
+	}
+
+	for i, name := range names {
+		ctx.LetVar(name, v.Index(i).Interface())
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -253,8 +305,8 @@ func (p *Compiler) fnGlobal() {
 	i := len(stk) - 1
 	name := stk[i].(string)
 	fn := func(ctx *bpl.Context) error {
-		v := p.Eval(ctx, e.start, e.end)
-		ctx.Globals[name] = v
+		v := p.eval(ctx, e.start, e.end)
+		ctx.Globals.SetVar(name, v)
 		return nil
 	}
 	stk[i] = bpl.Do(fn)
@@ -266,11 +318,30 @@ func (p *Compiler) fnAssert(src interface{}) {
 
 	e := p.popExpr()
 	expr := func(ctx *bpl.Context) bool {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		return toBool(v, "assert condition isn't a boolean expression")
 	}
 	msg := sourceOf(p.ipt, src)
 	p.stk = append(p.stk, bpl.Assert(expr, msg))
+}
+
+func (p *Compiler) fnFatal(src interface{}) {
+
+	e := p.popExpr()
+	r := func(ctx *bpl.Context) (bpl.Ruler, error) {
+		val := p.eval(ctx, e.start, e.end)
+		if v, ok := val.(string); ok {
+			panic("fatal: " + v)
+		}
+		panic("fatal <expr> must return a string")
+	}
+	p.stk = append(p.stk, bpl.Dyntype(r))
+	//p.stk = append(p.stk, bpl.And(dump(0), bpl.Dyntype(r)))
+}
+
+func (p *Compiler) fnDump() {
+
+	p.stk = append(p.stk, bpl.Ruler(dump(0)))
 }
 
 // -----------------------------------------------------------------------------
@@ -281,86 +352,48 @@ func (p *Compiler) fnRead() {
 	stk := p.stk
 	i := len(stk) - 1
 	n := func(ctx *bpl.Context) int {
-		v := p.Eval(ctx, e.start, e.end)
+		v := p.eval(ctx, e.start, e.end)
 		return toInt(v, "read bytes isn't an integer expression")
 	}
 	stk[i] = bpl.Read(n, stk[i].(bpl.Ruler))
 }
 
+func (p *Compiler) fnSkip() {
+
+	e := p.popExpr()
+	n := func(ctx *bpl.Context) int {
+		v := p.eval(ctx, e.start, e.end)
+		return toInt(v, "skip bytes isn't an integer expression")
+	}
+	p.stk = append(p.stk, bpl.Skip(n))
+}
+
 // -----------------------------------------------------------------------------
 
-const (
-	lzwArgMsg = "lzw argument isn't an integer expression"
-)
+func (p *Compiler) fnReturn() {
 
-func (p *Compiler) fnLzw() {
+	e := p.popExpr()
+	fnRet := func(ctx *bpl.Context) (v interface{}, err error) {
+		v = p.eval(ctx, e.start, e.end)
+		return
+	}
+	p.stk = append(p.stk, bpl.Return(fnRet))
+}
 
-	e3 := p.popExpr()
-	e2 := p.popExpr()
-	e1 := p.popExpr()
+// -----------------------------------------------------------------------------
+
+func (p *Compiler) member(name string) {
+
 	stk := p.stk
 	i := len(stk) - 1
-	r := stk[i].(bpl.Ruler)
-	dynR := func(ctx *bpl.Context) (bpl.Ruler, error) {
-		v1, ok1 := p.Eval(ctx, e1.start, e1.end).([]byte)
-		if !ok1 {
-			panic("lzw source, order, litWidth: source isn't a []byte expression")
-		}
-		v2 := p.Eval(ctx, e2.start, e2.end)
-		v3 := p.Eval(ctx, e3.start, e3.end)
-		return lzw.Type(bytes.NewReader(v1), toInt(v2, lzwArgMsg), toInt(v3, lzwArgMsg), r), nil
-	}
-	stk[i] = bpl.Dyntype(dynR)
-}
-
-// -----------------------------------------------------------------------------
-
-func (p *Compiler) doret() func(ctx *bpl.Context) (v interface{}, err error) {
-
-	if p.popArity() != 0 {
-		e := p.popExpr()
-		return func(ctx *bpl.Context) (v interface{}, err error) {
-			v = p.Eval(ctx, e.start, e.end)
-			return
-		}
-	}
-	return nil
-}
-
-func (p *Compiler) dostruct(nDynExpr int, m int, fnRet func(ctx *bpl.Context) (v interface{}, err error), cstyle int) {
-
-	dynExprR := p.popRules(nDynExpr)
-	stk := p.stk
-	if m > 0 {
-		base := len(stk) - (m << 1)
-		members := make([]bpl.Member, m)
-		for i := 0; i < m; i++ {
-			idx := base + (i << 1)
-			typ := stk[idx+1-cstyle].(bpl.Ruler)
-			name := stk[idx+cstyle].(string)
-			members[i] = bpl.Member{Name: name, Type: typ}
-		}
-		stk[base] = bpl.StructEx(members, dynExprR, fnRet)
-		p.stk = stk[:base+1]
-	} else {
-		p.stk = append(stk, bpl.StructEx(nil, dynExprR, fnRet))
-	}
-}
-
-func (p *Compiler) cstruct() {
-
-	fnRet := p.doret()
-	nDynExpr := p.popArity()
-	m := p.popArity()
-	p.dostruct(nDynExpr, m, fnRet, 1)
+	stk[i] = &bpl.Member{Name: name, Type: stk[i].(bpl.Ruler)}
 }
 
 func (p *Compiler) gostruct() {
 
-	fnRet := p.doret()
-	nDynExpr := p.popArity()
 	m := p.popArity()
-	p.dostruct(nDynExpr, m, fnRet, 0)
+	rulers := p.popRules(m)
+	p.stk = append(p.stk, bpl.Struct(rulers))
 }
 
 // -----------------------------------------------------------------------------

@@ -1,11 +1,58 @@
 package bpl
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"reflect"
+	"runtime/debug"
 
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufiox.v7"
+	"qlang.io/exec.v2"
 )
+
+// -----------------------------------------------------------------------------
+
+// A Globals represents global variables.
+//
+type Globals struct {
+	Impl map[string]interface{}
+}
+
+// NewGlobals returns a `Globals` instance.
+//
+func NewGlobals() Globals {
+
+	return Globals{
+		Impl: make(map[string]interface{}),
+	}
+}
+
+// GetAndSetVar gets old value of a global variable and sets new value to it.
+//
+func (p Globals) GetAndSetVar(name string, v interface{}) (old interface{}, ok bool) {
+
+	old, ok = p.Impl[name]
+	p.Impl[name] = v
+	return
+}
+
+// SetVar sets a global variable to new value.
+//
+func (p Globals) SetVar(name string, v interface{}) {
+
+	p.Impl[name] = v
+}
+
+// Var returns value of a global variable.
+//
+func (p Globals) Var(name string) (v interface{}, ok bool) {
+
+	v, ok = p.Impl[name]
+	return
+}
 
 // -----------------------------------------------------------------------------
 
@@ -13,23 +60,25 @@ import (
 //
 type Context struct {
 	dom     interface{}
+	Stack   *exec.Stack
 	Parent  *Context
-	Globals map[string]interface{}
+	Globals Globals
 }
 
 // NewContext returns a new matching Context.
 //
 func NewContext() *Context {
 
-	gbl := make(map[string]interface{})
-	return &Context{Globals: gbl}
+	gbl := NewGlobals()
+	stk := exec.NewStack()
+	return &Context{Globals: gbl, Stack: stk}
 }
 
 // NewSub returns a new sub Context.
 //
 func (p *Context) NewSub() *Context {
 
-	return &Context{Parent: p, Globals: p.Globals}
+	return &Context{Parent: p, Globals: p.Globals, Stack: p.Stack}
 }
 
 func (p *Context) requireVarSlice() []interface{} {
@@ -49,7 +98,7 @@ func (p *Context) requireVarSlice() []interface{} {
 //
 func (p *Context) SetVar(name string, v interface{}) {
 
-	if _, ok := p.Globals[name]; ok {
+	if _, ok := p.Globals.Var(name); ok {
 		panic(fmt.Errorf("variable `%s` exists globally", name))
 	}
 
@@ -72,8 +121,8 @@ func (p *Context) SetVar(name string, v interface{}) {
 //
 func (p *Context) LetVar(name string, v interface{}) {
 
-	if _, ok := p.Globals[name]; ok {
-		p.Globals[name] = v
+	if _, ok := p.Globals.Var(name); ok {
+		p.Globals.SetVar(name, v)
 		return
 	}
 
@@ -128,29 +177,24 @@ type Ruler interface {
 	// Match matches input stream `in`, and returns matching result.
 	Match(in *bufio.Reader, ctx *Context) (v interface{}, err error)
 
+	// RetType returns matching result type.
+	RetType() reflect.Type
+
 	// SizeOf returns expected length of result. If length is variadic, it returns -1.
 	SizeOf() int
 }
 
-// -----------------------------------------------------------------------------
-
-// A Error represents an matching error.
+// MatchStream matches a stream.
 //
-type Error struct {
-	Err  error
-	File string
-	Line int
-}
+func MatchStream(r Ruler, in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-func (p *Error) Error() string {
-
-	if p.Line == 0 {
-		return p.Err.Error()
+	glbs := ctx.Globals
+	old, ok := glbs.GetAndSetVar("BPL_IN", in)
+	v, err = r.Match(in, ctx)
+	if ok {
+		glbs.SetVar("BPL_IN", old)
 	}
-	if p.File == "" {
-		return fmt.Sprintf("line %d: %v", p.Line, p.Err)
-	}
-	return fmt.Sprintf("%s:%d: %v", p.File, p.Line, p.Err)
+	return
 }
 
 // -----------------------------------------------------------------------------
@@ -161,15 +205,43 @@ type fileLine struct {
 	line int
 }
 
+type errorAt struct {
+	Err error
+	Buf []byte
+}
+
+func (p *errorAt) Error() string {
+
+	b := make([]byte, 0, 32)
+	b = append(b, p.Err.Error()...)
+	b = append(b, '\n')
+
+	w := bytes.NewBuffer(b)
+	d := hex.Dumper(w)
+	d.Write(p.Buf)
+	d.Close()
+	return string(w.Bytes())
+}
+
 func (p *fileLine) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	v, err = doMatch(p.r, in, ctx)
 	if err != nil {
-		if _, ok := err.(*Error); !ok {
-			err = &Error{Err: err, File: p.file, Line: p.line}
+		if _, ok := err.(*exec.Error); !ok {
+			err = &exec.Error{
+				Err:   &errorAt{Err: err, Buf: bufiox.Buffer(in)},
+				File:  p.file,
+				Line:  p.line,
+				Stack: debug.Stack(),
+			}
 		}
 	}
 	return
+}
+
+func (p *fileLine) RetType() reflect.Type {
+
+	return p.r.RetType()
 }
 
 func (p *fileLine) SizeOf() int {

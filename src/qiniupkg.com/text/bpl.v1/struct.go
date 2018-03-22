@@ -1,13 +1,44 @@
 package bpl
 
 import (
+	"bufio"
 	"fmt"
 	"reflect"
 	"strings"
 
-	"qiniupkg.com/text/bpl.v1/bufio"
 	"qiniupkg.com/x/log.v7"
 )
+
+// -----------------------------------------------------------------------------
+
+type ret func(ctx *Context) (v interface{}, err error)
+
+func (p ret) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	v, err = p(ctx)
+	if err != nil {
+		return
+	}
+	ctx.dom = v
+	return
+}
+
+func (p ret) RetType() reflect.Type {
+
+	return TyInterface
+}
+
+func (p ret) SizeOf() int {
+
+	return -1
+}
+
+// Return returns a matching unit that returns fnRet(ctx).
+//
+func Return(fnRet func(ctx *Context) (v interface{}, err error)) Ruler {
+
+	return ret(fnRet)
+}
 
 // -----------------------------------------------------------------------------
 
@@ -32,6 +63,13 @@ func (p *Member) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return
 }
 
+// RetType returns matching result type.
+//
+func (p *Member) RetType() reflect.Type {
+
+	return p.Type.RetType()
+}
+
 // SizeOf is required by a matching unit. see Ruler interface.
 //
 func (p *Member) SizeOf() int {
@@ -42,30 +80,24 @@ func (p *Member) SizeOf() int {
 // -----------------------------------------------------------------------------
 
 type structType struct {
-	members []Member
-	doR     Ruler
-	retFn   func(ctx *Context) (v interface{}, err error)
-	size    int
+	rulers []Ruler
+	size   int
 }
 
 func (p *structType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	for _, m := range p.members {
-		_, err = m.Match(in, ctx)
+	for _, r := range p.rulers {
+		_, err = r.Match(in, ctx)
 		if err != nil {
 			return
 		}
-	}
-	if p.doR != nil {
-		_, err = p.doR.Match(in, ctx)
-		if err != nil {
-			return
-		}
-	}
-	if p.retFn != nil {
-		return p.retFn(ctx)
 	}
 	return ctx.Dom(), nil
+}
+
+func (p *structType) RetType() reflect.Type {
+
+	return TyInterface
 }
 
 func (p *structType) SizeOf() int {
@@ -78,13 +110,9 @@ func (p *structType) SizeOf() int {
 
 func (p *structType) sizeof() int {
 
-	if p.doR != nil || p.retFn != nil {
-		return -1
-	}
-
 	size := 0
-	for _, m := range p.members {
-		if n := m.Type.SizeOf(); n < 0 {
+	for _, r := range p.rulers {
+		if n := r.SizeOf(); n < 0 {
 			size = -1
 			break
 		} else {
@@ -96,26 +124,14 @@ func (p *structType) sizeof() int {
 
 // Struct returns a compound matching unit.
 //
-func Struct(members []Member) Ruler {
+func Struct(members []Ruler) Ruler {
 
 	n := len(members)
 	if n == 0 {
 		return Nil
 	}
 
-	return &structType{members: members, size: -2}
-}
-
-// StructEx returns a compound matching unit.
-//
-func StructEx(members []Member, doR Ruler, retFn func(ctx *Context) (v interface{}, err error)) Ruler {
-
-	n := len(members)
-	if n == 0 && doR == nil && retFn == nil {
-		return Nil
-	}
-
-	return &structType{members: members, size: -2, doR: doR, retFn: retFn}
+	return &structType{rulers: members, size: -2}
 }
 
 // -----------------------------------------------------------------------------
@@ -123,7 +139,7 @@ func StructEx(members []Member, doR Ruler, retFn func(ctx *Context) (v interface
 func structFrom(t reflect.Type) (r Ruler, err error) {
 
 	n := t.NumField()
-	members := make([]Member, n)
+	rulers := make([]Ruler, n)
 	for i := 0; i < n; i++ {
 		sf := t.Field(i)
 		r, err = TypeFrom(sf.Type)
@@ -131,9 +147,9 @@ func structFrom(t reflect.Type) (r Ruler, err error) {
 			log.Warn("bpl.TypeFrom failed:", err)
 			return
 		}
-		members[i] = Member{Name: strings.ToLower(sf.Name), Type: r}
+		rulers[i] = &Member{Name: strings.ToLower(sf.Name), Type: r}
 	}
-	return Struct(members), nil
+	return Struct(rulers), nil
 }
 
 // TypeFrom creates a matching unit from a Go type.

@@ -1,3 +1,6 @@
+//
+// https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/
+
 document = bson
 
 MsgHeader = {/C
@@ -76,7 +79,8 @@ OP_RET = {/C
 
 Message = {
 	header MsgHeader   // standard message header
-	read header.messageLength - sizeof(MsgHeader) do case header.opCode {
+	_body  [header.messageLength - sizeof(MsgHeader)]byte
+	eval _body do case header.opCode {
 		1:    OP_REPLY    // Reply to a client request. responseTo is set.
 		1000: OP_MSG      // Generic msg command followed by a string.
 		2001: OP_UPDATE
@@ -87,7 +91,7 @@ Message = {
 		2007: OP_KILL_CURSORS // Notify database that the client has finished with the cursor.
 		2010: OP_REQ
 		2011: OP_RET
-		default: {body *byte}
+		default: let body = _body
 	}
 }
 

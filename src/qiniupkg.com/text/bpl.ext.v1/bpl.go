@@ -1,6 +1,7 @@
 package bpl
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -8,23 +9,47 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 
+	"qlang.io/qlang.spec.v1"
+
 	"qiniupkg.com/text/bpl.v1"
-	"qiniupkg.com/text/bpl.v1/bufio"
 	"qiniupkg.com/text/tpl.v1/interpreter"
+	"qiniupkg.com/x/bufiox.v7"
 	"qiniupkg.com/x/log.v7"
 )
 
 // -----------------------------------------------------------------------------
 
+type filterWriter bytes.Buffer
+
+func (p *filterWriter) Write(b []byte) (n int, err error) {
+
+	p1 := (*bytes.Buffer)(p)
+	n, err = p1.Write(b)
+	b = p1.Bytes()
+	b = b[len(b)-n:]
+	for i, c := range b {
+		if c == '`' {
+			b[i] = '.'
+		}
+	}
+	return
+}
+
+// -----------------------------------------------------------------------------
+
 var (
 	// Ldefault is default flag for `Dumper`.
-	Ldefault = log.Llevel | log.LstdFlags
+	Ldefault = log.Llevel
+
+	// Llong is long log mode for `Dumper`.
+	Llong = log.Llevel | log.LstdFlags
 
 	// Dumper is used for dumping log informations.
-	Dumper = log.New(os.Stderr, "", Ldefault)
+	Dumper = log.New(os.Stdout, "", Ldefault)
 
 	// SetCaseType controls to set `_type` into matching result or not.
 	SetCaseType = true
@@ -52,49 +77,80 @@ func writePrefix(b *bytes.Buffer, lvl int) {
 //
 func DumpDom(b *bytes.Buffer, dom interface{}, lvl int) {
 
-	if dom == nil {
-		b.WriteString("<nil>")
-		return
-	}
-	switch v := dom.(type) {
-	case []interface{}:
-		writePrefix(b, lvl)
+	dumpDomValue(b, reflect.ValueOf(dom), lvl)
+}
+
+type stringSlice []reflect.Value
+
+func (p stringSlice) Len() int           { return len(p) }
+func (p stringSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
+func (p stringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+var typeBytes = reflect.TypeOf([]byte(nil))
+
+func dumpDomValue(b *bytes.Buffer, dom reflect.Value, lvl int) {
+
+retry:
+	switch dom.Kind() {
+	case reflect.Slice:
+		if dom.Type() == typeBytes {
+			b.WriteByte('\n')
+			d := hex.Dumper((*filterWriter)(b))
+			d.Write(dom.Bytes())
+			d.Close()
+			return
+		}
 		b.WriteByte('[')
-		for _, item := range v {
+		n := dom.Len()
+		for i := 0; i < n; i++ {
 			b.WriteByte('\n')
 			writePrefix(b, lvl+1)
-			DumpDom(b, item, lvl+1)
+			dumpDomValue(b, dom.Index(i), lvl+1)
+			b.WriteByte(',')
 		}
+		b.WriteByte('\n')
 		writePrefix(b, lvl)
 		b.WriteByte(']')
-	case map[string]interface{}:
+	case reflect.Map:
 		b.WriteByte('{')
-		keys := make([]string, 0, len(v))
-		for key := range v {
-			if strings.HasPrefix(key, "_") {
-				continue
+		keys := dom.MapKeys()
+		fstring := dom.Type().Key().Kind() == reflect.String
+		if fstring {
+			n := 0
+			for _, key := range keys {
+				if strings.HasPrefix(key.String(), "_") {
+					continue
+				}
+				keys[n] = key
+				n++
 			}
-			keys = append(keys, key)
+			keys = keys[:n]
+			sort.Sort(stringSlice(keys))
 		}
-		sort.Strings(keys)
 		for _, key := range keys {
-			item := v[key]
+			item := dom.MapIndex(key)
 			b.WriteByte('\n')
 			writePrefix(b, lvl+1)
-			b.WriteString(key)
+			if fstring {
+				b.WriteString(key.String())
+			} else {
+				dumpDomValue(b, key, lvl+1)
+			}
 			b.WriteString(": ")
-			DumpDom(b, item, lvl+1)
+			dumpDomValue(b, item, lvl+1)
 		}
 		b.WriteByte('\n')
 		writePrefix(b, lvl)
 		b.WriteByte('}')
-	case []byte:
-		b.WriteByte('\n')
-		d := hex.Dumper(b)
-		d.Write(v)
-		d.Close()
+	case reflect.Interface, reflect.Ptr:
+		if dom.IsNil() {
+			b.WriteString("<nil>")
+			return
+		}
+		dom = dom.Elem()
+		goto retry
 	default:
-		ret, _ := json.Marshal(dom)
+		ret, _ := json.Marshal(dom.Interface())
 		b.Write(ret)
 	}
 }
@@ -105,14 +161,24 @@ type dump int
 
 func (p dump) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
 
+	dom := ctx.Dom()
+	if dom == qlang.Undefined {
+		return
+	}
+
 	var b bytes.Buffer
-	if prefix, ok := ctx.Globals["DUMP_PREFIX"]; ok {
+	if prefix, ok := ctx.Globals.Var("BPL_DUMP_PREFIX"); ok {
 		b.WriteString(prefix.(string))
 	}
 	b.WriteByte('\n')
-	DumpDom(&b, ctx.Dom(), 0)
+	DumpDom(&b, dom, 0)
 	Dumper.Info(b.String())
 	return
+}
+
+func (p dump) RetType() reflect.Type {
+
+	return bpl.TyInterface
 }
 
 func (p dump) SizeOf() int {
@@ -125,7 +191,14 @@ func (p dump) SizeOf() int {
 // A Ruler is a matching unit.
 //
 type Ruler struct {
-	bpl.Ruler
+	Impl bpl.Ruler
+}
+
+// Match matches input stream `in`, and returns matching result.
+//
+func (p Ruler) Match(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err error) {
+
+	return bpl.MatchStream(p.Impl, in, ctx)
 }
 
 // SafeMatch matches input stream `in`, and returns matching result.
@@ -134,18 +207,20 @@ func (p Ruler) SafeMatch(in *bufio.Reader, ctx *bpl.Context) (v interface{}, err
 
 	defer func() {
 		if e := recover(); e != nil {
-			switch v := e.(type) {
+			switch val := e.(type) {
 			case string:
-				err = errors.New(v)
+				err = errors.New(val)
 			case error:
-				err = v
+				err = val
+			case int:
+				v = val
 			default:
 				panic(e)
 			}
 		}
 	}()
 
-	return p.Ruler.Match(in, ctx)
+	return bpl.MatchStream(p.Impl, in, ctx)
 }
 
 // MatchStream matches input stream `r`, and returns matching result.
@@ -161,7 +236,7 @@ func (p Ruler) MatchStream(r io.Reader) (v interface{}, err error) {
 //
 func (p Ruler) MatchBuffer(b []byte) (v interface{}, err error) {
 
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	ctx := bpl.NewContext()
 	return p.SafeMatch(in, ctx)
 }
@@ -197,6 +272,9 @@ func New(code []byte, fname string) (r Ruler, err error) {
 		return
 	}
 
+	if DumpCode != 0 {
+		p.code.Dump()
+	}
 	return p.Ret()
 }
 
@@ -223,6 +301,25 @@ func NewFromFile(fname string) (r Ruler, err error) {
 func NewContext() *bpl.Context {
 
 	return bpl.NewContext()
+}
+
+// -----------------------------------------------------------------------------
+
+// SetDumpCode sets dump code mode:
+//	"1" - dump code with rem instruction.
+//	"2" - dump code without rem instruction.
+//  else - don't dump code.
+//
+func SetDumpCode(dumpCode string) {
+
+	switch dumpCode {
+	case "true", "1":
+		DumpCode = 1
+	case "2":
+		DumpCode = 2
+	default:
+		DumpCode = 0
+	}
 }
 
 // -----------------------------------------------------------------------------

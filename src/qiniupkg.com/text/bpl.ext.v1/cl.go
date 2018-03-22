@@ -24,20 +24,15 @@ term3 = term2 *('<' term2/lt | '>' term2/gt | "==" term2/eq | "<=" term2/le | ">
 
 term4 = term3 *("&&" term3/iand)
 
-iexpr = term4 *("||" term4/ior)
+qexpr = term4 *("||" term4/ior)
+
+iexpr = qexpr/qline
 
 index = '['/istart iexpr ']'/iend
 
-ctype = IDENT/ident ?(index/array | '*'/array0 | '?'/array01 | '+'/array1)
+casecond = INT/casei | STRING/cases
 
-type =
-	IDENT/ident |
-	(index IDENT/ident)/array |
-	('*'! IDENT/ident)/array0 |
-	('?'! IDENT/ident)/array01 |
-	('+'! IDENT/ident)/array1
-
-casebody = (INT/casei ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
+casebody = (casecond ':' expr/source) %= ';'/ARITY ?(';' "default" ':' expr)/ARITY
 
 caseexpr = "case"/istart! iexpr/source '{'/iend casebody ?';' '}' /case
 
@@ -45,29 +40,45 @@ exprblock = true/istart! iexpr (@'{' | "do")/iend expr
 
 ifexpr = "if" exprblock *("elif" exprblock)/ARITY ?("else"! expr)/ARITY /if
 
+skipexpr = "skip"/istart! iexpr /iend /skip
+
 readexpr = "read" exprblock /read
 
 evalexpr = "eval" exprblock /eval
 
-doexpr = "do"! (
-		~'{' /istart iexpr /iend /do |
-		'{' ('/' "C" ';' cstruct | struct) ?';' '}')
+doexpr = "do"/istart! iexpr /iend /do
 
-letexpr = "let"! IDENT/var '='/istart! iexpr /iend /let
+letexpr = "let"! IDENT/var % ','/ARITY '='/istart! iexpr /iend /let
 
 assertexpr = ("assert"/istart! iexpr /iend) /assert
 
+fatalexpr = ("fatal"/istart! iexpr /iend) /fatal
+
 gblexpr = "global"! IDENT/var '='/istart! iexpr /iend /global
 
-lzwexpr = "lzw"/istart! iexpr /iend ',' /istart! iexpr /iend ',' /istart! iexpr /iend exprblock /lzw
+retexpr = "return"/istart! iexpr /iend /return
 
-dynexpr = (caseexpr | readexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | gblexpr | lzwexpr)/xline
+dumpexpr = "dump"/dump
 
-retexpr = ?';' "return"/istart! iexpr /iend
+dynexpr = caseexpr | readexpr | skipexpr | evalexpr | assertexpr | ifexpr | letexpr | doexpr | retexpr | gblexpr | fatalexpr | dumpexpr
 
-cstruct = (ctype IDENT/var) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /cstruct
+basetype =
+	IDENT/ident |
+	(index IDENT/ident)/array
 
-struct = (IDENT/var type) %= ';'/ARITY ?';' dynexpr %= ';'/ARITY ?retexpr/ARITY /struct
+type =
+	basetype |
+	('*'! basetype)/array0 |
+	('?'! basetype)/array01 |
+	('+'! basetype)/array1
+
+member = ((IDENT type)/member | dynexpr)/xline
+
+cmember = (IDENT/ident ?(index/array | '*'/array0 | '?'/array01 | '+'/array1) IDENT/member | dynexpr)/xline
+
+cstruct = cmember %= ';'/ARITY /struct
+
+struct = member %= ';'/ARITY /struct
 
 factor =
 	IDENT/ident |
@@ -79,17 +90,20 @@ factor =
 	'[' +factor/Seq ']' |
 	dynexpr
 
+imember = IDENT | "assert" | "fatal" | "read" | "skip" | "eval" | "let" | "sizeof" | "C" | "global" | "do" | "dump"
+
 atom =
-	'(' iexpr %= ','/ARITY ')'/call |
-	'.' IDENT/mref |
-	'[' ?iexpr/ARITY ?':'/ARITY ?iexpr/ARITY ']'/index
+	'('! qexpr %= ','/ARITY ?"..."/ARITY ?',' ')'/call |
+	'.'! imember/mref |
+	'['! ?qexpr/ARITY ?':'/ARITY ?qexpr/ARITY ']'/index
 
 ifactor =
 	INT/pushi |
 	STRING/pushs |
-	(IDENT/ref | '('! iexpr ')' | '[' iexpr %= ','/ARITY ?',' ']'/slice) *atom |
+	CHAR/pushc |
+	(IDENT/ref | '('! qexpr ')' | '[' qexpr %= ','/ARITY ?',' ']'/slice) *atom |
 	"sizeof"! '(' IDENT/sizeof ')' |
-	'{'! (iexpr ':' iexpr) %= ','/ARITY ?',' '}'/map |
+	'{'! (qexpr ':' qexpr) %= ','/ARITY ?',' '}'/map |
 	'^' ifactor/bitnot |
 	'-' ifactor/neg |
 	'+' ifactor
@@ -99,7 +113,7 @@ cexpr = INT/cpushi
 const = (IDENT '=' cexpr ';')/const
 
 doc = +(
-	(IDENT '=' expr ';')/assign |
+	(IDENT '=' expr/xline ';')/assign |
 	"const" '(' *const ')' ';')
 `
 
@@ -113,7 +127,7 @@ var (
 // A Compiler compiles bpl source code to matching units.
 //
 type Compiler struct {
-	*executor
+	code     exec.Code
 	stk      []interface{}
 	rulers   map[string]bpl.Ruler
 	vars     map[string]*bpl.TypeVar
@@ -128,8 +142,7 @@ func newCompiler() (p *Compiler) {
 	rulers := make(map[string]bpl.Ruler)
 	vars := make(map[string]*bpl.TypeVar)
 	consts := make(map[string]interface{})
-	e := newExecutor()
-	return &Compiler{rulers: rulers, vars: vars, consts: consts, executor: e}
+	return &Compiler{rulers: rulers, vars: vars, consts: consts}
 }
 
 // Ret returns compiling result.
@@ -141,7 +154,7 @@ func (p *Compiler) Ret() (r Ruler, err error) {
 		if v, ok := p.vars["doc"]; ok {
 			root = v.Elem
 		} else {
-			return Ruler{Ruler: nil}, ErrNoDoc
+			return Ruler{}, ErrNoDoc
 		}
 	}
 	for name, v := range p.vars {
@@ -150,7 +163,7 @@ func (p *Compiler) Ret() (r Ruler, err error) {
 			return
 		}
 	}
-	return Ruler{Ruler: root}, nil
+	return Ruler{Impl: root}, nil
 }
 
 // Grammar returns the qlang compiler's grammar. It is required by tpl.Interpreter engine.
@@ -188,62 +201,74 @@ var exports = map[string]interface{}{
 	"$iand": and,
 	"$ior":  or,
 
-	"$sizeof":  (*Compiler).sizeof,
-	"$map":     (*Compiler).fnMap,
-	"$slice":   (*Compiler).fnSlice,
-	"$index":   (*Compiler).index,
-	"$ARITY":   (*Compiler).arity,
-	"$call":    (*Compiler).call,
-	"$ref":     (*Compiler).ref,
-	"$mref":    (*Compiler).mref,
-	"$pushi":   (*Compiler).pushi,
-	"$pushs":   (*Compiler).pushs,
-	"$cpushi":  (*Compiler).cpushi,
-	"$let":     (*Compiler).fnLet,
-	"$global":  (*Compiler).fnGlobal,
-	"$eval":    (*Compiler).fnEval,
-	"$do":      (*Compiler).fnDo,
-	"$if":      (*Compiler).fnIf,
-	"$read":    (*Compiler).fnRead,
-	"$lzw":     (*Compiler).fnLzw,
-	"$case":    (*Compiler).fnCase,
-	"$assert":  (*Compiler).fnAssert,
-	"$const":   (*Compiler).fnConst,
-	"$casei":   (*Compiler).casei,
-	"$source":  (*Compiler).source,
-	"$cstruct": (*Compiler).cstruct,
-	"$struct":  (*Compiler).gostruct,
-	"$xline":   (*Compiler).xline,
+	"$sizeof": (*Compiler).sizeof,
+	"$map":    (*Compiler).fnMap,
+	"$slice":  (*Compiler).fnSlice,
+	"$index":  (*Compiler).index,
+	"$ARITY":  (*Compiler).arity,
+	"$call":   (*Compiler).call,
+	"$ref":    (*Compiler).ref,
+	"$mref":   (*Compiler).mref,
+	"$pushi":  (*Compiler).pushi,
+	"$pushs":  (*Compiler).pushs,
+	"$pushc":  (*Compiler).pushc,
+	"$cpushi": (*Compiler).cpushi,
+	"$let":    (*Compiler).fnLet,
+	"$global": (*Compiler).fnGlobal,
+	"$eval":   (*Compiler).fnEval,
+	"$do":     (*Compiler).fnDo,
+	"$if":     (*Compiler).fnIf,
+	"$read":   (*Compiler).fnRead,
+	"$skip":   (*Compiler).fnSkip,
+	"$return": (*Compiler).fnReturn,
+	"$case":   (*Compiler).fnCase,
+	"$assert": (*Compiler).fnAssert,
+	"$fatal":  (*Compiler).fnFatal,
+	"$dump":   (*Compiler).fnDump,
+	"$const":  (*Compiler).fnConst,
+	"$casei":  (*Compiler).casei,
+	"$cases":  (*Compiler).cases,
+	"$source": (*Compiler).source,
+	"$member": (*Compiler).member,
+	"$struct": (*Compiler).gostruct,
+	"$qline":  (*Compiler).codeLine,
+	"$xline":  (*Compiler).xline,
+
+	"exit": exit,
 }
 
 var builtins = map[string]bpl.Ruler{
-	"int8":     bpl.Int8,
-	"int16":    bpl.Int16,
-	"int32":    bpl.Int32,
-	"int64":    bpl.Int64,
-	"uint8":    bpl.Uint8,
-	"byte":     bpl.Uint8,
-	"char":     bpl.Char,
-	"uint16":   bpl.Uint16,
-	"uint24":   bpl.Uint24,
-	"uint32":   bpl.Uint32,
-	"uint64":   bpl.Uint64,
-	"uint16be": bpl.Uintbe(2),
-	"uint24be": bpl.Uintbe(3),
-	"uint32be": bpl.Uintbe(4),
-	"uint64be": bpl.Uintbe(8),
-	"uint16le": bpl.Uint16,
-	"uint24le": bpl.Uint24,
-	"uint32le": bpl.Uint32,
-	"uint64le": bpl.Uint64,
-	"float32":  bpl.Float32,
-	"float64":  bpl.Float64,
-	"cstring":  bpl.CString,
-	"nil":      bpl.Nil,
-	"eof":      bpl.EOF,
-	"done":     bpl.Done,
-	"bson":     bson.Type,
-	"dump":     dump(0),
+	"int8":      bpl.Int8,
+	"int16":     bpl.Int16,
+	"int32":     bpl.Int32,
+	"int64":     bpl.Int64,
+	"uint8":     bpl.Uint8,
+	"byte":      bpl.Uint8,
+	"char":      bpl.Char,
+	"uint16":    bpl.Uint16,
+	"uint24":    bpl.Uint24,
+	"uint32":    bpl.Uint32,
+	"uint64":    bpl.Uint64,
+	"uint16be":  bpl.Uintbe(2),
+	"uint24be":  bpl.Uintbe(3),
+	"uint32be":  bpl.Uintbe(4),
+	"uint64be":  bpl.Uintbe(8),
+	"uint16le":  bpl.Uint16,
+	"uint24le":  bpl.Uint24,
+	"uint32le":  bpl.Uint32,
+	"uint64le":  bpl.Uint64,
+	"float32":   bpl.Float32,
+	"float64":   bpl.Float64,
+	"float32le": bpl.Float32,
+	"float64le": bpl.Float64,
+	"float32be": bpl.Float32be,
+	"float64be": bpl.Float64be,
+	"cstring":   bpl.CString,
+	"nil":       bpl.Nil,
+	"eof":       bpl.EOF,
+	"done":      bpl.Done,
+	"bson":      bson.Type,
+	"dump":      dump(0),
 }
 
 // -----------------------------------------------------------------------------

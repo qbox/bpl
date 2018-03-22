@@ -2,11 +2,32 @@ package bpl
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"testing"
 
+	"qlang.io/qlang.spec.v1"
+
 	"qiniupkg.com/text/bpl.v1/binary"
 )
+
+// -----------------------------------------------------------------------------
+
+func TestHexdump(t *testing.T) {
+
+	b := bytes.NewBuffer(nil)
+	d := hex.Dumper((*filterWriter)(b))
+	d.Write([]byte{
+		0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+		0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+	})
+	d.Close()
+	if string(b.Bytes()) != `00000000  60 60 60 60 60 60 60 60  60 60 60 60 60 60 60 60  |................|
+00000010  60 60 60 60 60 60 60 60  60 60 60 60 60           |.............|
+` {
+		t.Fatal("Hexdump failed")
+	}
+}
 
 // -----------------------------------------------------------------------------
 
@@ -194,6 +215,98 @@ func TestDump(t *testing.T) {
 	DumpDom(&b, v, 0)
 	if b.String() != "{\n  a: 1\n}" {
 		t.Fatal("dump:", b.String())
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeDump2 = `
+
+doc = {
+	return undefined
+}
+`
+
+func TestDump2(t *testing.T) {
+
+	r, err := NewFromString(codeDump2, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(nil)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	if v != qlang.Undefined {
+		t.Fatal("v:", v)
+	}
+	var b bytes.Buffer
+	DumpDom(&b, v, 0)
+	if b.String() != "\"```undefined```\"" {
+		t.Fatal("dump:", b.String())
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeRtmp1 = `
+
+AMF0_NULL = {
+	return nil
+}
+
+AMF0_NUMBER = {
+    val float64be
+	return val
+}
+
+AMF0_STRING = {
+    len uint16be
+    val [len]char
+	return val
+}
+
+AMF0_TYPE = {
+    marker byte
+    case marker {
+        0x00: AMF0_NUMBER
+        0x02: AMF0_STRING
+		0x05: AMF0_NULL
+    }
+}
+
+AMF0_CMDDATA = {
+    cmd           AMF0_TYPE
+    transactionId AMF0_TYPE
+    value         *AMF0_TYPE
+}
+
+doc = {
+    msg AMF0_CMDDATA
+}
+`
+
+func TestRtmp1(t *testing.T) {
+
+	buf := []byte{
+		0x02, 0x00, 0x08, 0x6f, 0x6e, 0x42, 0x57, 0x44,
+		0x6f, 0x6e, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x05,
+	}
+	r, err := NewFromString(codeRtmp1, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(buf)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"msg":{"cmd":"onBWDone","transactionId":0,"value":[null]}}` {
+		t.Fatal("ret:", string(ret))
 	}
 }
 

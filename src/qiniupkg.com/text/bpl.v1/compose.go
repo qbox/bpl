@@ -1,11 +1,13 @@
 package bpl
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"io/ioutil"
+	"reflect"
 
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 var (
@@ -26,6 +28,11 @@ type nilType int
 func (p nilType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	return nil, nil
+}
+
+func (p nilType) RetType() reflect.Type {
+
+	return TyInterface
 }
 
 func (p nilType) SizeOf() int {
@@ -50,6 +57,11 @@ func (p eof) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return nil, ErrNotEOF
 }
 
+func (p eof) RetType() reflect.Type {
+
+	return TyInterface
+}
+
 func (p eof) SizeOf() int {
 
 	return 0
@@ -67,6 +79,11 @@ func (p done) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
 	_, err = in.WriteTo(ioutil.Discard)
 	return
+}
+
+func (p done) RetType() reflect.Type {
+
+	return TyInterface
 }
 
 func (p done) SizeOf() int {
@@ -93,6 +110,11 @@ func (p *and) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 		}
 	}
 	return ctx.Dom(), nil
+}
+
+func (p *and) RetType() reflect.Type {
+
+	return TyInterface
 }
 
 func (p *and) SizeOf() int {
@@ -133,6 +155,11 @@ func (p *seq) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 	return ret, nil
 }
 
+func (p *seq) RetType() reflect.Type {
+
+	return tyInterfaceSlice
+}
+
 func (p *seq) SizeOf() int {
 
 	return -1
@@ -158,6 +185,11 @@ func (p *act) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 		return
 	}
 	return ctx.Dom(), nil
+}
+
+func (p *act) RetType() reflect.Type {
+
+	return TyInterface
 }
 
 func (p *act) SizeOf() int {
@@ -190,6 +222,11 @@ func (p *dyntype) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 	return
 }
 
+func (p *dyntype) RetType() reflect.Type {
+
+	return TyInterface
+}
+
 func (p *dyntype) SizeOf() int {
 
 	return -1
@@ -217,8 +254,13 @@ func (p *read) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) 
 	if err != nil {
 		return
 	}
-	in = bufio.NewReaderBuffer(b)
-	return p.r.Match(in, ctx)
+	in = bufiox.NewReaderBuffer(b)
+	return MatchStream(p.r, in, ctx)
+}
+
+func (p *read) RetType() reflect.Type {
+
+	return p.r.RetType()
 }
 
 func (p *read) SizeOf() int {
@@ -231,6 +273,36 @@ func (p *read) SizeOf() int {
 func Read(n func(ctx *Context) int, r Ruler) Ruler {
 
 	return &read{r: r, n: n}
+}
+
+// -----------------------------------------------------------------------------
+
+type skip struct {
+	n func(ctx *Context) int
+}
+
+func (p *skip) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
+
+	n := p.n(ctx)
+	v, err = in.Discard(n)
+	return
+}
+
+func (p *skip) RetType() reflect.Type {
+
+	return tyInt
+}
+
+func (p *skip) SizeOf() int {
+
+	return -1
+}
+
+// Skip returns a matching unit that skips n(ctx) bytes.
+//
+func Skip(n func(ctx *Context) int) Ruler {
+
+	return &skip{n: n}
 }
 
 // -----------------------------------------------------------------------------
@@ -248,6 +320,11 @@ func (p *ifType) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 	return
 }
 
+func (p *ifType) RetType() reflect.Type {
+
+	return TyInterface
+}
+
 func (p *ifType) SizeOf() int {
 
 	return -1
@@ -263,15 +340,35 @@ func If(cond func(ctx *Context) bool, r Ruler) Ruler {
 // -----------------------------------------------------------------------------
 
 type eval struct {
-	expr func(ctx *Context) []byte
+	expr func(ctx *Context) interface{}
 	r    Ruler
 }
 
 func (p *eval) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error) {
 
-	b := p.expr(ctx)
-	in = bufio.NewReaderBuffer(b)
-	return p.r.Match(in, ctx)
+	fclose := false
+	val := p.expr(ctx)
+	switch v := val.(type) {
+	case []byte:
+		in = bufiox.NewReaderBuffer(v)
+	case io.Reader:
+		in = bufio.NewReader(v)
+		fclose = true
+	default:
+		panic("eval <expr> must return []byte or io.Reader")
+	}
+	v, err = MatchStream(p.r, in, ctx)
+	if fclose {
+		if v, ok := val.(io.Closer); ok {
+			v.Close()
+		}
+	}
+	return
+}
+
+func (p *eval) RetType() reflect.Type {
+
+	return p.r.RetType()
 }
 
 func (p *eval) SizeOf() int {
@@ -281,7 +378,7 @@ func (p *eval) SizeOf() int {
 
 // Eval returns a matching unit that eval expr(ctx) and matches it with R.
 //
-func Eval(expr func(ctx *Context) []byte, r Ruler) Ruler {
+func Eval(expr func(ctx *Context) interface{}, r Ruler) Ruler {
 
 	return &eval{r: r, expr: expr}
 }
@@ -299,6 +396,11 @@ func (p *assert) Match(in *bufio.Reader, ctx *Context) (v interface{}, err error
 		return
 	}
 	panic(p.msg)
+}
+
+func (p *assert) RetType() reflect.Type {
+
+	return TyInterface
 }
 
 func (p *assert) SizeOf() int {
@@ -342,6 +444,13 @@ func (p *TypeVar) Match(in *bufio.Reader, ctx *Context) (v interface{}, err erro
 		return 0, ErrVarNotAssigned
 	}
 	return r.Match(in, ctx)
+}
+
+// RetType returns matching result type.
+//
+func (p *TypeVar) RetType() reflect.Type {
+
+	return p.Elem.RetType()
 }
 
 // SizeOf is required by a matching unit. see Ruler interface.

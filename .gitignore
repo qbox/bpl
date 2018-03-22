@@ -2,6 +2,8 @@
 *.o
 *.a
 *.so
+*.log
+*.dmg
 
 # Folders
 _obj
@@ -9,6 +11,10 @@ _test
 
 pkg/
 bin/
+
+qmongoproxy/
+qrtmpproxy/
+qgif/
 
 # Architecture specific extensions/prefixes
 *.[568vq]

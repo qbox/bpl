@@ -1,26 +1,28 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"qiniupkg.com/text/bpl.ext.v1"
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/log.v7"
 )
 
 var (
 	protocol = flag.String("p", "", "protocol file in BPL syntax. default is guessed by extension.")
 	output   = flag.String("o", "", "output log file, default is stderr.")
+	logmode  = flag.String("l", "", "log mode: short (default) or long.")
 )
 
-// qbpl -p <protocol>.bpl [-o <output>.log] <file>
+// qbpl [-p <protocol>.bpl -o <output>.log -l <logmode>] <file>
 //
 func main() {
 
 	flag.Parse()
+	bpl.SetDumpCode(os.Getenv("BPL_DUMPCODE"))
 
 	var in *bufio.Reader
 	args := flag.Args()
@@ -38,7 +40,7 @@ func main() {
 
 	if *protocol == "" {
 		if len(args) == 0 {
-			fmt.Fprintln(os.Stderr, "Usage: qbpl [-p <protocol>.bpl -o <output>.log] <file>")
+			fmt.Fprintln(os.Stderr, "Usage: qbpl [-p <protocol>.bpl -o <output>.log -l <logmode>] <file>")
 			flag.PrintDefaults()
 			return
 		}
@@ -48,14 +50,21 @@ func main() {
 		}
 	}
 
+	logflags := bpl.Ldefault
+	flong := (*logmode == "long")
+	if flong {
+		logflags = bpl.Llong
+	}
+
 	if *output != "" {
 		f, err := os.Create(*output)
 		if err != nil {
 			log.Fatalln("Create log file failed:", err)
 		}
 		defer f.Close()
-		bpl.SetDumper(f)
+		bpl.SetDumper(f, logflags)
 	}
+	log.Std = bpl.Dumper
 
 	ruler, err := bpl.NewFromFile(*protocol)
 	if err != nil {

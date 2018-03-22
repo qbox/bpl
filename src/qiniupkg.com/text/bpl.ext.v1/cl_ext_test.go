@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"qiniupkg.com/text/bpl.v1/binary"
-	"qiniupkg.com/text/bpl.v1/bufio"
+	"qiniupkg.com/x/bufiox.v7"
 )
 
 // -----------------------------------------------------------------------------
@@ -242,9 +242,11 @@ const (
 
 headerType = {
 	type int32
-	_    int32
-	n    int32
-	m    int32
+	do println("type:", type)
+
+	_ int32
+	n int32
+	m int32
 	assert n == NVAL
 }
 
@@ -462,7 +464,7 @@ const codeLet = `
 
 doc = {
 	let a = 1
-	let a = 3
+	let a, b = [2, 3]
 }
 `
 
@@ -480,7 +482,7 @@ func TestLet(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if string(ret) != `{"a":3}` {
+	if string(ret) != `{"a":2,"b":3}` {
 		t.Fatal("ret:", string(ret))
 	}
 }
@@ -526,7 +528,9 @@ uint32be = {
     b3 uint8
     b2 uint8
     b1 uint8
-    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
+	if true {
+	    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1
+	}
 }
 
 doc = {
@@ -616,7 +620,7 @@ func TestGlobal2(t *testing.T) {
 	if err != nil {
 		t.Fatal("New failed:", err)
 	}
-	in := bufio.NewReaderBuffer(b)
+	in := bufiox.NewReaderBuffer(b)
 	ctx := NewContext()
 	v, err := r.SafeMatch(in, ctx)
 	if err != nil {
@@ -626,7 +630,7 @@ func TestGlobal2(t *testing.T) {
 	if err != nil {
 		t.Fatal("json.Marshal failed:", err)
 	}
-	if v, ok := ctx.Globals["a"]; !ok || v != 3 {
+	if v, ok := ctx.Globals.Var("a"); !ok || v != 3 {
 		t.Fatal("v != 3: v =", v, ok)
 	}
 	if string(ret) != `{"b":4}` {
@@ -640,6 +644,7 @@ const codeMap = `
 
 record = {
 	do set(msgs, "foo", 35, "bar", 36)
+	do println("msgs:", msgs)
 	let a = get(msgs, "bar")
 }
 
@@ -667,6 +672,42 @@ func TestMap(t *testing.T) {
 		t.Fatal("json.Marshal failed:", err)
 	}
 	if string(ret) != `{"a":36}` {
+		t.Fatal("ret:", string(ret))
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+const codeUnset = `
+
+record = {
+	let a = 1
+	let b = 2
+	if true {
+		do unset("a")
+	}
+}
+
+doc = record
+`
+
+func TestUnset(t *testing.T) {
+
+	b := []byte{1, 2, 3, 4}
+
+	r, err := NewFromString(codeUnset, "")
+	if err != nil {
+		t.Fatal("New failed:", err)
+	}
+	v, err := r.MatchBuffer(b)
+	if err != nil {
+		t.Fatal("Match failed:", err)
+	}
+	ret, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal("json.Marshal failed:", err)
+	}
+	if string(ret) != `{"b":2}` {
 		t.Fatal("ret:", string(ret))
 	}
 }
