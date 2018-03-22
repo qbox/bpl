@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"qiniupkg.com/text/bpl.v1"
+	"qiniu.com/bpl"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
 )

@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"gopkg.in/mgo.v2/bson"
-	"qiniupkg.com/text/bpl.v1"
+	"qiniu.com/bpl"
 )
 
 // -----------------------------------------------------------------------------

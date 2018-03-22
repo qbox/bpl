@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"qiniupkg.com/text/mockd.v1"
+	"qiniu.com/bpl/mockd"
 )
 
 var (

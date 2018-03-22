@@ -13,9 +13,9 @@ import (
 	"reflect"
 	"strings"
 
+	bpl "qiniu.com/bpl/bpl.ext"
 	"qlang.io/qlang.spec.v1"
 
-	"qiniupkg.com/text/bpl.ext.v1"
 	"qiniupkg.com/x/log.v7"
 )
 

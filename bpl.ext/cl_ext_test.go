@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"qiniupkg.com/text/bpl.v1/binary"
+	"qiniu.com/bpl/binary"
 	"qiniupkg.com/x/bufiox.v7"
 )
 

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"qiniupkg.com/text/bpl.ext.v1"
+	bpl "qiniu.com/bpl/bpl.ext"
 	"qiniupkg.com/x/log.v7"
 )
 

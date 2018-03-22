@@ -13,9 +13,9 @@ import (
 	"sort"
 	"strings"
 
+	"qiniu.com/bpl"
 	"qlang.io/qlang.spec.v1"
 
-	"qiniupkg.com/text/bpl.v1"
 	"qiniupkg.com/text/tpl.v1/interpreter"
 	"qiniupkg.com/x/bufiox.v7"
 	"qiniupkg.com/x/log.v7"

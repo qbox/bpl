@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 
-	"qiniupkg.com/text/hex.v1"
+	"qiniu.com/bpl/hex"
 	"qiniupkg.com/x/log.v7"
 )
 

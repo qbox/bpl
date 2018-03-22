@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"qiniupkg.com/text/bpl.ext.v1/bson"
-	"qiniupkg.com/text/bpl.v1"
+	"qiniu.com/bpl"
+	"qiniu.com/bpl/bpl.ext/bson"
 	"qiniupkg.com/text/tpl.v1/interpreter.util"
 	"qlang.io/exec.v2"
 )

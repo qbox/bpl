@@ -3,7 +3,7 @@ package bpl
 import (
 	"fmt"
 
-	"qiniupkg.com/text/bpl.v1"
+	"qiniu.com/bpl"
 	"qlang.io/exec.v2"
 )
 

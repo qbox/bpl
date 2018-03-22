@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 
-	"qiniupkg.com/text/hex.v1"
+	"qiniu.com/bpl/hex"
 )
 
 // -----------------------------------------------------------------------------

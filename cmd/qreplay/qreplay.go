@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"qiniupkg.com/text/replay.v1"
+	"qiniu.com/bpl/replay"
 )
 
 var (

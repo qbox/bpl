@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"qiniupkg.com/text/hex.v1"
+	"qiniu.com/bpl/hex"
 )
 
 // Usage: hexundump <hexdump-file> <binary-file>
