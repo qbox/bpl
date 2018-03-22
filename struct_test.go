@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"qiniupkg.com/text/bpl.v1"
-	bin "qiniupkg.com/text/bpl.v1/binary"
+	"qiniu.com/bpl"
+	bin "qiniu.com/bpl/binary"
 	"qiniupkg.com/x/bufiox.v7"
 )
 
