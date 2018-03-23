@@ -1,6 +1,8 @@
 BPL - Binary Processing Language
 ============
 
+[![Build Status](https://travis-ci.com/qbox/bpl.svg?token=8Frioiaq36bhxZs3jYgn&branch=master)](https://travis-ci.com/qbox/bpl)
+
 ## 快速入门
 
 了解 BPL 最快的方式是学习 qbpl 和 qbplproxy 两个实用程序：
