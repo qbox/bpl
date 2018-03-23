@@ -8,7 +8,7 @@ import (
 
 	"qlang.io/qlang.spec.v1"
 
-	"qiniupkg.com/text/bpl.v1/binary"
+	"qiniu.com/bpl/binary"
 )
 
 // -----------------------------------------------------------------------------
